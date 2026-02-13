@@ -66,6 +66,10 @@ public class SwaggerConfig {
 
   private void generateErrorCodeResponseExample(Operation operation, ErrorCode[] errorCodes) {
     ApiResponses responses = operation.getResponses();
+    if (responses == null) {
+      responses = new ApiResponses();
+      operation.setResponses(responses);
+    }
 
     Map<Integer, List<ExampleHolder>> grouped = Arrays.stream(errorCodes)
         .map(errorCode -> ExampleHolder.builder()
@@ -81,6 +85,10 @@ public class SwaggerConfig {
 
   private void generateErrorCodeResponseExample(Operation operation, ErrorCode errorCode) {
     ApiResponses responses = operation.getResponses();
+    if (responses == null) {
+      responses = new ApiResponses();
+      operation.setResponses(responses);
+    }
 
     ExampleHolder exampleHolder = ExampleHolder.builder()
         .holder(getSwaggerExample(errorCode))
