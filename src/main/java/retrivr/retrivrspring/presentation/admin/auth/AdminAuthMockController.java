@@ -6,8 +6,10 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.presentation.admin.auth.request.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.request.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.request.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.response.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.response.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.response.EmailVerificationResponse;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -15,7 +17,7 @@ import retrivr.retrivrspring.presentation.admin.auth.response.AdminSignupRespons
 public class AdminAuthMockController {
 
     @PostMapping("/login")
-    @Operation(summary = "UC-1.1 관리자 로그인 (Mock)")
+    @Operation(summary = "UC-1.1 관리자 로그")
     public AdminLoginResponse login(
             @Valid @RequestBody AdminLoginRequest request
     ) {
@@ -37,7 +39,7 @@ public class AdminAuthMockController {
     }
 
     @PostMapping("/signup")
-    @Operation(summary = "UC-1.2 관리자 회원가입 (Mock)")
+    @Operation(summary = "UC-1.2 관리자 회원가입")
     public AdminSignupResponse signup(
             @Valid @RequestBody AdminSignupRequest request
     ) {
@@ -59,6 +61,34 @@ public class AdminAuthMockController {
                 request.organizationName(),
                 request.email(),
                 "PENDING"
+        );
+    }
+
+    @PostMapping("/email-verification")
+    @Operation(summary = "UC-1.3.1 이메일 인증")
+    public EmailVerificationResponse verifyEmail(
+            @Valid @RequestBody EmailVerificationRequest request
+    ) {
+
+        String mockCode = "123456";
+
+        if (!mockCode.equals(request.code())) {
+            throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
+        }
+
+        //실제구현
+        /*
+        1. email_verification 조회
+        2. code 일치 여부 확인
+        3. expires_at 만료 확인
+        4. verified_at 업데이트
+        5. organization.status = ACTIVE
+         */
+
+        return new EmailVerificationResponse(
+                request.email(),
+                true,
+                java.time.LocalDateTime.now().toString()
         );
     }
 
