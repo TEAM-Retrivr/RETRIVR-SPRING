@@ -18,16 +18,27 @@ import retrivr.retrivrspring.presentation.admin.auth.response.PasswordResetRespo
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
-@Tag(name = "Admin Auth")
+@Tag(name = "Admin API / Auth", description = "관리자 인증 관련 API")
 public class AdminAuthMockController {
 
     @PostMapping("/login")
-    @Operation(summary = "UC-1.1 관리자 로그")
+    @Operation(
+            summary = "UC-1.1 관리자 로그인",
+            description = "이메일과 비밀번호를 입력받아 관리자 인증 후 access/refresh 토큰을 발급한다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "로그인 성공",
+            content = @Content(schema = @Schema(implementation = AdminLoginResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "이메일 또는 비밀번호 불일치"
+    )
     public AdminLoginResponse login(
             @Valid @RequestBody AdminLoginRequest request
     ) {
 
-        // 🔹 Mock 계정 체크
         if (!"admin@retrivr.com".equals(request.email())
                 || !"password1234".equals(request.password())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
@@ -44,7 +55,19 @@ public class AdminAuthMockController {
     }
 
     @PostMapping("/signup")
-    @Operation(summary = "UC-1.2 관리자 회원가입")
+    @Operation(
+            summary = "UC-1.2 관리자 회원가입",
+            description = "이메일, 비밀번호, 단체명을 입력받아 새로운 관리자 계정을 생성한다. 생성 후 이메일 인증이 필요하다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "회원가입 성공",
+            content = @Content(schema = @Schema(implementation = AdminSignupResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "이미 가입된 이메일 또는 입력값 오류"
+    )
     public AdminSignupResponse signup(
             @Valid @RequestBody AdminSignupRequest request
     ) {
@@ -52,12 +75,6 @@ public class AdminAuthMockController {
         if ("admin@retrivr.com".equals(request.email())) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
-
-        // 실제 구현
-        // 1. organization 생성
-        // 2. password → password_hash 변환
-        // 3. email_verification row 생성
-        // 4. 트랜잭션 commit
 
         Long mockOrgId = 2L;
 
@@ -70,7 +87,19 @@ public class AdminAuthMockController {
     }
 
     @PostMapping("/email-verification")
-    @Operation(summary = "UC-1.3.1 이메일 인증")
+    @Operation(
+            summary = "UC-1.3.1 이메일 인증",
+            description = "이메일로 발급된 인증 코드를 검증하고 인증을 완료한다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "이메일 인증 성공",
+            content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "인증 코드 불일치 또는 만료"
+    )
     public EmailVerificationResponse verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request
     ) {
@@ -81,21 +110,13 @@ public class AdminAuthMockController {
             throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
         }
 
-        //실제구현
-        /*
-        1. email_verification 조회
-        2. code 일치 여부 확인
-        3. expires_at 만료 확인
-        4. verified_at 업데이트
-        5. organization.status = ACTIVE
-         */
-
         return new EmailVerificationResponse(
                 request.email(),
                 true,
                 java.time.LocalDateTime.now().toString()
         );
     }
+
 
     @PatchMapping("/password")
     @Operation(
