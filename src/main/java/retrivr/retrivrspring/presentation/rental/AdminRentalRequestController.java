@@ -102,7 +102,7 @@ public class AdminRentalRequestController {
   )
   public AdminRentalDecisionResponse reject(
       @PathVariable Long rentalId,
-      @RequestBody(required = false) AdminRentalRejectRequest request
+      @RequestBody AdminRentalRejectRequest request
   ) {
     return new AdminRentalDecisionResponse(
         rentalId,
