@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.presentation.item.res;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.Getter;
 
 @Getter
@@ -16,9 +17,10 @@ public class PublicItemSummary {
   Boolean hasItemUnit;
   List<PublicItemUnitSummary> itemUnits;
 
-  public PublicItemSummary(Long itemId, Integer totalQuantity, Integer availableQuantity,
-      String name, Integer duration, String description, String guaranteedGoods, Boolean isRentable,
+  public PublicItemSummary(Long itemId, int totalQuantity, Integer availableQuantity,
+      String name, Integer duration, String description, String guaranteedGoods, boolean isRentable,
       List<PublicItemUnitSummary> itemUnits) {
+    if (itemUnits == null) itemUnits = List.of();
     this.itemId = itemId;
     this.totalQuantity = totalQuantity;
     this.availableQuantity = availableQuantity;
