@@ -2,6 +2,7 @@ package retrivr.retrivrspring.presentation.rental.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
+import org.springframework.lang.Nullable;
 
 public record PublicRentalCreateRequest(
     Long itemUnitId,

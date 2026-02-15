@@ -16,9 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 @RestController
-@Tag(name = "Public API / Rental", description = "대여자용 대여 요청/상태 조회")
+@Tag(name = "Public Rental API", description = "대여자용 대여 요청/상태 조회")
 @RequestMapping("/api/public/v1")
 public class PublicRentalController {
 
@@ -48,11 +49,12 @@ public class PublicRentalController {
       description = "대여 정보 조회 성공",
       content = @Content(schema = @Schema(implementation = PublicRentalDetailResponse.class))
   )
-  public PublicRentalDetailResponse getRental(
+  public PublicRentalDetailResponse getRentalInfo(
       @PathVariable("rentalId") Long rentalId
   ) {
     return new PublicRentalDetailResponse(
       rentalId,
+        RentalStatus.APPROVED,
         "C타입 충전기",
         "c타입 충전기(1)",
         "조윤아",

@@ -1,16 +1,18 @@
 package retrivr.retrivrspring.presentation.rental.res;
 
 import java.time.LocalDate;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 public record PublicRentalDetailResponse(
     Long rentalId,
+    RentalStatus rentalStatus,
     String itemName,
-    String unitCode,
+    String itemUnitCode,
     String borrowerName,
     String borrowerMajor,
     String borrowerStudentNumber,
     LocalDate rentalDate,
-    LocalDate returnDate
+    LocalDate returnDueDate
 ) {
 
 }
