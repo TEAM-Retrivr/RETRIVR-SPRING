@@ -6,10 +6,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.presentation.admin.item.response.AdminItemListResponse;
+
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+import retrivr.retrivrspring.presentation.admin.item.request.AdminItemCreateRequest;
+import retrivr.retrivrspring.presentation.admin.item.response.*;
 
 @RestController
 @RequestMapping("/api/admin/v1/items")
@@ -54,4 +55,38 @@ public class AdminItemMockController {
                 )
         );
     }
+
+    @PostMapping
+    @Operation(
+            summary = "UC-2.2 관리자 물품 등록",
+            description = "관리자가 새로운 물품을 등록한다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "물품 등록 성공",
+            content = @Content(schema = @Schema(implementation = AdminItemCreateResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "입력값 오류"
+    )
+    public AdminItemCreateResponse createItem(
+            @Valid @RequestBody AdminItemCreateRequest request
+    ) {
+
+        if (request.totalQuantity() <= 0) {
+            throw new IllegalArgumentException("총 수량은 1 이상이어야 합니다.");
+        }
+
+        Long mockItemId = 101L;
+
+        return new AdminItemCreateResponse(
+                mockItemId,
+                request.name(),
+                request.totalQuantity()
+        );
+    }
+
+
+
 }
