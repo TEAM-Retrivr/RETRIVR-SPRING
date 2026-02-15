@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.presentation.admin.auth.request.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.request.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.response.AdminLoginResponse;
+import retrivr.retrivrspring.presentation.admin.auth.response.AdminSignupResponse;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -33,4 +35,32 @@ public class AdminAuthMockController {
                 "mock-refresh-token"
         );
     }
+
+    @PostMapping("/signup")
+    @Operation(summary = "UC-1.2 관리자 회원가입 (Mock)")
+    public AdminSignupResponse signup(
+            @Valid @RequestBody AdminSignupRequest request
+    ) {
+
+        if ("admin@retrivr.com".equals(request.email())) {
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+
+        // 실제 구현
+        // 1. organization 생성
+        // 2. password → password_hash 변환
+        // 3. email_verification row 생성
+        // 4. 트랜잭션 commit
+
+        Long mockOrgId = 2L;
+
+        return new AdminSignupResponse(
+                mockOrgId,
+                request.organizationName(),
+                request.email(),
+                "PENDING"
+        );
+    }
+
+
 }
