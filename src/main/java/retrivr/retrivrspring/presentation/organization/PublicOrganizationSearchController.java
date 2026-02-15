@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse;
-import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchResponse;
+import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse.OrganizationSearchSummary;
 
 @RestController
 @RequestMapping("/api/public/v1/organizations/search")
@@ -35,8 +35,8 @@ public class PublicOrganizationSearchController {
   ) {
     return new OrganizationSearchPageResponse(
         List.of(
-          new OrganizationSearchResponse(1L, "건국대학교 도서관자치위원회", "https://s3.northeast/image/dojawi"),
-          new OrganizationSearchResponse(2L, "건국대학교 동아리연합회", "https://s3.northeast/image/clubunion")
+          new OrganizationSearchSummary(1L, "건국대학교 도서관자치위원회", "https://s3.northeast/image/dojawi"),
+          new OrganizationSearchSummary(2L, "건국대학교 동아리연합회", "https://s3.northeast/image/clubunion")
         ),
         2L
     );
