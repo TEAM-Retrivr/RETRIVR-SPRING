@@ -4,8 +4,7 @@ import java.util.List;
 import lombok.Getter;
 
 @Getter
-public class PublicItemSummaryResponse {
-
+public class PublicItemSummary {
   Long itemId;
   Integer totalQuantity;
   Integer availableQuantity;
@@ -15,11 +14,11 @@ public class PublicItemSummaryResponse {
   String guaranteedGoods;
   Boolean isRentable;
   Boolean hasItemUnit;
-  List<PublicItemUnitResponse> itemUnits;
+  List<PublicItemUnitSummary> itemUnits;
 
-  public PublicItemSummaryResponse(Long itemId, Integer totalQuantity, Integer availableQuantity,
+  public PublicItemSummary(Long itemId, Integer totalQuantity, Integer availableQuantity,
       String name, Integer duration, String description, String guaranteedGoods, Boolean isRentable,
-      List<PublicItemUnitResponse> itemUnits) {
+      List<PublicItemUnitSummary> itemUnits) {
     this.itemId = itemId;
     this.totalQuantity = totalQuantity;
     this.availableQuantity = availableQuantity;
@@ -32,9 +31,9 @@ public class PublicItemSummaryResponse {
     this.itemUnits = itemUnits;
   }
 
-  public record PublicItemUnitResponse(
-      Long unitId,
-      String unitCode,
+  public record PublicItemUnitSummary(
+      Long itemUnitId,
+      String itemUnitCode,
       Boolean isRentable
   ) {
 

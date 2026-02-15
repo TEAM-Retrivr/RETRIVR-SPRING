@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.presentation.item.res.PublicItemListPageResponse;
-import retrivr.retrivrspring.presentation.item.res.PublicItemSummaryResponse;
+import retrivr.retrivrspring.presentation.item.res.PublicItemSummary;
+import retrivr.retrivrspring.presentation.item.res.PublicItemSummary.PublicItemUnitSummary;
 
 @RestController
 @Tag(name = "Public API / Item", description = "대여자용 물품 조회/대여 요청")
@@ -36,7 +37,7 @@ public class PublicItemLookupController {
     return new PublicItemListPageResponse(
         List.of(
             // itemUnit 없는 "수량형" 아이템 예시
-            new PublicItemSummaryResponse(
+            new PublicItemSummary(
                 11L,                 // itemId
                 10,                  // totalQuantity
                 3,                   // availableQuantity
@@ -49,7 +50,7 @@ public class PublicItemLookupController {
             ),
 
             // itemUnit 있는 "개별 코드형" 아이템 예시
-            new PublicItemSummaryResponse(
+            new PublicItemSummary(
                 12L,
                 2,
                 1,
@@ -57,23 +58,23 @@ public class PublicItemLookupController {
                 1,
                 "20000mAh 보조배터리",
                 "신분증",
-                true,                // 전체적으로는 대여 가능
+                true,
                 List.of(
-                    new PublicItemSummaryResponse.PublicItemUnitResponse(
+                    new PublicItemUnitSummary(
                         1201L,
                         "BAT-001",
                         true
                     ),
-                    new PublicItemSummaryResponse.PublicItemUnitResponse(
+                    new PublicItemUnitSummary(
                         1202L,
                         "BAT-002",
-                        false            // 이 유닛은 현재 대여 불가(대여중/고장/분실 등)
+                        false
                     )
                 )
             ),
 
             // 재고 0이라 대여 불가 예시
-            new PublicItemSummaryResponse(
+            new PublicItemSummary(
                 13L,
                 5,
                 0,
@@ -81,7 +82,7 @@ public class PublicItemLookupController {
                 1,
                 "실습실 출입용 키",
                 "학생증",
-                false,               // availableQuantity=0이면 false로 맞춰두는 게 자연스러움
+                false,
                 List.of()
             )
         ),
