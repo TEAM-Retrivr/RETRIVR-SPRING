@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,10 +31,16 @@ import retrivr.retrivrspring.presentation.rental.res.AdminReturnItemUnitListPage
 
 @RestController
 @RequestMapping("/api/admin/v1")
+@Tag(name = "Admin API / Active Rental", description = "대여 현황 및 반납 관리")
 public class AdminActiveRentalController {
 
   @GetMapping("/rentals/overdue")
-  @Operation(summary = "연체된 물품 조회")
+  @Operation(summary = "연체된 물품 리스트 조회")
+  @ApiResponse(
+      responseCode = "200",
+      description = "연체된 물품 리스트 조회 성공",
+      content = @Content(schema = @Schema(implementation = AdminOverdueRentalItemPageResponse.class))
+  )
   public AdminOverdueRentalItemPageResponse getOverdueItemList(
       @Parameter(description = "커서(마지막 조회된 rentalId). 다음 페이지 조회 시 사용", example = "10")
       @RequestParam(name = "cursor", required = false) Long cursor,
@@ -79,6 +86,12 @@ public class AdminActiveRentalController {
   }
 
   @GetMapping("/items/rental-summary")
+  @Operation(summary = "반납 화면에서의 물품 리스트 조회")
+  @ApiResponse(
+      responseCode = "200",
+      description = "물품 리스트 성공",
+      content = @Content(schema = @Schema(implementation = AdminRentalItemPageResponse.class))
+  )
   public AdminRentalItemPageResponse getRentalItemSummaryList(
       @Parameter(description = "커서(마지막 조회된 itemId). 다음 페이지 조회 시 사용", example = "10")
       @RequestParam(name = "cursor", required = false) Long cursor,
