@@ -1,6 +1,9 @@
 package retrivr.retrivrspring.presentation.admin.item.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import retrivr.retrivrspring.presentation.admin.item.request.AdminItemCreateRequest;
+
+import java.util.List;
 
 @Schema(description = "관리자 물품 등록 응답")
 public record AdminItemCreateResponse(
@@ -11,6 +14,7 @@ public record AdminItemCreateResponse(
         @Schema(example = "C타입 충전기")
         String name,
 
-        @Schema(example = "10")
-        int totalQuantity
+        @Schema(description = "대여자 요구 정보(JSONB)")
+        List<AdminItemCreateRequest.BorrowerRequirement> borrowerRequirements
 ) {}
+
