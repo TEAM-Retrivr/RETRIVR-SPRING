@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AdminLoginResponse(
 
         @Schema(example = "1")
-        Long orgId,
+        Long organizationId,
 
         @Schema(example = "admin@retrivr.com")
         String email,
