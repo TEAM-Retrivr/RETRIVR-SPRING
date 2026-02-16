@@ -20,7 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.entity.BaseTimeEntity;
 import retrivr.retrivrspring.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.entity.rental.enumerate.RentalStatus;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

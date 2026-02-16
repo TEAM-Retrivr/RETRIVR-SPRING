@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import retrivr.retrivrspring.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 @RestController
 @Tag(name = "Public Rental API", description = "대여자용 대여 요청/상태 조회")

@@ -17,7 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.entity.BaseTimeEntity;
-import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.entity.item.ItemUnit;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
