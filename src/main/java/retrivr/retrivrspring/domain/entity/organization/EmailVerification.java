@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.entity.rental;
+package retrivr.retrivrspring.domain.entity.organization;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,32 +9,37 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import retrivr.retrivrspring.entity.BaseTimeEntity;
-import retrivr.retrivrspring.entity.item.Item;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "rental_item")
-public class RentalItem extends BaseTimeEntity {
+@Table(name = "email_verification")
+public class EmailVerification extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "rental_item_id")
+  @Column(name = "email_verification_id")
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "rental_id", nullable = false)
-  private Rental rental;
+  @JoinColumn(name = "organization_id", nullable = false)
+  private Organization organization;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "item_id", nullable = false)
-  private Item item;
+  @Column(nullable = false, length = 255)
+  private String code;
+
+  @Column(name = "expires_at", nullable = false)
+  private LocalDateTime expiresAt;
+
+  @Column(name = "verified_at")
+  private LocalDateTime verifiedAt;
 }

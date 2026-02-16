@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.entity;
+package retrivr.retrivrspring.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

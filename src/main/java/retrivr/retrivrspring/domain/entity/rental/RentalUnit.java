@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.entity.rental;
+package retrivr.retrivrspring.domain.entity.rental;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,16 +8,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import retrivr.retrivrspring.entity.BaseTimeEntity;
-import retrivr.retrivrspring.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

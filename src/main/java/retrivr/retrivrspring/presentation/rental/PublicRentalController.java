@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;

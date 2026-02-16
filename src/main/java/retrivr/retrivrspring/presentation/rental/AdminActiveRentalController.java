@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalItemPageResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalItemPageResponse.RentalItemSummary;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalReturnRequest;

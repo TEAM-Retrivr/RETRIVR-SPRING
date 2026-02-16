@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.entity.rental;
+package retrivr.retrivrspring.domain.entity.rental;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,26 +9,25 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import retrivr.retrivrspring.entity.BaseTimeEntity;
-import retrivr.retrivrspring.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.item.Item;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "return_event")
-public class ReturnEvent extends BaseTimeEntity {
+@Table(name = "rental_item")
+public class RentalItem extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "return_event_id")
+  @Column(name = "rental_item_id")
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -36,12 +35,6 @@ public class ReturnEvent extends BaseTimeEntity {
   private Rental rental;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "organization_id", nullable = false)
-  private Organization organization;
-
-  @Column(name = "received_by", nullable = false, length = 255)
-  private String receivedBy;
-
-  @Column(name = "event_at", nullable = false)
-  private LocalDateTime eventAt;
+  @JoinColumn(name = "item_id", nullable = false)
+  private Item item;
 }

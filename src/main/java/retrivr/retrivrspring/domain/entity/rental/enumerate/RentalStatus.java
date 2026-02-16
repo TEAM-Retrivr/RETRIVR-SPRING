@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.entity.rental.enumerate;
+package retrivr.retrivrspring.domain.entity.rental.enumerate;
 
 public enum RentalStatus {
   REQUESTED,   // 승인 대기

@@ -1,5 +1,6 @@
-package retrivr.retrivrspring.entity.organization;
+package retrivr.retrivrspring.domain.entity.rental;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,25 +10,27 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import retrivr.retrivrspring.entity.BaseTimeEntity;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "email_verification")
-public class EmailVerification extends BaseTimeEntity {
+@Table(name = "borrower")
+public class Borrower extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "email_verification_id")
+  @Column(name = "borrower_id")
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -35,11 +38,12 @@ public class EmailVerification extends BaseTimeEntity {
   private Organization organization;
 
   @Column(nullable = false, length = 255)
-  private String code;
+  private String name;
 
-  @Column(name = "expires_at", nullable = false)
-  private LocalDateTime expiresAt;
+  @Column(length = 255)
+  private String phone;
 
-  @Column(name = "verified_at")
-  private LocalDateTime verifiedAt;
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "additional_borrower_info", columnDefinition = "jsonb")
+  private JsonNode additionalBorrowerInfo;
 }
