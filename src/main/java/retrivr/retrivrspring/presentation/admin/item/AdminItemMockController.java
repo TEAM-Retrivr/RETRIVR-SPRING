@@ -86,32 +86,22 @@ public class AdminItemMockController {
     @PatchMapping("/{itemId}")
     @Operation(
             summary = "UC-2.3 관리자 물품 수정",
-            description = "기존 물품 정보를 수정한다. 부분 수정이 가능하다."
+            description = "물품 정보 및 대여자 요구 정보(JSONB)를 수정한다."
     )
     @ApiResponse(
             responseCode = "200",
             description = "물품 수정 성공",
             content = @Content(schema = @Schema(implementation = AdminItemUpdateResponse.class))
     )
-    @ApiResponse(
-            responseCode = "400",
-            description = "잘못된 입력값"
-    )
     public AdminItemUpdateResponse updateItem(
             @PathVariable Long itemId,
             @Valid @RequestBody AdminItemUpdateRequest request
     ) {
 
-        // Mock 검증 예시
-        if (request.totalQuantity() != null && request.totalQuantity() <= 0) {
-            throw new IllegalArgumentException("총 수량은 1 이상이어야 합니다.");
-        }
-
         return new AdminItemUpdateResponse(
                 itemId,
-                request.name() != null ? request.name() : "기존 물품명",
-                request.totalQuantity() != null ? request.totalQuantity() : 10,
-                request.isActive() != null ? request.isActive() : true
+                request.name(),
+                request.borrowerRequirements()
         );
     }
 
