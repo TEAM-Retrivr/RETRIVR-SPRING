@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,7 +24,9 @@ import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "item_unit")
+@Table(name = "item_unit", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"item_id", "code"})
+})
 public class ItemUnit extends BaseTimeEntity {
 
   @Id
@@ -35,7 +38,7 @@ public class ItemUnit extends BaseTimeEntity {
   @JoinColumn(name = "item_id", nullable = false)
   private Item item;
 
-  @Column(nullable = false, unique = true, length = 255)
+  @Column(nullable = false, length = 255)
   private String code;
 
   @Enumerated(EnumType.STRING)
