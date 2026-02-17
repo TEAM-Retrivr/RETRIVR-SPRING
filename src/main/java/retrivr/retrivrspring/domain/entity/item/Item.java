@@ -41,7 +41,6 @@ public class Item extends BaseTimeEntity {
   @Column(name = "rental_duration", nullable = false)
   private Integer rentalDuration;
 
-  @Lob
   @Column(columnDefinition = "text")
   private String description;
 
