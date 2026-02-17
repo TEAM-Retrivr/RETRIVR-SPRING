@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalDecisionStatus;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalApproveRequest;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalRejectRequest;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse.RentalRequestSummary;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalDecisionStatus;
 
 @RestController
 @RequestMapping("/api/admin/v1/rentals")
