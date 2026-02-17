@@ -113,7 +113,7 @@ public class AdminAuthMockController {
         return new EmailVerificationResponse(
                 request.email(),
                 true,
-                java.time.LocalDateTime.now().toString()
+                java.time.LocalDateTime.now()
         );
     }
 
