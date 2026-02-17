@@ -52,12 +52,9 @@ public class PublicOrganizationSearchController {
       content = @Content(array = @ArraySchema(schema = @Schema(implementation = String.class)))
   )
   public List<String> getSearchSuggestions(
-      @RequestParam(name = "keyword") String keyword
+      @RequestParam(name = "keyword", required = false) String keyword,
+      @RequestParam(name = "size", required = false, defaultValue = "5") Integer size
   ) {
-    return List.of(
-        "건국대학교 도서관",
-        "건국대학교 공학 도서관",
-        "건국대학교 도서관자치위원회"
-    );
+    return organizationSearchService.getSuggestions(keyword, size);
   }
 }
