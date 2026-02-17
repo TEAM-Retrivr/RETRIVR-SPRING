@@ -69,4 +69,12 @@ public class OrganizationSearchService {
 
     return new OrganizationSearchPageResponse(organizations, nextCursor);
   }
+
+  public List<String> getSuggestions(String keyword, int size) {
+    if (keyword == null || keyword.trim().length() < 2) {
+      log.debug("[OrganizationSearchSuggestions] keyword is too short");
+      return List.of();
+    }
+    return organizationRepository.findSuggestions(keyword, size);
+  }
 }
