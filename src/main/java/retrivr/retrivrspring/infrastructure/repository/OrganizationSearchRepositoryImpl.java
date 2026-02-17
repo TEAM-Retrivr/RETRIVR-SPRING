@@ -169,6 +169,33 @@ public class OrganizationSearchRepositoryImpl implements OrganizationSearchRepos
 
     return result;
   }
+
+  @Override
+  public List<String> findSuggestions(String keyword, int limit) {
+    String sql = """
+      select o.name
+      from organization o
+      where o.status = 'ACTIVE'
+        and o.name ilike ('%%' || :keyword || '%%')
+      order by
+        case
+          when lower(o.name) = lower(:keyword) then 0
+          when lower(o.name) like lower(:keyword || '%%') then 1
+          when o.name ilike ('%%' || :keyword || '%%') then 2
+          else 3
+        end,
+        similarity(o.name, :keyword) desc
+      limit :limit
+    """;
+
+    @SuppressWarnings("unchecked")
+    List<String> result = em.createNativeQuery(sql)
+        .setParameter("keyword", keyword.trim())
+        .setParameter("limit", limit)
+        .getResultList();
+
+    return result;
+  }
 /*
   @Override
   public List<Organization> searchByKeyword(String keyword, Long cursor, int limit) {

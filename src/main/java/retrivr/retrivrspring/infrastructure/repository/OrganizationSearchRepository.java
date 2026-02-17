@@ -9,4 +9,6 @@ public interface OrganizationSearchRepository {
 
   List<OrganizationSearchResultWithRank> searchRankedNextPageByKeyword(String keyword, int bucket,
       double sim, long organizationId, int limit);
+
+  List<String> findSuggestions(String keyword, int limit);
 }
