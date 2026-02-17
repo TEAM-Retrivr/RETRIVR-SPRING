@@ -1,0 +1,94 @@
+name: Retrivr CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # ubuntu 버전 지정
+    runs-on: ubuntu-22.04
+    steps:
+      # 소스 코드 체크아웃
+      - uses: actions/checkout@v4
+
+      # Build를 위한 JDK 설치
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+
+      # Gradle 캐싱
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Gradle 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Gradle clean bootJar
+      - name: Build Gradle
+        run: ./gradlew clean bootJar
+
+      # Docker Image Push
+      - name: Docker Image push
+        run: |
+          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME}}/${{ secrets.DOCKERHUB_REPOSITORY}}:${{ github.sha }} ./
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY}}:${{ github.sha }}
+
+      # Docker Compose
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Send deploy command to EC2 (SSM)
+        id: ssm
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID  }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy: docker login + compose pull/up" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters commands='[
+              "set -e",
+              "cd /home/ec2-user/retrivr",
+              "sh -lc '\''grep -q \"^APP_IMAGE=\" .env && sed -i \"s|^APP_IMAGE=.*|APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:${{ github.sha }}|\" .env || echo \"APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY}}:${{ github.sha }}\" >> .env'\''",
+              "docker stop ${{ secrets.DOCKERHUB_REPOSITORY }} || true",
+              "docker rm ${{ secrets.DOCKERHUB_REPOSITORY }} || true",
+              "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY}}:${{ github.sha }}",
+              "docker compose up -d ${{ secrets.DOCKER_SERVICE_NAME }}"
+            ]')
+          echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
+          echo "SSM CommandId: $COMMAND_ID"
+
+      - name: Wait for command & print logs (always)
+        if: always()
+        run: |
+          set +e
+          aws ssm wait command-executed \
+            --command-id "${{ steps.ssm.outputs.command_id }}" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
+          
+          aws ssm get-command-invocation \
+            --command-id "${{ steps.ssm.outputs.command_id }}" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+            --query "{Status:Status,ResponseCode:ResponseCode,StdOut:StandardOutputContent,StdErr:StandardErrorContent}" \
+            --output json
+          exit 0
