@@ -20,7 +20,13 @@ public enum ErrorCode {
     ALREADY_DELETE_EXCEPTION(HttpStatus.BAD_REQUEST, 2004, "이미 삭제된 리소스입니다."),
     FORBIDDEN_EXCEPTION(HttpStatus.FORBIDDEN, 2005, "인가되지 않는 요청입니다."),
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
-    SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다.");
+    SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
+
+    // 3000: Organization Error
+    NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
+    BLANK_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3001, "단체 찾기 요청 키워드가 공백입니다."),
+    DO_NOT_ENCODED_SEARCH_CURSOR(HttpStatus.INTERNAL_SERVER_ERROR, 3002, "커서 인코딩 중 문제가 발생했습니다."),
+    INVALID_SEARCH_CURSOR(HttpStatus.BAD_REQUEST, 3003, "단체 찾기 요청 중 cursor 가 잘못되었습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
