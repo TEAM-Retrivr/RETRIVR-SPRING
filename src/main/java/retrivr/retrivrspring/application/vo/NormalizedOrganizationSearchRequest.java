@@ -8,12 +8,9 @@ public record NormalizedOrganizationSearchRequest(
     int size
 ) {
 
-  private static final int DEFAULT_SIZE = 15;
-  private static final int MAX_SIZE = 50;
-
   public static NormalizedOrganizationSearchRequest of(String keyword, Integer size) {
     String normalizedKeyword = normalizeKeyword(keyword);
-    int normalizedSize = normalizeSize(size);
+    int normalizedSize = DefaultNormalizedCursorPageSearchSize.of(size).size();
     return new NormalizedOrganizationSearchRequest(normalizedKeyword, normalizedSize);
   }
 
@@ -30,12 +27,5 @@ public record NormalizedOrganizationSearchRequest(
       throw new ApplicationException(ErrorCode.BLANK_SEARCH_KEYWORD_EXCEPTION);
     }
     return trimmed;
-  }
-
-  private static int normalizeSize(Integer size) {
-    if (size == null || size <= 0) {
-      return DEFAULT_SIZE;
-    }
-    return Math.min(size, MAX_SIZE);
   }
 }
