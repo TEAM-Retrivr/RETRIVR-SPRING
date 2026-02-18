@@ -62,18 +62,7 @@ public class AdminAuthMockController {
             @Valid @RequestBody AdminSignupRequest request
     ) {
 
-        if ("admin@retrivr.com".equals(request.email())) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-        }
-
-        Long mockOrgId = 2L;
-
-        return new AdminSignupResponse(
-                mockOrgId,
-                request.organizationName(),
-                request.email(),
-                "PENDING"
-        );
+        return adminAuthService.signup(request);
     }
 
     @PostMapping("/email-verification")
