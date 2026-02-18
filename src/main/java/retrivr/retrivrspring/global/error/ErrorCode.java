@@ -26,7 +26,11 @@ public enum ErrorCode {
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
     BLANK_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3001, "단체 찾기 요청 키워드가 공백입니다."),
     DO_NOT_ENCODED_SEARCH_CURSOR(HttpStatus.INTERNAL_SERVER_ERROR, 3002, "커서 인코딩 중 문제가 발생했습니다."),
-    INVALID_SEARCH_CURSOR(HttpStatus.BAD_REQUEST, 3003, "단체 찾기 요청 중 cursor 가 잘못되었습니다.");
+    INVALID_SEARCH_CURSOR(HttpStatus.BAD_REQUEST, 3003, "단체 찾기 요청 중 cursor 가 잘못되었습니다."),
+    NOT_FOUND_ORGANIZATION(HttpStatus.NOT_FOUND, 3004, "존재하지 않는 단체입니다."),
+
+    // 4000: Item Error
+    NOT_FOUND_ITEM(HttpStatus.NOT_FOUND, 4000, "존재하지 않는 물건입니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
