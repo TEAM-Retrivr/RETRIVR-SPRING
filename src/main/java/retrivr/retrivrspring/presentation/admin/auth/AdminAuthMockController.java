@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
@@ -15,11 +16,15 @@ import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.application.service.AdminAuthService;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
 @Tag(name = "Admin API / Auth", description = "관리자 인증 관련 API")
+@RequiredArgsConstructor
 public class AdminAuthMockController {
+
+    private final AdminAuthService adminAuthService;
 
     @PostMapping("/login")
     @Operation(
@@ -35,24 +40,8 @@ public class AdminAuthMockController {
             responseCode = "400",
             description = "이메일 또는 비밀번호 불일치"
     )
-    public AdminLoginResponse login(
-            @Valid @RequestBody AdminLoginRequest request
-    ) {
-
-        if (!"admin@retrivr.com".equals(request.email())
-                || !"password1234".equals(request.password())) {
-            //todo 커스텀 예외로 바꾸기
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
-        }
-
-        Long mockOrgId = 1L;
-
-        return new AdminLoginResponse(
-                mockOrgId,
-                request.email(),
-                "mock-access-token",
-                "mock-refresh-token"
-        );
+    public AdminLoginResponse login(@Valid @RequestBody AdminLoginRequest request) {
+        return adminAuthService.login(request);
     }
 
     @PostMapping("/signup")
