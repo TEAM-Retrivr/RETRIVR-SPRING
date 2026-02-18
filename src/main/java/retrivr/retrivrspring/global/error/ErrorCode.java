@@ -20,7 +20,12 @@ public enum ErrorCode {
     ALREADY_DELETE_EXCEPTION(HttpStatus.BAD_REQUEST, 2004, "이미 삭제된 리소스입니다."),
     FORBIDDEN_EXCEPTION(HttpStatus.FORBIDDEN, 2005, "인가되지 않는 요청입니다."),
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
-    SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다.");
+    SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
+
+    // 3000: Authentication Error
+    INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 3000, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, 3001, "정지된 계정입니다."),
+    ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, 3002, "계정을 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
