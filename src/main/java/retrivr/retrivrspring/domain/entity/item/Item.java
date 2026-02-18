@@ -44,6 +44,18 @@ public class Item extends BaseTimeEntity {
   @Column(columnDefinition = "text")
   private String description;
 
+  @Column(nullable = true)
+  private String guaranteedGoods;
+
+  @Column(nullable = false)
+  private boolean useMessageAlarmService;
+
+  @Column(nullable = false)
+  private Integer totalQuantity;
+
+  @Column(nullable = false)
+  private Integer availableQuantity;
+
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
 }
