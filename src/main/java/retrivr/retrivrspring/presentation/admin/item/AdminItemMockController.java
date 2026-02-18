@@ -7,11 +7,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import retrivr.retrivrspring.presentation.admin.item.request.AdminItemCreateRequest;
-import retrivr.retrivrspring.presentation.admin.item.request.AdminItemUpdateRequest;
-import retrivr.retrivrspring.presentation.admin.item.response.AdminItemCreateResponse;
-import retrivr.retrivrspring.presentation.admin.item.response.AdminItemListResponse;
-import retrivr.retrivrspring.presentation.admin.item.response.AdminItemUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.List;
 

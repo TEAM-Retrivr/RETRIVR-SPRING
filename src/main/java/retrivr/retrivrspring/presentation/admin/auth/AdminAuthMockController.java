@@ -7,14 +7,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import retrivr.retrivrspring.presentation.admin.auth.request.AdminLoginRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.AdminSignupRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.EmailVerificationRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.PasswordResetRequest;
-import retrivr.retrivrspring.presentation.admin.auth.response.AdminLoginResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.EmailVerificationResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -41,6 +41,7 @@ public class AdminAuthMockController {
 
         if (!"admin@retrivr.com".equals(request.email())
                 || !"password1234".equals(request.password())) {
+            //todo 커스텀 예외로 바꾸기
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 

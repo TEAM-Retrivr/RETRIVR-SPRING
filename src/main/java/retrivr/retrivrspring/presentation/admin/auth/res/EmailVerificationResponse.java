@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.auth.response;
+package retrivr.retrivrspring.presentation.admin.auth.res;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

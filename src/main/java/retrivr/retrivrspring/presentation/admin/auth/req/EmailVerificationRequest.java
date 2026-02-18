@@ -1,14 +1,14 @@
-package retrivr.retrivrspring.presentation.admin.auth.request;
+package retrivr.retrivrspring.presentation.admin.auth.req;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record AdminLoginRequest(
+public record EmailVerificationRequest(
 
         @Email
         @NotBlank
         String email,
 
         @NotBlank
-        String password
+        String code
 ) {}
