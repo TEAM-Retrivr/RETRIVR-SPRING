@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.infrastructure.repository;
+package retrivr.retrivrspring.infrastructure.repository.organization;
 
 import java.util.List;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;

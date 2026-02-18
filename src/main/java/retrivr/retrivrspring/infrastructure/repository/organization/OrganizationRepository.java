@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.infrastructure.repository;
+package retrivr.retrivrspring.infrastructure.repository.organization;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
