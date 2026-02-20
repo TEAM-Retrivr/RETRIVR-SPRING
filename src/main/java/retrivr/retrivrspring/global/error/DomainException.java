@@ -5,12 +5,12 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class ApplicationException extends RuntimeException {
+public class DomainException extends RuntimeException {
 
   private final ErrorCode errorCode;
   private final String detail;
 
-  public ApplicationException(ErrorCode errorCode) {
+  public DomainException(ErrorCode errorCode) {
     this.errorCode = errorCode;
     this.detail = "";
   }
