@@ -44,4 +44,12 @@ public class ItemUnit extends BaseTimeEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private ItemUnitStatus status;
+
+  public boolean isRentalAble() {
+    return status.equals(ItemUnitStatus.AVAILABLE);
+  }
+
+  public void transitionToRentalPendingStatus() {
+    this.status = ItemUnitStatus.RENTAL_PENDING;
+  }
 }
