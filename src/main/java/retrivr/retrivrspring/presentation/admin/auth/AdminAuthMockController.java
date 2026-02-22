@@ -8,15 +8,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import retrivr.retrivrspring.application.service.AdminAuthService;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
-import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
-import retrivr.retrivrspring.application.service.AdminAuthService;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -63,37 +61,6 @@ public class AdminAuthMockController {
     ) {
 
         return adminAuthService.signup(request);
-    }
-
-    @PostMapping("/email-verification")
-    @Operation(
-            summary = "UC-1.3.1 이메일 인증",
-            description = "이메일로 발급된 인증 코드를 검증하고 인증을 완료한다."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "이메일 인증 성공",
-            content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))
-    )
-    @ApiResponse(
-            responseCode = "400",
-            description = "인증 코드 불일치 또는 만료"
-    )
-    public EmailVerificationResponse verifyEmail(
-            @Valid @RequestBody EmailVerificationRequest request
-    ) {
-
-        String mockCode = "123456";
-
-        if (!mockCode.equals(request.code())) {
-            throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
-        }
-
-        return new EmailVerificationResponse(
-                request.email(),
-                true,
-                java.time.LocalDateTime.now()
-        );
     }
 
 
