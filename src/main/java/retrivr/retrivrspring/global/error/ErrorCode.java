@@ -52,6 +52,18 @@ public enum ErrorCode {
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, 7003, "이미 인증이 완료되었습니다."),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 7004, "존재하지 않는 이메일입니다."),
 
+    // 7100: Signup Email Verification Error
+    SIGNUP_EMAIL_CODE_NOT_FOUND(HttpStatus.BAD_REQUEST, 7100, "회원가입 인증 요청이 존재하지 않습니다."),
+    SIGNUP_EMAIL_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7101, "회원가입 인증 코드가 올바르지 않습니다."),
+    SIGNUP_EMAIL_CODE_EXPIRED(HttpStatus.BAD_REQUEST, 7102, "회원가입 인증 코드가 만료되었습니다."),
+    SIGNUP_EMAIL_CODE_ALREADY_USED(HttpStatus.BAD_REQUEST, 7103, "이미 사용된 회원가입 인증 코드입니다."),
+
+    // 7200: Signup Token Error
+    SIGNUP_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 7200, "회원가입 토큰이 존재하지 않습니다."),
+    SIGNUP_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 7201, "회원가입 토큰이 유효하지 않습니다."),
+    SIGNUP_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 7202, "회원가입 토큰이 만료되었습니다."),
+    SIGNUP_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 7203, "이미 사용된 회원가입 토큰입니다."),
+
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
     PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),
