@@ -359,7 +359,6 @@ class AdminAuthServiceTest {
         assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
     }
 
-    /* ===================== SIGNUP EMAIL VERIFY ===================== */
 
     @Test
     @DisplayName("verifySignupEmailCode 성공 - code 검증 후 signupToken 발급, code_verified_at 세팅")
@@ -453,11 +452,10 @@ class AdminAuthServiceTest {
         assertEquals(ErrorCode.SIGNUP_EMAIL_CODE_MISMATCH, ex.getErrorCode());
     }
 
-    /* ===================== PASSWORD RESET (기존 유지) ===================== */
-
     @Test
-    @DisplayName("resetPassword 성공")
+    @DisplayName("resetPassword 성공 - 해시 토큰 matches 검증")
     void resetPassword_success() {
+
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
@@ -465,67 +463,125 @@ class AdminAuthServiceTest {
                 .status(OrganizationStatus.ACTIVE)
                 .build();
 
+        String rawToken = "valid-token";
+        String encodedToken = "$2a$10$encodedTokenHash";
+
         PasswordResetToken token = PasswordResetToken.builder()
                 .organization(org)
-                .tokenHash("valid-token")
+                .tokenHash(encodedToken)
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .usedAt(null)
                 .build();
 
-        PasswordResetRequest request = new PasswordResetRequest(
-                email, "valid-token", "NewPassword123!", "NewPassword123!"
-        );
+        PasswordResetRequest request =
+                new PasswordResetRequest(
+                        email,
+                        rawToken,
+                        "NewPassword123!",
+                        "NewPassword123!"
+                );
 
-        given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
-        given(passwordResetTokenRepository.findByTokenHash("valid-token")).willReturn(Optional.of(token));
-        given(passwordEncoder.encode("NewPassword123!")).willReturn("encoded-new-password");
+        given(organizationRepository.findByEmail(email))
+                .willReturn(Optional.of(org));
+
+        given(passwordResetTokenRepository
+                .findTopByOrganizationOrderByCreatedAtDesc(org))
+                .willReturn(Optional.of(token));
+
+        given(passwordEncoder.matches(rawToken, encodedToken))
+                .willReturn(true);
+
+        given(passwordEncoder.encode("NewPassword123!"))
+                .willReturn("encoded-new-password");
 
         var response = adminAuthService.resetPassword(request);
 
         assertEquals(email, response.email());
         assertEquals("Password updated successfully", response.message());
+
+        then(passwordEncoder).should().matches(rawToken, encodedToken);
         then(passwordEncoder).should().encode("NewPassword123!");
     }
 
     @Test
-    @DisplayName("resetPassword 실패 - 비밀번호 확인 불일치")
-    void resetPassword_password_mismatch() {
-        PasswordResetRequest request = new PasswordResetRequest(
-                email, "token", "NewPassword123!", "WrongPassword"
-        );
+    @DisplayName("resetPassword 실패 - 토큰 불일치")
+    void resetPassword_token_invalid() {
 
-        ApplicationException ex = assertThrows(ApplicationException.class,
-                () -> adminAuthService.resetPassword(request));
-
-        assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, ex.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("resetPassword 실패 - 토큰 만료")
-    void resetPassword_token_expired() {
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
-                .passwordHash(hashedPassword)
                 .build();
 
-        PasswordResetToken expiredToken = PasswordResetToken.builder()
+        String rawToken = "invalid-token";
+        String encodedToken = "$2a$10$encodedTokenHash";
+
+        PasswordResetToken token = PasswordResetToken.builder()
                 .organization(org)
-                .tokenHash("valid-token")
+                .tokenHash(encodedToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .usedAt(null)
+                .build();
+
+        PasswordResetRequest request =
+                new PasswordResetRequest(
+                        email,
+                        rawToken,
+                        "NewPassword123!",
+                        "NewPassword123!"
+                );
+
+        given(organizationRepository.findByEmail(email))
+                .willReturn(Optional.of(org));
+
+        given(passwordResetTokenRepository
+                .findTopByOrganizationOrderByCreatedAtDesc(org))
+                .willReturn(Optional.of(token));
+
+        given(passwordEncoder.matches(rawToken, encodedToken))
+                .willReturn(false);
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.resetPassword(request)
+        );
+
+        assertEquals(ErrorCode.PASSWORD_RESET_TOKEN_INVALID, ex.getErrorCode());
+    }
+    @Test
+    @DisplayName("resetPassword 실패 - 토큰 만료")
+    void resetPassword_token_expired() {
+
+        Organization org = Organization.builder()
+                .id(1L)
+                .email(email)
+                .build();
+
+        PasswordResetToken token = PasswordResetToken.builder()
+                .organization(org)
+                .tokenHash("$2a$10$encodedTokenHash")
                 .expiresAt(LocalDateTime.now().minusMinutes(1))
                 .usedAt(null)
                 .build();
 
-        PasswordResetRequest request = new PasswordResetRequest(
-                email, "valid-token", "NewPassword123!", "NewPassword123!"
+        PasswordResetRequest request =
+                new PasswordResetRequest(
+                        email,
+                        "valid-token",
+                        "NewPassword123!",
+                        "NewPassword123!"
+                );
+
+        given(organizationRepository.findByEmail(email))
+                .willReturn(Optional.of(org));
+
+        given(passwordResetTokenRepository
+                .findTopByOrganizationOrderByCreatedAtDesc(org))
+                .willReturn(Optional.of(token));
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.resetPassword(request)
         );
-
-        given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
-        given(passwordResetTokenRepository.findByTokenHash("valid-token"))
-                .willReturn(Optional.of(expiredToken));
-
-        ApplicationException ex = assertThrows(ApplicationException.class,
-                () -> adminAuthService.resetPassword(request));
 
         assertEquals(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED, ex.getErrorCode());
     }
@@ -533,29 +589,38 @@ class AdminAuthServiceTest {
     @Test
     @DisplayName("resetPassword 실패 - 이미 사용된 토큰")
     void resetPassword_token_already_used() {
+
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
-                .passwordHash(hashedPassword)
                 .build();
 
-        PasswordResetToken usedToken = PasswordResetToken.builder()
+        PasswordResetToken token = PasswordResetToken.builder()
                 .organization(org)
-                .tokenHash("valid-token")
+                .tokenHash("$2a$10$encodedTokenHash")
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .usedAt(LocalDateTime.now())
                 .build();
 
-        PasswordResetRequest request = new PasswordResetRequest(
-                email, "valid-token", "NewPassword123!", "NewPassword123!"
+        PasswordResetRequest request =
+                new PasswordResetRequest(
+                        email,
+                        "valid-token",
+                        "NewPassword123!",
+                        "NewPassword123!"
+                );
+
+        given(organizationRepository.findByEmail(email))
+                .willReturn(Optional.of(org));
+
+        given(passwordResetTokenRepository
+                .findTopByOrganizationOrderByCreatedAtDesc(org))
+                .willReturn(Optional.of(token));
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.resetPassword(request)
         );
-
-        given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
-        given(passwordResetTokenRepository.findByTokenHash("valid-token"))
-                .willReturn(Optional.of(usedToken));
-
-        ApplicationException ex = assertThrows(ApplicationException.class,
-                () -> adminAuthService.resetPassword(request));
 
         assertEquals(ErrorCode.PASSWORD_RESET_TOKEN_ALREADY_USED, ex.getErrorCode());
     }
