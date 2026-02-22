@@ -13,5 +13,11 @@ public record AdminSignupRequest(
         String password,
 
         @NotBlank
-        String organizationName
+        String organizationName,
+
+        @NotBlank
+        String adminCode,
+
+        @NotBlank
+        String signupToken
 ) {}

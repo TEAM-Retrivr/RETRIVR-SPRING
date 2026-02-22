@@ -80,5 +80,21 @@ public class AdminAuthMockController {
         return adminAuthService.resetPassword(request);
     }
 
+    @PostMapping("/signup/email-code/send")
+    @Operation(
+            summary = "UC-1.3.1-1 회원가입용 이메일 인증 코드 발송",
+            description = "입력된 이메일이 가입되어 있지 않으면 6자리 인증 코드를 발송한다. 코드는 10분간 유효하다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "인증 코드 발송 성공",
+            content = @Content(schema = @Schema(implementation = EmailCodeSendResponse.class))
+    )
+    @ApiResponse(responseCode = "400", description = "이미 가입된 이메일/잘못된 요청")
+    public EmailCodeSendResponse sendSignupEmailCode(
+            @Valid @RequestBody EmailVerificationSendRequest request
+    ) {
+        return adminAuthService.sendSignupEmailCode(request);
+    }
 
 }

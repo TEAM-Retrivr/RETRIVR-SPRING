@@ -31,6 +31,7 @@ public class AdminAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final SignupTokenRepository signupTokenRepository;
 
     public AdminLoginResponse login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
@@ -119,7 +120,16 @@ public class AdminAuthService {
 
         try {
             Organization saved = organizationRepository.save(org);
-            return new AdminSignupResponse(saved.getId(), saved.getName(), saved.getEmail(), saved.getStatus().name());
+
+            // 8) 가입 성공 시점에만 signupToken 사용 처리 (재시도 가능성 보장)
+            token.markUsed(LocalDateTime.now());
+
+            return new AdminSignupResponse(
+                    saved.getId(),
+                    saved.getName(),
+                    saved.getEmail(),
+                    saved.getStatus().name()
+            );
         } catch (DataIntegrityViolationException e) {
             // DB unique constraint 위반 처리
             throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
@@ -160,15 +170,40 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
         }
 
-        String encodedPassword = passwordEncoder.encode(request.newPassword());
-        organization.changePassword(encodedPassword);
-
+        organization.changePassword(passwordEncoder.encode(request.newPassword()));
         token.markUsed(LocalDateTime.now());
 
-        return new PasswordResetResponse(
-                organization.getEmail(),
-                "Password updated successfully"
-        );
+        return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
+    }
+
+    @Transactional
+    public EmailCodeSendResponse sendSignupEmailCode(EmailVerificationSendRequest request) {
+
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+
+        // 이미 가입된 이메일이면 차단
+        if (organizationRepository.findByEmail(email).isPresent()) {
+            throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
+        }
+
+        // 동일 이메일에 대한 기존 요청 제거
+        signupTokenRepository.deleteByEmail(email);
+
+        // 6자리 코드 생성 + 해시 저장
+        String rawCode = String.format("%06d", (int) (Math.random() * 1_000_000));
+        String codeHash = passwordEncoder.encode(rawCode);
+
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash(codeHash) // codeHash 저장
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        signupTokenRepository.save(token);
+
+        // TODO: 이메일 발송 (rawCode)
+
+        return new EmailCodeSendResponse(true, 600, "인증 코드가 이메일로 발송되었습니다.");
     }
 
 }
