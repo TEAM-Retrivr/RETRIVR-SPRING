@@ -32,6 +32,7 @@ public class AdminAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SignupTokenRepository signupTokenRepository;
 
+    @Transactional
     public AdminLoginResponse login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
         Organization org = organizationRepository.findByEmail(request.email())
