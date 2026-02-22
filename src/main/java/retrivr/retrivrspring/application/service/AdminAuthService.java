@@ -153,13 +153,13 @@ public class AdminAuthService {
                 );
 
         PasswordResetToken token = passwordResetTokenRepository
-                .findByTokenHash(request.token())
+                .findTopByOrganizationOrderByCreatedAtDesc(organization)
                 .orElseThrow(() ->
                         new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND)
                 );
 
-        if (!token.getOrganization().getId().equals(organization.getId())) {
-            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_INVALID);
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
         }
 
         if (token.getUsedAt() != null) {
