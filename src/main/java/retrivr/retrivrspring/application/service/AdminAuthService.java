@@ -42,7 +42,11 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.ACCOUNT_SUSPENDED);
         }
 
-        // 3. 비밀번호 검증
+        // 승인 전(PENDING)은 로그인 불가
+        if (org.getStatus() != OrganizationStatus.ACTIVE) {
+            throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
+        }
+
         if (!passwordEncoder.matches(request.password(), org.getPasswordHash())) {
             throw new ApplicationException(ErrorCode.INVALID_CREDENTIALS);
         }
@@ -74,20 +78,18 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
         }
 
-        // 4. 비밀번호 해시화
-        String hashed = passwordEncoder.encode(request.password());
+        // 7) Organization 생성 (PENDING)
+        String hashedPw = passwordEncoder.encode(request.password());
 
-        // 5. searchKey 생성 (간단한 구현: name + timestamp)
-        String name = request.organizationName();
-        String safeName = (name == null) ? "" : name.trim();
+        String safeName = request.organizationName() == null ? "" : request.organizationName().trim();
         String searchKey = safeName.replaceAll("\\s+", "-") + "-" + System.currentTimeMillis();
 
         // 6. 엔티티 생성 및 저장
         Organization org = Organization.builder()
                 .email(email)
-                .passwordHash(hashed)
+                .passwordHash(hashedPw)
                 .name(safeName)
-                .status(OrganizationStatus.ACTIVE) // 생성하자마자 액티브로 할지?
+                .status(OrganizationStatus.PENDING)
                 .searchKey(searchKey)
                 .build();
 
