@@ -65,10 +65,34 @@ public class AdminAuthService {
 
     @Transactional
     public AdminSignupResponse signup(AdminSignupRequest request) {
-        // 1. normalize email
+
         String email = request.email().trim().toLowerCase(Locale.ROOT);
 
-        // 2. 비밀번호 기본 정책(최소 길이) 방어
+        // 1) signupToken row 조회
+        SignupToken token = signupTokenRepository.findByEmail(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SIGNUP_TOKEN_NOT_FOUND));
+
+        // 2) 코드 검증을 거친 상태인지 확인
+        if (token.getCodeVerifiedAt() == null) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
+        }
+
+        // 3) signupToken 만료
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_EXPIRED);
+        }
+
+        // 4) signupToken 1회성
+        if (token.getUsedAt() != null) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_ALREADY_USED);
+        }
+
+        // 5) signupToken 비교 (현재 tokenHash는 signupTokenHash)
+        if (!passwordEncoder.matches(request.signupToken(), token.getTokenHash())) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
+        }
+
+        // 6) 가입 입력값 검증
         if (request.password() == null || request.password().length() < 8) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
