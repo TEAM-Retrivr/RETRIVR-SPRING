@@ -139,12 +139,12 @@ public class AdminAuthService {
     @Transactional
     public PasswordResetResponse resetPassword(PasswordResetRequest request) {
 
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
-        }
-
         if (request.newPassword() == null || request.newPassword().length() < 8) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);
+        }
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
         }
 
         Organization organization = organizationRepository.findByEmail(request.email())
