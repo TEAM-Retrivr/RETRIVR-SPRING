@@ -44,6 +44,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, 6001, "정지된 계정입니다."),
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, 6002, "계정을 찾을 수 없습니다."),
+    ACCOUNT_NOT_APPROVED(HttpStatus.NOT_FOUND, 6003, "계정이 비활성 상태입니다."),
 
     // 7000: Email Verification Error
     EMAIL_VERIFICATION_NOT_FOUND(HttpStatus.BAD_REQUEST, 7000, "인증 요청이 존재하지 않습니다."),
