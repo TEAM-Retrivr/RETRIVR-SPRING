@@ -50,7 +50,15 @@ public enum ErrorCode {
     EMAIL_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7001, "인증 코드가 올바르지 않습니다."),
     EMAIL_VERIFICATION_EXPIRED(HttpStatus.BAD_REQUEST, 7002, "인증 코드가 만료되었습니다."),
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, 7003, "이미 인증이 완료되었습니다."),
-    EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 7004, "존재하지 않는 이메일입니다.");
+    EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 7004, "존재하지 않는 이메일입니다."),
+
+    // 8000: Password Reset Error
+    PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
+    PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),
+    PASSWORD_RESET_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 8002, "비밀번호 재설정 토큰이 만료되었습니다."),
+    PASSWORD_RESET_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 8003, "이미 사용된 비밀번호 재설정 토큰입니다."),
+    PASSWORD_RESET_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, 8004, "비밀번호와 비밀번호 확인 값이 일치하지 않습니다."),
+    PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

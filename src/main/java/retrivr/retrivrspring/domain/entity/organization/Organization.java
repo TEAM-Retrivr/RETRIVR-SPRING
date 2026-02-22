@@ -41,4 +41,9 @@ public class Organization extends BaseTimeEntity {
   public void updateLastLoginAt(LocalDateTime time) {
     this.lastLoginAt = time;
   }
+
+  public void changePassword(String encodedPassword) {
+    this.passwordHash = encodedPassword;
+  }
+
 }

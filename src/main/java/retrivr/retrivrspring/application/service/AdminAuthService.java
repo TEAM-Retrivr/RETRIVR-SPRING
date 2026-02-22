@@ -7,14 +7,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.OrganizationStatus;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -26,6 +30,7 @@ public class AdminAuthService {
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     public AdminLoginResponse login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
@@ -94,4 +99,50 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
         }
     }
+
+    @Transactional
+    public PasswordResetResponse resetPassword(PasswordResetRequest request) {
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
+        }
+
+        if (request.newPassword() == null || request.newPassword().length() < 8) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);
+        }
+
+        Organization organization = organizationRepository.findByEmail(request.email())
+                .orElseThrow(() ->
+                        new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND)
+                );
+
+        PasswordResetToken token = passwordResetTokenRepository
+                .findByTokenHash(request.token())
+                .orElseThrow(() ->
+                        new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND)
+                );
+
+        if (!token.getOrganization().getId().equals(organization.getId())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_INVALID);
+        }
+
+        if (token.getUsedAt() != null) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_ALREADY_USED);
+        }
+
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
+        }
+
+        String encodedPassword = passwordEncoder.encode(request.newPassword());
+        organization.changePassword(encodedPassword);
+
+        token.markUsed(LocalDateTime.now());
+
+        return new PasswordResetResponse(
+                organization.getEmail(),
+                "Password updated successfully"
+        );
+    }
+
 }

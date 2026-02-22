@@ -74,27 +74,10 @@ public class AdminAuthMockController {
             description = "비밀번호 변경 성공",
             content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
     )
-    @ApiResponse(
-            responseCode = "400",
-            description = "비밀번호 확인 불일치 또는 정책 위반"
-    )
     public PasswordResetResponse resetPassword(
             @Valid @RequestBody PasswordResetRequest request
     ) {
-
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new IllegalArgumentException("비밀번호 확인 값이 일치하지 않습니다.");
-        }
-
-        // 🔹 Mock 정책 검증 (길이 체크)
-        if (request.newPassword().length() < 8) {
-            throw new IllegalArgumentException("비밀번호는 최소 8자 이상이어야 합니다.");
-        }
-
-        return new PasswordResetResponse(
-                request.email(),
-                "비밀번호가 성공적으로 변경되었습니다."
-        );
+        return adminAuthService.resetPassword(request);
     }
 
 
