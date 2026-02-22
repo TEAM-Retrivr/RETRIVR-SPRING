@@ -190,7 +190,7 @@ public class AdminAuthService {
         signupTokenRepository.deleteByEmail(email);
 
         // 6자리 코드 생성 + 해시 저장
-        String rawCode = String.format("%06d", (int) (Math.random() * 1_000_000));
+        String rawCode = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
         String codeHash = passwordEncoder.encode(rawCode);
 
         SignupToken token = SignupToken.builder()
