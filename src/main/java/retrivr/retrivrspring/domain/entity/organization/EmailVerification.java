@@ -1,26 +1,15 @@
 package retrivr.retrivrspring.domain.entity.organization;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 
+import java.time.LocalDateTime;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "email_verification")
 public class EmailVerification extends BaseTimeEntity {
@@ -42,4 +31,29 @@ public class EmailVerification extends BaseTimeEntity {
 
   @Column(name = "verified_at")
   private LocalDateTime verifiedAt;
+
+  public static EmailVerification create(
+          Organization organization,
+          String code,
+          LocalDateTime expiresAt
+  ) {
+    EmailVerification verification = new EmailVerification();
+    verification.organization = organization;
+    verification.code = code;
+    verification.expiresAt = expiresAt;
+    verification.verifiedAt = null;
+    return verification;
+  }
+
+  public boolean isExpired(LocalDateTime now) {
+    return now.isAfter(this.expiresAt);
+  }
+
+  public boolean isVerified() {
+    return this.verifiedAt != null;
+  }
+
+  public void markVerified(LocalDateTime now) {
+    this.verifiedAt = now;
+  }
 }
