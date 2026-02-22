@@ -166,8 +166,8 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_ALREADY_USED);
         }
 
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
+        if (!passwordEncoder.matches(request.token(), token.getTokenHash())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_INVALID);
         }
 
         organization.changePassword(passwordEncoder.encode(request.newPassword()));

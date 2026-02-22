@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
@@ -23,6 +24,7 @@ public class EmailVerificationService {
 
     private final EmailVerificationRepository emailVerificationRepository;
     private final OrganizationRepository organizationRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public void sendCode(String email) {
 
@@ -41,15 +43,18 @@ public class EmailVerificationService {
                     }
                 });
 
-        String code = generateCode();
+        String rawCode = generateCode();
+        String hashedCode = passwordEncoder.encode(rawCode);
 
         EmailVerification verification = EmailVerification.create(
                 organization,
-                code,
+                hashedCode,
                 now.plusMinutes(10)
         );
 
         emailVerificationRepository.save(verification);
+
+        // TODO: rawCode를 이메일로 발송
     }
 
     public EmailVerificationResponse verify(EmailVerificationRequest request) {
@@ -75,7 +80,7 @@ public class EmailVerificationService {
             throw new ApplicationException(ErrorCode.EMAIL_ALREADY_VERIFIED);
         }
 
-        if (!verification.getCode().equals(request.code())) {
+        if (!passwordEncoder.matches(request.code(), verification.getCode())) {
             throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH);
         }
 
@@ -87,10 +92,10 @@ public class EmailVerificationService {
                 verification.getVerifiedAt()
         );
     }
+
     private String generateCode() {
         SecureRandom random = new SecureRandom();
         int number = random.nextInt(900000) + 100000;
         return String.valueOf(number);
     }
-
 }
