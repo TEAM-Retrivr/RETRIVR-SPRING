@@ -9,12 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.application.service.AdminAuthService;
-import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
-import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
-import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.req.*;
+import retrivr.retrivrspring.presentation.admin.auth.res.*;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -97,4 +93,20 @@ public class AdminAuthMockController {
         return adminAuthService.sendSignupEmailCode(request);
     }
 
+    @PostMapping("/signup/email-code/verify")
+    @Operation(
+            summary = "UC-1.3.1-2 회원가입용 이메일 인증 코드 검증",
+            description = "이메일과 인증 코드를 검증한다. 성공 시 회원가입에만 사용하는 signupToken을 발급한다. 토큰은 10분간 유효하다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "이메일 인증 성공",
+            content = @Content(schema = @Schema(implementation = EmailCodeVerifyResponse.class))
+    )
+    @ApiResponse(responseCode = "400", description = "코드 불일치/만료/이미 사용됨")
+    public EmailCodeVerifyResponse verifySignupEmailCode(
+            @Valid @RequestBody EmailVerificationRequest request
+    ) {
+        return adminAuthService.verifySignupEmailCode(request);
+    }
 }

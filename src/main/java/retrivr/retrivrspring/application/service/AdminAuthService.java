@@ -8,20 +8,19 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.OrganizationStatus;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
-import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
-import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.req.*;
+import retrivr.retrivrspring.presentation.admin.auth.res.*;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -206,4 +205,38 @@ public class AdminAuthService {
         return new EmailCodeSendResponse(true, 600, "인증 코드가 이메일로 발송되었습니다.");
     }
 
+    @Transactional
+    public EmailCodeVerifyResponse verifySignupEmailCode(EmailVerificationRequest request) {
+
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+
+        SignupToken token = signupTokenRepository.findByEmail(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SIGNUP_EMAIL_CODE_NOT_FOUND));
+
+        // 만료
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCode.SIGNUP_EMAIL_CODE_EXPIRED);
+        }
+
+        // 이미 코드 검증 완료된 상태면 재검증 불가
+        if (token.getCodeVerifiedAt() != null) {
+            throw new ApplicationException(ErrorCode.SIGNUP_EMAIL_CODE_ALREADY_USED);
+        }
+
+        // code 비교 (현재 tokenHash는 codeHash)
+        if (!passwordEncoder.matches(request.code(), token.getTokenHash())) {
+            throw new ApplicationException(ErrorCode.SIGNUP_EMAIL_CODE_MISMATCH);
+        }
+
+        // signupToken 발급
+        String rawSignupToken = "st_" + UUID.randomUUID();
+        String signupTokenHash = passwordEncoder.encode(rawSignupToken);
+
+        // 상태 전환: code 검증 완료 + tokenHash를 signupTokenHash로 교체
+        token.markCodeVerified(LocalDateTime.now());
+        token.updateTokenHash(signupTokenHash);
+        token.extendExpiry(LocalDateTime.now().plusMinutes(10)); // signupToken 유효 10분
+
+        return new EmailCodeVerifyResponse(rawSignupToken, 600);
+    }
 }
