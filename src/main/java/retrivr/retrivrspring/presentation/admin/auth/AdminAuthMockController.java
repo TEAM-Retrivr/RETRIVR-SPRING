@@ -6,20 +6,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import retrivr.retrivrspring.presentation.admin.auth.request.AdminLoginRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.AdminSignupRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.EmailVerificationRequest;
-import retrivr.retrivrspring.presentation.admin.auth.request.PasswordResetRequest;
-import retrivr.retrivrspring.presentation.admin.auth.response.AdminLoginResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.EmailVerificationResponse;
-import retrivr.retrivrspring.presentation.admin.auth.response.PasswordResetResponse;
+import retrivr.retrivrspring.application.service.AdminAuthService;
+import retrivr.retrivrspring.presentation.admin.auth.req.*;
+import retrivr.retrivrspring.presentation.admin.auth.res.*;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
 @Tag(name = "Admin API / Auth", description = "관리자 인증 관련 API")
+@RequiredArgsConstructor
 public class AdminAuthMockController {
+
+    private final AdminAuthService adminAuthService;
 
     @PostMapping("/login")
     @Operation(
@@ -35,23 +34,8 @@ public class AdminAuthMockController {
             responseCode = "400",
             description = "이메일 또는 비밀번호 불일치"
     )
-    public AdminLoginResponse login(
-            @Valid @RequestBody AdminLoginRequest request
-    ) {
-
-        if (!"admin@retrivr.com".equals(request.email())
-                || !"password1234".equals(request.password())) {
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
-        }
-
-        Long mockOrgId = 1L;
-
-        return new AdminLoginResponse(
-                mockOrgId,
-                request.email(),
-                "mock-access-token",
-                "mock-refresh-token"
-        );
+    public AdminLoginResponse login(@Valid @RequestBody AdminLoginRequest request) {
+        return adminAuthService.login(request);
     }
 
     @PostMapping("/signup")
@@ -72,49 +56,7 @@ public class AdminAuthMockController {
             @Valid @RequestBody AdminSignupRequest request
     ) {
 
-        if ("admin@retrivr.com".equals(request.email())) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-        }
-
-        Long mockOrgId = 2L;
-
-        return new AdminSignupResponse(
-                mockOrgId,
-                request.organizationName(),
-                request.email(),
-                "PENDING"
-        );
-    }
-
-    @PostMapping("/email-verification")
-    @Operation(
-            summary = "UC-1.3.1 이메일 인증",
-            description = "이메일로 발급된 인증 코드를 검증하고 인증을 완료한다."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "이메일 인증 성공",
-            content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))
-    )
-    @ApiResponse(
-            responseCode = "400",
-            description = "인증 코드 불일치 또는 만료"
-    )
-    public EmailVerificationResponse verifyEmail(
-            @Valid @RequestBody EmailVerificationRequest request
-    ) {
-
-        String mockCode = "123456";
-
-        if (!mockCode.equals(request.code())) {
-            throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
-        }
-
-        return new EmailVerificationResponse(
-                request.email(),
-                true,
-                java.time.LocalDateTime.now()
-        );
+        return adminAuthService.signup(request);
     }
 
 
@@ -128,28 +70,43 @@ public class AdminAuthMockController {
             description = "비밀번호 변경 성공",
             content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
     )
-    @ApiResponse(
-            responseCode = "400",
-            description = "비밀번호 확인 불일치 또는 정책 위반"
-    )
     public PasswordResetResponse resetPassword(
             @Valid @RequestBody PasswordResetRequest request
     ) {
-
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new IllegalArgumentException("비밀번호 확인 값이 일치하지 않습니다.");
-        }
-
-        // 🔹 Mock 정책 검증 (길이 체크)
-        if (request.newPassword().length() < 8) {
-            throw new IllegalArgumentException("비밀번호는 최소 8자 이상이어야 합니다.");
-        }
-
-        return new PasswordResetResponse(
-                request.email(),
-                "비밀번호가 성공적으로 변경되었습니다."
-        );
+        return adminAuthService.resetPassword(request);
     }
 
+    @PostMapping("/signup/email-code/send")
+    @Operation(
+            summary = "UC-1.3.1-1 회원가입용 이메일 인증 코드 발송",
+            description = "입력된 이메일이 가입되어 있지 않으면 6자리 인증 코드를 발송한다. 코드는 10분간 유효하다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "인증 코드 발송 성공",
+            content = @Content(schema = @Schema(implementation = EmailCodeSendResponse.class))
+    )
+    @ApiResponse(responseCode = "400", description = "이미 가입된 이메일/잘못된 요청")
+    public EmailCodeSendResponse sendSignupEmailCode(
+            @Valid @RequestBody EmailVerificationSendRequest request
+    ) {
+        return adminAuthService.sendSignupEmailCode(request);
+    }
 
+    @PostMapping("/signup/email-code/verify")
+    @Operation(
+            summary = "UC-1.3.1-2 회원가입용 이메일 인증 코드 검증",
+            description = "이메일과 인증 코드를 검증한다. 성공 시 회원가입에만 사용하는 signupToken을 발급한다. 토큰은 10분간 유효하다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "이메일 인증 성공",
+            content = @Content(schema = @Schema(implementation = EmailCodeVerifyResponse.class))
+    )
+    @ApiResponse(responseCode = "400", description = "코드 불일치/만료/이미 사용됨")
+    public EmailCodeVerifyResponse verifySignupEmailCode(
+            @Valid @RequestBody EmailVerificationRequest request
+    ) {
+        return adminAuthService.verifySignupEmailCode(request);
+    }
 }
