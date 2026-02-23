@@ -43,7 +43,8 @@ public class EmailVerificationService {
                     }
                 });
 
-        String rawCode = generateCode();
+//        String rawCode = generateCode();
+        String rawCode = "123456"; //todo : 이메일 연결 하십쇼
         String hashedCode = passwordEncoder.encode(rawCode);
 
         EmailVerification verification = EmailVerification.create(
