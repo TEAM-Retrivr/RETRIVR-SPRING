@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.home.response;
+package retrivr.retrivrspring.presentation.admin.home.res;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
