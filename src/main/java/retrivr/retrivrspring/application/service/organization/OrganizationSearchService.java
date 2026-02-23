@@ -51,7 +51,7 @@ public class OrganizationSearchService {
 
     boolean hasNext = fetchedOrg.size() > nrq.size();
     List<OrganizationSearchResultWithRank> content =
-        hasNext ? fetchedOrg.subList(0, size) : fetchedOrg;
+        hasNext ? fetchedOrg.subList(0, nrq.size()) : fetchedOrg;
 
     List<OrganizationSearchSummary> organizations = content.stream()
         .map(row -> OrganizationSearchSummary.from(row.organization()))
