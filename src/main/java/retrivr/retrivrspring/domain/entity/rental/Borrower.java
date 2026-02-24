@@ -48,6 +48,8 @@ public class Borrower extends BaseTimeEntity {
   }
 
   public boolean hasAdditionalInfo() {
-    return additionalBorrowerInfo != null && !additionalBorrowerInfo.isEmpty();
+    return additionalBorrowerInfo != null
+        && !additionalBorrowerInfo.isEmpty()
+        && !additionalBorrowerInfo.isNull();
   }
 }
