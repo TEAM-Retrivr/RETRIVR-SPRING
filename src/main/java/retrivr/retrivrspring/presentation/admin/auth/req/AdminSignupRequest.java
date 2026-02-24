@@ -1,0 +1,23 @@
+package retrivr.retrivrspring.presentation.admin.auth.req;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record AdminSignupRequest(
+
+        @Email
+        @NotBlank
+        String email,
+
+        @NotBlank
+        String password,
+
+        @NotBlank
+        String organizationName,
+
+        @NotBlank
+        String adminCode,
+
+        @NotBlank
+        String signupToken
+) {}

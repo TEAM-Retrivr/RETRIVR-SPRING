@@ -47,6 +47,12 @@ public class Borrower extends BaseTimeEntity {
         .build();
   }
 
+  public boolean hasAdditionalInfo() {
+    return additionalBorrowerInfo != null
+        && !additionalBorrowerInfo.isEmpty()
+        && !additionalBorrowerInfo.isNull();
+  }
+
   public String getMajor() {
     return additionalBorrowerInfo
         .path("학과")

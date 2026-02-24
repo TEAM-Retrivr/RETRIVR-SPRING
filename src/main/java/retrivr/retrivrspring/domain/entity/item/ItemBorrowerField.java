@@ -63,6 +63,10 @@ public class ItemBorrowerField extends BaseTimeEntity {
           // 아무 검증 안 해도 됨(길이 제한은 DB/DTO validation으로)
         }
 
+        case TEXTAREA -> {
+          // TEXT와 동일하게 별도 검증 불필요
+        }
+
         case EMAIL -> {
           // 간단 검증 (정교한건 @Email 추천)
           String v = raw.trim();

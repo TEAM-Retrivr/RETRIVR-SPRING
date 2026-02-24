@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.presentation.admin.home.response.AdminHomeRequestSummary;
-import retrivr.retrivrspring.presentation.admin.home.response.AdminHomeResponse;
+import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeRequestSummary;
+import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 
 import java.util.List;
 
