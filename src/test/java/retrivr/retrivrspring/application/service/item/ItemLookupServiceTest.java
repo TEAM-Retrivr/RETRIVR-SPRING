@@ -29,7 +29,7 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemUnitRepository;
-import retrivr.retrivrspring.infrastructure.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.presentation.item.res.PublicItemDetailResponse;
 import retrivr.retrivrspring.presentation.item.res.PublicItemListPageResponse;
 

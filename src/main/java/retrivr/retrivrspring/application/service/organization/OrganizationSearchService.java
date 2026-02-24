@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.NormalizedOrganizationSearchRequest;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
-import retrivr.retrivrspring.infrastructure.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.application.vo.OrganizationSearchCursor;
 import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse;
 import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse.OrganizationSearchSummary;

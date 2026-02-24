@@ -27,7 +27,7 @@ import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSiz
 import retrivr.retrivrspring.application.vo.OrganizationSearchCursor;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.infrastructure.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse;
 
 @ExtendWith(MockitoExtension.class)
