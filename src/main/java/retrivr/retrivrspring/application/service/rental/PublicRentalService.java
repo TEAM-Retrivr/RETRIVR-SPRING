@@ -45,7 +45,7 @@ public class PublicRentalService {
       targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
           .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
 
-      if (!targetItemUnit.getItem().equals(targetItem)) {
+      if (!targetItemUnit.getItem().getId().equals(targetItem.getId())) {
         throw new ApplicationException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
       }
       if (!targetItemUnit.isRentalAble()) {
