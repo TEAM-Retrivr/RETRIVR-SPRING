@@ -35,6 +35,7 @@ public enum ErrorCode {
     NOT_AVAILABLE_ITEM(HttpStatus.SERVICE_UNAVAILABLE, 4002, "대여할 수 있는 수량이 없습니다."),
     NOT_AVAILABLE_ITEM_UNIT(HttpStatus.SERVICE_UNAVAILABLE, 4003, "해당 물건은 현재 대여 불가능합니다."),
     QUANTITY_CAN_NOT_BE_NEGATIVE(HttpStatus.BAD_REQUEST, 4004, "이용 가능한 수량은 음수가 될 수 없습니다."),
+    ITEM_UNIT_DO_NOT_BELONG_TO_ITEM(HttpStatus.BAD_REQUEST, 4005, "요청된 물건에 속하지 않은 고유번호가 존재합니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
@@ -71,7 +72,7 @@ public enum ErrorCode {
     PASSWORD_RESET_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 8002, "비밀번호 재설정 토큰이 만료되었습니다."),
     PASSWORD_RESET_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 8003, "이미 사용된 비밀번호 재설정 토큰입니다."),
     PASSWORD_RESET_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, 8004, "비밀번호와 비밀번호 확인 값이 일치하지 않습니다."),
-    PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다.")
+    PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다."),
     ;
 
     private final HttpStatus httpStatus;
