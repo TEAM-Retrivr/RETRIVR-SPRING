@@ -40,6 +40,7 @@ public enum ErrorCode {
     //5000: Rental Error
     ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
     NOT_FOUND_RENTAL(HttpStatus.NOT_FOUND, 5001, "존재하지 않는 대여 정보입니다."),
+    STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
 
     // 6000: Authentication Error
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),
