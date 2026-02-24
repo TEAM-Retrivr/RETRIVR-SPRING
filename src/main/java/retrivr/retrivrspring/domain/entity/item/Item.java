@@ -114,7 +114,7 @@ public class Item extends BaseTimeEntity {
   }
 
   public void minusOneAvailableQuantity() {
-    if (this.availableQuantity == 0) {
+    if (this.availableQuantity <= 0) {
       throw new DomainException(ErrorCode.QUANTITY_CAN_NOT_BE_NEGATIVE);
     }
     availableQuantity--;
