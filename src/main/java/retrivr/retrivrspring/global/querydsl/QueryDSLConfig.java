@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.global.qeurydsl;
+package retrivr.retrivrspring.global.querydsl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
