@@ -27,8 +27,10 @@ public class SignupToken extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
+    @Column(name = "code_verified_at")
     private LocalDateTime codeVerifiedAt;
 
+    @Column(name = "used_at")
     private LocalDateTime usedAt;
 
     @Builder

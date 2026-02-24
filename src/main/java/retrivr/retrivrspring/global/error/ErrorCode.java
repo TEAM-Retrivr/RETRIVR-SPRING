@@ -58,6 +58,7 @@ public enum ErrorCode {
     SIGNUP_EMAIL_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7101, "회원가입 인증 코드가 올바르지 않습니다."),
     SIGNUP_EMAIL_CODE_EXPIRED(HttpStatus.BAD_REQUEST, 7102, "회원가입 인증 코드가 만료되었습니다."),
     SIGNUP_EMAIL_CODE_ALREADY_USED(HttpStatus.BAD_REQUEST, 7103, "이미 사용된 회원가입 인증 코드입니다."),
+    EMAIL_VERIFICATION_TOO_MANY_REQUESTS(HttpStatus.BAD_REQUEST, 7104, "인증 코드는 60초 후 재요청 가능합니다."),
 
     // 7200: Signup Token Error
     SIGNUP_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 7200, "회원가입 토큰이 존재하지 않습니다."),
