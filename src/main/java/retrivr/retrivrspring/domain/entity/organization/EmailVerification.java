@@ -11,7 +11,12 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "email_verification")
+@Table(
+        name = "email_verification",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"email", "purpose"})
+        }
+)
 public class EmailVerification extends BaseTimeEntity {
 
   @Id
@@ -19,9 +24,12 @@ public class EmailVerification extends BaseTimeEntity {
   @Column(name = "email_verification_id")
   private Long id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "organization_id", nullable = false)
-  private Organization organization;
+  @Column(nullable = false, length = 255)
+  private String email;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private EmailVerificationPurpose purpose;
 
   @Column(nullable = false, length = 255)
   private String code;
@@ -33,16 +41,17 @@ public class EmailVerification extends BaseTimeEntity {
   private LocalDateTime verifiedAt;
 
   public static EmailVerification create(
-          Organization organization,
-          String code,
+          String email,
+          EmailVerificationPurpose purpose,
+          String hashedCode,
           LocalDateTime expiresAt
   ) {
     EmailVerification verification = new EmailVerification();
-    verification.organization = organization;
-    verification.code = code;
+    verification.email = email;
+    verification.purpose = purpose;
+    verification.code = hashedCode;
     verification.expiresAt = expiresAt;
-    verification.verifiedAt = null;
-    return verification;
+      return verification;
   }
 
   public boolean isExpired(LocalDateTime now) {
