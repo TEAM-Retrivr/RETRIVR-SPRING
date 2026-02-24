@@ -66,6 +66,7 @@ public class Item extends BaseTimeEntity {
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
 
+  @Builder.Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "item")
   List<ItemBorrowerField> itemBorrowerFields = new ArrayList<>();
 
