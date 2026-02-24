@@ -2,7 +2,9 @@ package retrivr.retrivrspring.application.service.rental;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,10 +86,14 @@ public class PublicRentalService {
       itemUnitCode = rental.getRentalItemUnits().getFirst().getItemUnit().getCode();
     }
 
-    Map<String, String> borrowerField = objectMapper.convertValue(
-        rental.getBorrower().getAdditionalBorrowerInfo(),
-        new TypeReference<Map<String, String>>() {}
-    );
+    Map<String, String> borrowerField = new HashMap<>();
+    if (rental.getBorrower().hasAdditionalInfo()) {
+      borrowerField = objectMapper.convertValue(
+          rental.getBorrower().getAdditionalBorrowerInfo(),
+          new TypeReference<Map<String, String>>() {}
+      );
+    }
+
     return PublicRentalDetailResponse.from(rental, itemName, itemUnitCode, borrowerField);
   }
 }

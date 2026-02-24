@@ -46,4 +46,8 @@ public class Borrower extends BaseTimeEntity {
         .additionalBorrowerInfo(additionalBorrowerInfo)
         .build();
   }
+
+  public boolean hasAdditionalInfo() {
+    return additionalBorrowerInfo != null && !additionalBorrowerInfo.isEmpty();
+  }
 }
