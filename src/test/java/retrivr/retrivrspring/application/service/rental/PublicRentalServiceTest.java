@@ -65,11 +65,14 @@ class PublicRentalServiceTest {
     return org;
   }
 
-  private ItemUnit mockUnit(Long unitId, boolean rentalAble, String code) {
+  private ItemUnit mockUnit(Long itemId, Long unitId, boolean rentalAble, String code) {
+    Item item = mock(Item.class);
+    when(item.getId()).thenReturn(itemId);
     ItemUnit unit = mock(ItemUnit.class);
     when(unit.getId()).thenReturn(unitId);
     when(unit.isRentalAble()).thenReturn(rentalAble);
     when(unit.getCode()).thenReturn(code);
+    when(unit.getItem()).thenReturn(item);
     return unit;
   }
 
@@ -132,7 +135,7 @@ class PublicRentalServiceTest {
   void requestRental_unitNotAvailable() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
-    ItemUnit unit = mockUnit(99L, false, "UMB-099");
+    ItemUnit unit = mockUnit(10L, 99L, false, "UMB-099");
 
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findById(99L)).thenReturn(Optional.of(unit));
@@ -214,7 +217,7 @@ class PublicRentalServiceTest {
   void requestRental_success_withUnit() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
-    ItemUnit unit = mockUnit(99L, true, "UMB-099");
+    ItemUnit unit = mockUnit(10L,99L, true, "UMB-099");
 
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findById(99L)).thenReturn(Optional.of(unit));
@@ -276,6 +279,7 @@ class PublicRentalServiceTest {
     Borrower borrower = mock(Borrower.class);
     JsonNode info = objectMapper.valueToTree(Map.of("학과", "컴공"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
+    when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(1L)).thenReturn(Optional.of(rental));
@@ -317,6 +321,7 @@ class PublicRentalServiceTest {
     Borrower borrower = mock(Borrower.class);
     JsonNode info = objectMapper.valueToTree(Map.of("학번", "20251234"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
+    when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(2L)).thenReturn(Optional.of(rental));
