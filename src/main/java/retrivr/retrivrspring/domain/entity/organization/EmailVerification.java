@@ -24,14 +24,14 @@ public class EmailVerification extends BaseTimeEntity {
   @Column(name = "email_verification_id")
   private Long id;
 
-  @Column(nullable = false, length = 255)
+  @Column(nullable = false)
   private String email;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 30)
   private EmailVerificationPurpose purpose;
 
-  @Column(nullable = false, length = 255)
+  @Column(nullable = false)
   private String code;
 
   @Column(name = "expires_at", nullable = false)
