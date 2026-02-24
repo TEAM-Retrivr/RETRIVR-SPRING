@@ -7,6 +7,6 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 
 public interface ItemRepository extends JpaRepository<Item, Long>, ItemLookupRepository {
 
-  @EntityGraph("{itemBorrowerFields}")
+  @EntityGraph(attributePaths = "{itemBorrowerFields}")
   Optional<Item> findFetchItemBorrowerFieldsById(Long itemId);
 }
