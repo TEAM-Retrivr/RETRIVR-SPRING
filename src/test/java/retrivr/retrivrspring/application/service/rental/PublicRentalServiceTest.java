@@ -85,7 +85,9 @@ class PublicRentalServiceTest {
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
 
     assertThatThrownBy(() -> service().requestRental(10L, req))
-        .isInstanceOf(ApplicationException.class);
+        .isInstanceOf(ApplicationException.class)
+        .extracting(e -> ((ApplicationException) e).getErrorCode())
+        .isEqualTo(ErrorCode.NOT_FOUND_ITEM);
 
     verify(rentalRepository, never()).save(any());
   }
