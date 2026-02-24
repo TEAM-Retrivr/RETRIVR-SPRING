@@ -32,7 +32,7 @@ public class EmailVerificationService {
     private static final long RESEND_BLOCK_SECONDS = 60;
 
     private final EmailVerificationRepository emailVerificationRepository;
-    private final OrganizationRepository organizationRepository;
+    private final SignupTokenRepository signupTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     public EmailVerificationSendResponse sendCode(EmailVerificationSendRequest request) {
@@ -100,6 +100,28 @@ public class EmailVerificationService {
 
         verification.markVerified(now);
 
+        // SIGNUP이면 signupToken 생성
+        if (purpose == EmailVerificationPurpose.SIGNUP) {
+
+            String rawSignupToken = "st_" + UUID.randomUUID();
+            String signupTokenHash = passwordEncoder.encode(rawSignupToken);
+
+            signupTokenRepository.deleteByEmail(email);
+
+            SignupToken token = SignupToken.builder()
+                    .email(email)
+                    .tokenHash(signupTokenHash)
+                    .expiresAt(now.plusMinutes(10))
+                    .build();
+
+            token.markCodeVerified(now);
+
+            signupTokenRepository.save(token);
+
+            return new EmailCodeVerifyResponse(rawSignupToken, EXPIRES_SECONDS);
+        }
+
+        // 그 외 purpose는 일반 인증 응답
         return new EmailVerificationResponse(
                 email,
                 true,
