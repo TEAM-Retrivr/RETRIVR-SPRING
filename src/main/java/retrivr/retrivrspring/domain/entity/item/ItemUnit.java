@@ -18,6 +18,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -44,4 +46,16 @@ public class ItemUnit extends BaseTimeEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private ItemUnitStatus status;
+
+  public boolean isRentalAble() {
+    return status.equals(ItemUnitStatus.AVAILABLE);
+  }
+
+  public void transitionToRentalPendingStatus() {
+    if (!isRentalAble()) {
+      throw new DomainException(ErrorCode.STATUS_TRANSITION_EXCEPTION,
+          "Cannot transition to RENTAL_PENDING from status: " + this.status);
+    }
+    this.status = ItemUnitStatus.RENTAL_PENDING;
+  }
 }
