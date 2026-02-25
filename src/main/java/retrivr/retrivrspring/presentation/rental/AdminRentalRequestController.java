@@ -6,8 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,17 +14,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalDecisionStatus;
+import retrivr.retrivrspring.application.service.rental.AdminRentalRequestService;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalApproveRequest;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalRejectRequest;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse;
-import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse.RentalRequestSummary;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/admin/v1/rentals")
 @Tag(name = "Admin API / Rental Request", description = "대여 요청 관리")
 public class AdminRentalRequestController {
+
+  private final AdminRentalRequestService adminRentalRequestService;
 
   @GetMapping("/requests")
   @Operation(summary = "대여 요청 목록 조회(요청됨 상태)")
@@ -34,44 +37,16 @@ public class AdminRentalRequestController {
       description = "대여 요청 목록 조회 성공",
       content = @Content(schema = @Schema(implementation = AdminRentalRequestPageResponse.class))
   )
-  public AdminRentalRequestPageResponse listRequested(
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION})
+  public AdminRentalRequestPageResponse getRequestedList(
       @Parameter(description = "커서(마지막 조회된 rentalId). 다음 페이지 조회 시 사용", example = "1001")
       @RequestParam(name = "cursor", required = false) Long cursor,
-      @RequestParam(name = "size", required = false, defaultValue = "15") Integer size
+      @RequestParam(name = "size", required = false, defaultValue = "15") Integer size,
+      //todo: 로그인 기능 완성 시 변경
+      @RequestParam(name = "login") Long mockOrganizationId
   ) {
-    return new AdminRentalRequestPageResponse(
-        List.of(
-            new RentalRequestSummary(
-                1001L,
-                11L,
-                "C타입 충전기",
-                101L,
-                "C타입 충전기(1)",
-                5,
-                3,
-                "강찬욱",
-                "컴퓨터공학부",
-                "202111240",
-                "학생증",
-                LocalDateTime.now().minusHours(1)
-            ),
-            new RentalRequestSummary(
-                1002L,
-                12L,
-                "실험복",
-                104L,
-                "실험복(1)",
-                10,
-                3,
-                "박다솔",
-                "컴퓨터공학부",
-                "202311111",
-                null,
-                LocalDateTime.now().minusHours(1)
-            )
-        ),
-        1002L
-    );
+
+    return adminRentalRequestService.getRequestedList(mockOrganizationId, cursor, size);
   }
 
   @PostMapping("/{rentalId}/approve")
@@ -81,16 +56,14 @@ public class AdminRentalRequestController {
       description = "승인 처리 성공",
       content = @Content(schema = @Schema(implementation = AdminRentalDecisionResponse.class))
   )
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION, ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION})
   public AdminRentalDecisionResponse approve(
       @PathVariable Long rentalId,
-      @RequestBody AdminRentalApproveRequest request
+      @RequestBody AdminRentalApproveRequest request,
+      //todo: 로그인 기능 완성 시 변경
+      @RequestParam(name = "login") Long mockOrganizationId
   ) {
-    return new AdminRentalDecisionResponse(
-        rentalId,
-        RentalDecisionStatus.APPROVE,
-        request.adminNameToApprove(),
-        LocalDateTime.now()
-    );
+    return adminRentalRequestService.approveRentalRequest(rentalId, request, mockOrganizationId);
   }
 
   @PostMapping("/{rentalId}/reject")
@@ -100,16 +73,13 @@ public class AdminRentalRequestController {
       description = "거부 처리 성공",
       content = @Content(schema = @Schema(implementation = AdminRentalDecisionResponse.class))
   )
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION, ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION})
   public AdminRentalDecisionResponse reject(
       @PathVariable Long rentalId,
-      @RequestBody AdminRentalRejectRequest request
+      @RequestBody AdminRentalRejectRequest request,
+      @RequestParam(name = "login") Long mockOrganizationId
   ) {
-    return new AdminRentalDecisionResponse(
-        rentalId,
-        RentalDecisionStatus.REJECT,
-        request.adminNameToReject(),
-        LocalDateTime.now()
-    );
+    return adminRentalRequestService.rejectRentalRequest(rentalId, request, mockOrganizationId);
   }
 
 }

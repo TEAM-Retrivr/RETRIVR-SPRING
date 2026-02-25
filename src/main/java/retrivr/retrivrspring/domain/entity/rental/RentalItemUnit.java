@@ -22,8 +22,8 @@ import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "rental_unit")
-public class RentalUnit extends BaseTimeEntity {
+@Table(name = "rental_item_unit")
+public class RentalItemUnit extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,5 +36,5 @@ public class RentalUnit extends BaseTimeEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "unit_id", nullable = false)
-  private ItemUnit unit;
+  private ItemUnit itemUnit;
 }
