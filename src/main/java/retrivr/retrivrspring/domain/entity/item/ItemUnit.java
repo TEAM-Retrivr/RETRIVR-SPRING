@@ -74,4 +74,11 @@ public class ItemUnit extends BaseTimeEntity {
     }
     this.status = ItemUnitStatus.AVAILABLE;
   }
+
+  public boolean isBelongTo(Item targetItem) {
+    if (item.getId() == null) {
+      return false;
+    }
+    return this.item.getId().equals(targetItem.getId());
+  }
 }
