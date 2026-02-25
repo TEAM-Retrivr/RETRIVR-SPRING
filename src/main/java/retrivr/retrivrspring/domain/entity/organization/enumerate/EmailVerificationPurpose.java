@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.domain.entity.organization;
+package retrivr.retrivrspring.domain.entity.organization.enumerate;
 
 public enum EmailVerificationPurpose {
 

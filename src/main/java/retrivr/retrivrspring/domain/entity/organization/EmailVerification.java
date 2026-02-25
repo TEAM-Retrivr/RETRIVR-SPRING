@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 
 import java.time.LocalDateTime;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
