@@ -29,7 +29,7 @@ public class SecurityConfig {
                                 "/api/admin/v1/auth/login",
                                 "/api/admin/v1/auth/signup/**",
                                 "/api/public/**",
-                                "/api/admin/**"
+                                "/api/admin/**" //todo: 토큰 검증 로직 추가 이후 삭제
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
