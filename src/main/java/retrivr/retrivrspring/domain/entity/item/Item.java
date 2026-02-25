@@ -146,6 +146,9 @@ public class Item extends BaseTimeEntity {
   }
 
   public boolean isUnitType() {
+    if (this.itemManagementType == null) {
+      throw new DomainException(ErrorCode.INVALID_ITEM, "물건에는 물건 유형이 지정되어 있어야 합니다.");
+    }
     return this.itemManagementType.equals(ItemManagementType.UNIT);
   }
 }

@@ -123,9 +123,13 @@ public class Rental extends BaseTimeEntity {
       throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
     }
 
-    LocalDateTime now = LocalDateTime.now();
+    if (this.rentalItems.isEmpty()) {
+      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
+    }
     //todo: 장바구니
     Item item = this.rentalItems.getFirst().getItem();
+
+    LocalDateTime now = LocalDateTime.now();
     this.status = RentalStatus.APPROVED;
     this.decidedAt = now;
     this.decidedBy = adminNameToApprove;
@@ -140,6 +144,9 @@ public class Rental extends BaseTimeEntity {
       throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
     }
 
+    if (this.rentalItems.isEmpty()) {
+      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
+    }
     //todo: 장바구니
     Item item = this.rentalItems.getFirst().getItem();
     item.onRentalRejected();

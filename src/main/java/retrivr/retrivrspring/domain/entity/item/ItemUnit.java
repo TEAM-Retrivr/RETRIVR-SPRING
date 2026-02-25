@@ -77,7 +77,10 @@ public class ItemUnit extends BaseTimeEntity {
   }
 
   public boolean isBelongTo(Item targetItem) {
-    if (item.getId() == null) {
+    if (this.item == null || this.item.getId() == null) {
+      throw new DomainException(ErrorCode.INVALID_ITEM_UNIT, "아이템 유닛에는 연결된 아이템이 존재해야 합니다.");
+    }
+    if (targetItem == null) {
       return false;
     }
     return this.item.getId().equals(targetItem.getId());

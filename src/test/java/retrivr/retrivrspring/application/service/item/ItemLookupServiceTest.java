@@ -209,7 +209,7 @@ class ItemLookupServiceTest {
   @DisplayName("IL-06: item 존재하지 않으면 NOT_FOUND_ITEM 예외")
   void detailLookup_itemNotFound_throw() {
     // given
-    when(itemRepository.existsById(10L)).thenReturn(false);
+    when(itemRepository.findById(10L)).thenReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> itemLookupService.publicOrganizationItemLookup(10L))
@@ -217,6 +217,7 @@ class ItemLookupServiceTest {
         .extracting("errorCode") // ApplicationException 구조에 맞게 수정
         .isEqualTo(ErrorCode.NOT_FOUND_ITEM);
 
+    verify(itemRepository).findById(10L);
     verify(itemUnitRepository, never()).findAllByItemId(anyLong());
   }
 

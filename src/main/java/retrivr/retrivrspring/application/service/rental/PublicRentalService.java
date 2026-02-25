@@ -51,6 +51,9 @@ public class PublicRentalService {
 
     Rental requestedRental;
     if (targetItem.isUnitType()) {
+      if (request.itemUnitId() == null) {
+        throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "요청에 아이템 고유번호가 없습니다.");
+      }
       ItemUnit targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
           .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
 

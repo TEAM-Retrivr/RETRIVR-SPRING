@@ -21,6 +21,7 @@ public enum ErrorCode {
     FORBIDDEN_EXCEPTION(HttpStatus.FORBIDDEN, 2005, "인가되지 않는 요청입니다."),
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
     SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
+    BAD_REQUEST_EXCEPTION(HttpStatus.BAD_REQUEST, 2008, ""),
 
     // 3000: Organization Error
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
@@ -39,11 +40,14 @@ public enum ErrorCode {
     AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION(HttpStatus.BAD_REQUEST, 4005, "이용 가능한 수량은 총 수량을 넘을 수 없습니다."),
     ITEM_UNIT_DO_NOT_BELONG_TO_ITEM(HttpStatus.BAD_REQUEST, 4006, "요청된 물건에 속하지 않은 고유번호가 존재합니다."),
     ITEM_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 4007, "물건의 대여 상태를 요청된 상태로 변경할 수 없습니다."),
+    INVALID_ITEM(HttpStatus.INTERNAL_SERVER_ERROR, 4008, "물건 데이터가 잘못되었습니다."),
+    INVALID_ITEM_UNIT(HttpStatus.INTERNAL_SERVER_ERROR, 4009, "아이템 유닛 데이터 잘못되었습니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
     NOT_FOUND_RENTAL(HttpStatus.NOT_FOUND, 5001, "존재하지 않는 대여 정보입니다."),
     RENTAL_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
+    INVALID_RENTAL_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 5003, "대여 데이터가 잘못되었습니다."),
 
     // 6000: Authentication Error
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),
@@ -77,7 +81,7 @@ public enum ErrorCode {
     PASSWORD_RESET_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 8002, "비밀번호 재설정 토큰이 만료되었습니다."),
     PASSWORD_RESET_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 8003, "이미 사용된 비밀번호 재설정 토큰입니다."),
     PASSWORD_RESET_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, 8004, "비밀번호와 비밀번호 확인 값이 일치하지 않습니다."),
-    PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다."),
+    PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다.")
     ;
 
     private final HttpStatus httpStatus;
