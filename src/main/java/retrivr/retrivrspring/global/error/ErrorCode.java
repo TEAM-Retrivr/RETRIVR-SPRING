@@ -28,19 +28,22 @@ public enum ErrorCode {
     DO_NOT_ENCODED_SEARCH_CURSOR(HttpStatus.INTERNAL_SERVER_ERROR, 3002, "커서 인코딩 중 문제가 발생했습니다."),
     INVALID_SEARCH_CURSOR(HttpStatus.BAD_REQUEST, 3003, "단체 찾기 요청 중 cursor 가 잘못되었습니다."),
     NOT_FOUND_ORGANIZATION(HttpStatus.NOT_FOUND, 3004, "존재하지 않는 단체입니다."),
+    ORGANIZATION_MISMATCH_EXCEPTION(HttpStatus.FORBIDDEN, 3005, "요청한 리소스가 해당 조직에 속하지 않습니다."),
 
     // 4000: Item Error
     NOT_FOUND_ITEM(HttpStatus.NOT_FOUND, 4000, "존재하지 않는 물건입니다."),
     NOT_FOUND_ITEM_UNIT(HttpStatus.NOT_FOUND, 4001, "존재하지 않는 물건 고유번호입니다."),
     NOT_AVAILABLE_ITEM(HttpStatus.SERVICE_UNAVAILABLE, 4002, "대여할 수 있는 수량이 없습니다."),
     NOT_AVAILABLE_ITEM_UNIT(HttpStatus.SERVICE_UNAVAILABLE, 4003, "해당 물건은 현재 대여 불가능합니다."),
-    QUANTITY_CAN_NOT_BE_NEGATIVE(HttpStatus.BAD_REQUEST, 4004, "이용 가능한 수량은 음수가 될 수 없습니다."),
-    ITEM_UNIT_DO_NOT_BELONG_TO_ITEM(HttpStatus.BAD_REQUEST, 4005, "요청된 물건에 속하지 않은 고유번호가 존재합니다."),
+    AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION(HttpStatus.BAD_REQUEST, 4004, "이용 가능한 수량은 음수가 될 수 없습니다."),
+    AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION(HttpStatus.BAD_REQUEST, 4005, "이용 가능한 수량은 총 수량을 넘을 수 없습니다."),
+    ITEM_UNIT_DO_NOT_BELONG_TO_ITEM(HttpStatus.BAD_REQUEST, 4006, "요청된 물건에 속하지 않은 고유번호가 존재합니다."),
+    ITEM_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 4007, "물건의 대여 상태를 요청된 상태로 변경할 수 없습니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
     NOT_FOUND_RENTAL(HttpStatus.NOT_FOUND, 5001, "존재하지 않는 대여 정보입니다."),
-    STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
+    RENTAL_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
 
     // 6000: Authentication Error
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),
