@@ -38,6 +38,9 @@ public class Organization extends BaseTimeEntity {
   @Column(name = "search_key", unique = true, length = 255)
   private String searchKey;
 
+  @Column(name = "admin_code_hash", nullable = false, length = 255)
+  private String adminCodeHash;
+
   public void updateLastLoginAt(LocalDateTime time) {
     this.lastLoginAt = time;
   }
