@@ -116,6 +116,7 @@ class PublicRentalServiceTest {
   void requestRental_unitNotFound() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
+    when(item.isUnitType()).thenReturn(true);
 
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findById(99L)).thenReturn(Optional.empty());
@@ -135,6 +136,7 @@ class PublicRentalServiceTest {
   void requestRental_unitNotAvailable() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
+    when(item.isUnitType()).thenReturn(true);
     ItemUnit unit = mockUnit(10L, 99L, false, "UMB-099");
 
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));

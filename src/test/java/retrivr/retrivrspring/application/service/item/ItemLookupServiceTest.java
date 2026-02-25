@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ import org.mockito.quality.Strictness;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.ItemUnitStatus;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
@@ -224,7 +226,10 @@ class ItemLookupServiceTest {
   void detailLookup_ok() {
     // given
     long itemId = 10L;
-    when(itemRepository.existsById(itemId)).thenReturn(true);
+    Item item = mock(Item.class);
+    when(item.isUnitType()).thenReturn(true);
+    when(item.getItemManagementType()).thenReturn(ItemManagementType.UNIT);
+    when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
     List<ItemUnit> units = List.of(
         mockItemUnit(1L),
