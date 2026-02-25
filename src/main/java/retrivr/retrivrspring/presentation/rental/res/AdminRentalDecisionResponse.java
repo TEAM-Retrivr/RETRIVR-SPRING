@@ -8,7 +8,6 @@ public record AdminRentalDecisionResponse(
     RentalDecisionStatus rentalDecisionStatus,
     String adminNameToApprove,
     LocalDateTime decisionDate
-
 ) {
 
 }
