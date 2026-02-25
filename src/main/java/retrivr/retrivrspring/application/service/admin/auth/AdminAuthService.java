@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.application.service;
+package retrivr.retrivrspring.application.service.admin.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -116,6 +116,7 @@ public class AdminAuthService {
                 .passwordHash(hashedPw)
                 .name(safeName)
                 .status(OrganizationStatus.ACTIVE) // TODO: 가입 승인 프로세스 도입 시 PENDING으로 변경
+                .adminCodeHash(passwordEncoder.encode(request.adminCode()))
                 .searchKey(searchKey)
                 .build();
 
