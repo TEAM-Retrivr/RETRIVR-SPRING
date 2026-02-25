@@ -73,11 +73,6 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "decided_at")
   private LocalDateTime decidedAt;
 
-  //??
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "decided_by_organization_id")
-  private Organization decidedByOrganization;
-
   @Column(name = "decided_by")
   private String decidedBy;
 
@@ -86,10 +81,6 @@ public class Rental extends BaseTimeEntity {
 
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
-
-  //??
-  @Column(name = "return_date_override")
-  private LocalDateTime returnDateOverride;
 
   public static Rental request(Organization organization, Item item, Borrower borrower) {
     Rental newRental = Rental.builder()
