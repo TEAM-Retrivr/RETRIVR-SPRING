@@ -26,6 +26,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -34,8 +36,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/admin/v1/auth/login",
                                 "/api/admin/v1/auth/signup/**",
-                                "/api/public/**",
-                                "/api/admin/**" //todo: 토큰 검증 로직 추가 이후 삭제
+                                "/api/public/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -43,8 +44,6 @@ public class SecurityConfig {
                         new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class
                 )
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
                 .build();
     }
 
