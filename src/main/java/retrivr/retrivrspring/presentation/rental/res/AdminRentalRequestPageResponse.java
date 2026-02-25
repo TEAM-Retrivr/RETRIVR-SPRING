@@ -29,9 +29,9 @@ public record AdminRentalRequestPageResponse(
 
     public static RentalRequestSummary from(Rental rental) {
       //todo: 장바구니 로직 구현 시 getFirst 삭제
-      Item item = rental.getRentalItems().getFirst().getItem();
+      Item item = rental.getItem();
       ItemUnit itemUnit = null;
-      if (!rental.getRentalItemUnits().isEmpty()) {
+      if (rental.hasItemUnit()) {
         itemUnit = rental.getRentalItemUnits().getFirst().getItemUnit();
       }
       Borrower borrower = rental.getBorrower();
