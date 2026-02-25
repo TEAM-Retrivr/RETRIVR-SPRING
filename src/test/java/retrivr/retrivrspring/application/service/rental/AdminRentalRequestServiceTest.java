@@ -1,17 +1,5 @@
 package retrivr.retrivrspring.application.service.rental;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,14 +10,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
+import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalApproveRequest;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalRejectRequest;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse.RentalRequestSummary;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdminRentalRequestServiceTest {
