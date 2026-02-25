@@ -54,8 +54,10 @@ public class ItemLookupService {
   }
 
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {
-    if (!itemRepository.existsById(itemId)) {
-      throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM);
+    Item item = itemRepository.findById(itemId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+    if (!item.isUnitType()) {
+      return new PublicItemDetailResponse(List.of(), item.getItemManagementType());
     }
 
     List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId);
@@ -64,6 +66,6 @@ public class ItemLookupService {
         .map(PublicItemUnitSummary::from)
         .toList();
 
-    return new PublicItemDetailResponse(list);
+    return new PublicItemDetailResponse(list, item.getItemManagementType());
   }
 }
