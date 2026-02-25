@@ -2,7 +2,6 @@ package retrivr.retrivrspring.application.service.rental;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -11,7 +10,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -182,7 +180,7 @@ class AdminRentalRequestServiceTest {
     verify(rental).approve("adminA", org);
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("APPROVE");
-    assertThat(res.adminNameToApprove()).isEqualTo("adminA");
+    assertThat(res.adminNameToDecide()).isEqualTo("adminA");
     // decidedAt은 LocalDateTime.now()라 정확 비교 대신 null 아닌지만
     assertThat(res.decisionDate()).isNotNull();
   }
@@ -210,7 +208,7 @@ class AdminRentalRequestServiceTest {
     verify(rental).reject("adminB", org);
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("REJECT");
-    assertThat(res.adminNameToApprove()).isEqualTo("adminB");
+    assertThat(res.adminNameToDecide()).isEqualTo("adminB");
     assertThat(res.decisionDate()).isNotNull();
   }
 }
