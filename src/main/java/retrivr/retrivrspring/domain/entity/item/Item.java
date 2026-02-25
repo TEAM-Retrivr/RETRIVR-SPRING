@@ -113,9 +113,24 @@ public class Item extends BaseTimeEntity {
     return availableQuantity > 0;
   }
 
+  public void onRentalRequested() {
+    minusOneAvailableQuantity();
+  }
+
+  public void onRentalRejected() {
+    plusOneAvailableQuantity();
+  }
+
+  public void plusOneAvailableQuantity() {
+    if (this.availableQuantity >= this.totalQuantity) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION);
+    }
+    availableQuantity++;
+  }
+
   public void minusOneAvailableQuantity() {
     if (this.availableQuantity <= 0) {
-      throw new DomainException(ErrorCode.QUANTITY_CAN_NOT_BE_NEGATIVE);
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
     availableQuantity--;
   }

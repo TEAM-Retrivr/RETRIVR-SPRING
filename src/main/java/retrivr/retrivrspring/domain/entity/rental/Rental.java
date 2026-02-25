@@ -28,6 +28,8 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -76,6 +78,9 @@ public class Rental extends BaseTimeEntity {
   @JoinColumn(name = "decided_by_organization_id")
   private Organization decidedByOrganization;
 
+  @Column(name = "decided_by")
+  private String decidedBy;
+
   @Column(name = "due_date")
   private LocalDate dueDate;
 
@@ -94,7 +99,7 @@ public class Rental extends BaseTimeEntity {
         .requestedAt(LocalDateTime.now())
         .build();
 
-    item.minusOneAvailableQuantity();
+    item.onRentalRequested();
 
     RentalItem newRentalItem = RentalItem.builder()
         .rental(newRental)
@@ -113,10 +118,48 @@ public class Rental extends BaseTimeEntity {
         .itemUnit(itemUnit)
         .build();
 
-    itemUnit.transitionToRentalPendingStatus();
+    itemUnit.onRentalRequested();
 
     newRental.rentalItemUnits.add(newRentalItemUnit);
     return newRental;
   }
 
+  public void approve(String adminNameToApprove, Organization organizationToApprove) {
+    if (!this.status.equals(RentalStatus.REQUESTED)) {
+      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot approve rental that is not in REQUESTED status");
+    }
+    if (!organizationToApprove.getId().equals(this.organization.getId())) {
+      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    //todo: 장바구니
+    Item item = this.rentalItems.getFirst().getItem();
+    this.status = RentalStatus.APPROVED;
+    this.decidedAt = now;
+    this.decidedBy = adminNameToApprove;
+    this.dueDate = now.plusDays(item.getRentalDuration()).toLocalDate();
+  }
+
+  public void reject(String adminNameToReject, Organization organizationToApprove) {
+    if (!this.status.equals(RentalStatus.REQUESTED)) {
+      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot reject rental that is not in REQUESTED status");
+    }
+    if (!organizationToApprove.getId().equals(this.organization.getId())) {
+      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
+    }
+
+    //todo: 장바구니
+    Item item = this.rentalItems.getFirst().getItem();
+    item.onRentalRejected();
+
+    if (!rentalItemUnits.isEmpty()) {
+      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
+      itemUnit.onRentalRejected();
+    }
+
+    this.status = RentalStatus.REJECTED;
+    this.decidedAt = LocalDateTime.now();
+    this.decidedBy = adminNameToReject;
+  }
 }

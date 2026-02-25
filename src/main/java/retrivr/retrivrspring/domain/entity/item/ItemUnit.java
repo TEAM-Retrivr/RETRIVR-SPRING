@@ -51,11 +51,27 @@ public class ItemUnit extends BaseTimeEntity {
     return status.equals(ItemUnitStatus.AVAILABLE);
   }
 
+  public void onRentalRequested() {
+    transitionToRentalPendingStatus();
+  }
+
+  public void onRentalRejected() {
+    transitionToAvailableStatus();
+  }
+
   public void transitionToRentalPendingStatus() {
     if (!isRentalAble()) {
-      throw new DomainException(ErrorCode.STATUS_TRANSITION_EXCEPTION,
+      throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
           "Cannot transition to RENTAL_PENDING from status: " + this.status);
     }
     this.status = ItemUnitStatus.RENTAL_PENDING;
+  }
+
+  public void transitionToAvailableStatus() {
+    if (this.status != ItemUnitStatus.RENTAL_PENDING) {
+      throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+          "Cannot transition to AVAILABLE from status: " + this.status);
+    }
+    this.status = ItemUnitStatus.AVAILABLE;
   }
 }
