@@ -1,15 +1,21 @@
 package retrivr.retrivrspring.application.service.rental;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalDecisionStatus;
+import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
+import retrivr.retrivrspring.presentation.rental.req.AdminRentalApproveRequest;
+import retrivr.retrivrspring.presentation.rental.req.AdminRentalRejectRequest;
+import retrivr.retrivrspring.presentation.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse;
 import retrivr.retrivrspring.presentation.rental.res.AdminRentalRequestPageResponse.RentalRequestSummary;
 
@@ -46,4 +52,41 @@ public class AdminRentalRequestService {
     return new AdminRentalRequestPageResponse(content, nextCursor);
   }
 
+  @Transactional
+  public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
+      AdminRentalApproveRequest request, Long mockOrganizationId) {
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
+
+    Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    rental.approve(request.adminNameToApprove(), organizationToApprove);
+
+    return new AdminRentalDecisionResponse(
+        rentalId,
+        RentalDecisionStatus.APPROVE,
+        request.adminNameToApprove(),
+        LocalDateTime.now()
+    );
+  }
+
+  @Transactional
+  public AdminRentalDecisionResponse rejectRentalRequest(Long rentalId,
+      AdminRentalRejectRequest request, Long mockOrganizationId) {
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
+
+    Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    rental.reject(request.adminNameToReject(), organizationToApprove);
+
+    return new AdminRentalDecisionResponse(
+        rentalId,
+        RentalDecisionStatus.REJECT,
+        request.adminNameToReject(),
+        LocalDateTime.now()
+    );
+  }
 }
