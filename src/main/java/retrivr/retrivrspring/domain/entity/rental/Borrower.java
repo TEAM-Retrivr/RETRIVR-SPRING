@@ -52,4 +52,16 @@ public class Borrower extends BaseTimeEntity {
         && !additionalBorrowerInfo.isEmpty()
         && !additionalBorrowerInfo.isNull();
   }
+
+  public String getMajor() {
+    return additionalBorrowerInfo
+        .path("학과")
+        .asText("");
+  }
+
+  public String getStudentNumber() {
+    return additionalBorrowerInfo
+        .path("학번")
+        .asText("");
+  }
 }

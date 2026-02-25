@@ -28,7 +28,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/admin/v1/auth/login",
                                 "/api/admin/v1/auth/signup/**",
-                                "/api/public/**"
+                                "/api/public/**",
+                                "/api/admin/**" //todo: 토큰 검증 로직 추가 이후 삭제
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

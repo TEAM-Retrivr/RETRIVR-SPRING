@@ -2,7 +2,6 @@ package retrivr.retrivrspring.application.service.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -14,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
-import retrivr.retrivrspring.domain.entity.item.ItemUnitStatus;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
@@ -208,7 +209,7 @@ class ItemLookupServiceTest {
   @DisplayName("IL-06: item 존재하지 않으면 NOT_FOUND_ITEM 예외")
   void detailLookup_itemNotFound_throw() {
     // given
-    when(itemRepository.existsById(10L)).thenReturn(false);
+    when(itemRepository.findById(10L)).thenReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> itemLookupService.publicOrganizationItemLookup(10L))
@@ -216,6 +217,7 @@ class ItemLookupServiceTest {
         .extracting("errorCode") // ApplicationException 구조에 맞게 수정
         .isEqualTo(ErrorCode.NOT_FOUND_ITEM);
 
+    verify(itemRepository).findById(10L);
     verify(itemUnitRepository, never()).findAllByItemId(anyLong());
   }
 
@@ -224,7 +226,10 @@ class ItemLookupServiceTest {
   void detailLookup_ok() {
     // given
     long itemId = 10L;
-    when(itemRepository.existsById(itemId)).thenReturn(true);
+    Item item = mock(Item.class);
+    when(item.isUnitType()).thenReturn(true);
+    when(item.getItemManagementType()).thenReturn(ItemManagementType.UNIT);
+    when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
     List<ItemUnit> units = List.of(
         mockItemUnit(1L),

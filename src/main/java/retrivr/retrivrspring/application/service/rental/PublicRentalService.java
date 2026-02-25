@@ -40,19 +40,6 @@ public class PublicRentalService {
       throw new ApplicationException(ErrorCode.NOT_AVAILABLE_ITEM);
     }
 
-    ItemUnit targetItemUnit = null;
-    if (request.itemUnitId() != null) {
-      targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
-          .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
-
-      if (!targetItemUnit.getItem().getId().equals(targetItem.getId())) {
-        throw new ApplicationException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
-      }
-      if (!targetItemUnit.isRentalAble()) {
-        throw new ApplicationException(ErrorCode.NOT_AVAILABLE_ITEM_UNIT);
-      }
-    }
-
     //itemBorrower Field 를 통해서 request.rentalFields를 확인해야함
     targetItem.validationItemBorrowerFieldsWith(request.renterFields());
 
@@ -63,12 +50,27 @@ public class PublicRentalService {
     );
 
     Rental requestedRental;
-    if (targetItemUnit == null) {
-      requestedRental = Rental.request(targetItem.getOrganization(), targetItem, borrower);
-    } else {
+    if (targetItem.isUnitType()) {
+      if (request.itemUnitId() == null) {
+        throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "요청에 아이템 고유번호가 없습니다.");
+      }
+      ItemUnit targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
+          .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
+
+      if (!targetItemUnit.isBelongTo(targetItem)) {
+        throw new ApplicationException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
+      }
+      if (!targetItemUnit.isRentalAble()) {
+        throw new ApplicationException(ErrorCode.NOT_AVAILABLE_ITEM_UNIT);
+      }
+
       requestedRental = Rental.request(targetItem.getOrganization(), targetItem,
           targetItemUnit, borrower);
     }
+    else {
+      requestedRental = Rental.request(targetItem.getOrganization(), targetItem, borrower);
+    }
+
     rentalRepository.save(requestedRental);
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),

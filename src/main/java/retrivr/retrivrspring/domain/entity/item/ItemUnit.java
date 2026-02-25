@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -51,11 +52,49 @@ public class ItemUnit extends BaseTimeEntity {
     return status.equals(ItemUnitStatus.AVAILABLE);
   }
 
+  public void onRentalRequested() {
+    transitionToRentalPendingStatus();
+  }
+
+  public void onRentalRejected() {
+    transitionToAvailableStatus();
+  }
+
+  public void onRentalApprove() {
+    transitionToRentedStatus();
+  }
+
+  private void transitionToRentedStatus() {
+    if (!this.status.equals(ItemUnitStatus.RENTAL_PENDING)) {
+      throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+          "Cannot transition to RENTED from status" + this.status);
+    }
+    this.status = ItemUnitStatus.RENTED;
+  }
+
   public void transitionToRentalPendingStatus() {
     if (!isRentalAble()) {
-      throw new DomainException(ErrorCode.STATUS_TRANSITION_EXCEPTION,
+      throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
           "Cannot transition to RENTAL_PENDING from status: " + this.status);
     }
     this.status = ItemUnitStatus.RENTAL_PENDING;
+  }
+
+  public void transitionToAvailableStatus() {
+    if (this.status != ItemUnitStatus.RENTAL_PENDING) {
+      throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+          "Cannot transition to AVAILABLE from status: " + this.status);
+    }
+    this.status = ItemUnitStatus.AVAILABLE;
+  }
+
+  public boolean isBelongTo(Item targetItem) {
+    if (this.item == null || this.item.getId() == null) {
+      throw new DomainException(ErrorCode.INVALID_ITEM_UNIT, "아이템 유닛에는 연결된 아이템이 존재해야 합니다.");
+    }
+    if (targetItem == null) {
+      return false;
+    }
+    return this.item.getId().equals(targetItem.getId());
   }
 }

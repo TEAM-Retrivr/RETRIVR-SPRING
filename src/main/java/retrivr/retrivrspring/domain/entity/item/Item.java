@@ -2,6 +2,8 @@ package retrivr.retrivrspring.domain.entity.item;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,6 +23,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -65,6 +68,13 @@ public class Item extends BaseTimeEntity {
 
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private ItemManagementType itemManagementType;
+
+  @OneToMany(mappedBy = "item", fetch = FetchType.LAZY)
+  private List<ItemUnit> itemUnits;
 
   @Builder.Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "item")
@@ -113,10 +123,32 @@ public class Item extends BaseTimeEntity {
     return availableQuantity > 0;
   }
 
+  public void onRentalRequested() {
+    minusOneAvailableQuantity();
+  }
+
+  public void onRentalRejected() {
+    plusOneAvailableQuantity();
+  }
+
+  public void plusOneAvailableQuantity() {
+    if (this.availableQuantity >= this.totalQuantity) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION);
+    }
+    availableQuantity++;
+  }
+
   public void minusOneAvailableQuantity() {
     if (this.availableQuantity <= 0) {
-      throw new DomainException(ErrorCode.QUANTITY_CAN_NOT_BE_NEGATIVE);
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
     availableQuantity--;
+  }
+
+  public boolean isUnitType() {
+    if (this.itemManagementType == null) {
+      throw new DomainException(ErrorCode.INVALID_ITEM, "물건에는 물건 유형이 지정되어 있어야 합니다.");
+    }
+    return this.itemManagementType.equals(ItemManagementType.UNIT);
   }
 }

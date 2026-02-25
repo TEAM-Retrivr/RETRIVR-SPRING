@@ -5,6 +5,7 @@ import lombok.*;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 
 import java.time.LocalDateTime;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
