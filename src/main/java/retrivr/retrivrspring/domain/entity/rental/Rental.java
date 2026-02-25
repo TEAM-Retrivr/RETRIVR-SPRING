@@ -129,6 +129,11 @@ public class Rental extends BaseTimeEntity {
     //todo: 장바구니
     Item item = this.rentalItems.getFirst().getItem();
 
+    if (this.hasItemUnit()) {
+      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
+      itemUnit.onRentalApprove();
+    }
+
     LocalDateTime now = LocalDateTime.now();
     this.status = RentalStatus.APPROVED;
     this.decidedAt = now;
@@ -159,5 +164,16 @@ public class Rental extends BaseTimeEntity {
     this.status = RentalStatus.REJECTED;
     this.decidedAt = LocalDateTime.now();
     this.decidedBy = adminNameToReject;
+  }
+
+  public boolean hasItemUnit() {
+    return this.rentalItemUnits != null && !this.rentalItemUnits.isEmpty();
+  }
+
+  public Item getItem() {
+    if (this.rentalItems == null || this.rentalItems.isEmpty()) {
+      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
+    }
+    return this.rentalItems.getFirst().getItem();
   }
 }
