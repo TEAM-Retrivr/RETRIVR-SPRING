@@ -39,6 +39,12 @@ public class Organization extends BaseTimeEntity {
   @Column(name = "search_key", unique = true, length = 255)
   private String searchKey;
 
+  @Column(name = "admin_code_hash", nullable = false, length = 255)
+  private String adminCodeHash;
+
+  @Column(name = "profile_image_key", length = 500)
+  private String profileImageKey;
+
   public void updateLastLoginAt(LocalDateTime time) {
     this.lastLoginAt = time;
   }
@@ -46,5 +52,7 @@ public class Organization extends BaseTimeEntity {
   public void changePassword(String encodedPassword) {
     this.passwordHash = encodedPassword;
   }
+
+//  public void changeProfileImageKey(String profileImageKey) { this.profileImageKey = profileImageKey; }
 
 }

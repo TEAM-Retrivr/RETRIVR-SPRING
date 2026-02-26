@@ -2,17 +2,14 @@ package retrivr.retrivrspring.infrastructure.repository.rental;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.domain.entity.item.QItem;
 import retrivr.retrivrspring.domain.entity.item.QItemUnit;
-import retrivr.retrivrspring.domain.entity.rental.QBorrower;
-import retrivr.retrivrspring.domain.entity.rental.QRental;
-import retrivr.retrivrspring.domain.entity.rental.QRentalItem;
-import retrivr.retrivrspring.domain.entity.rental.QRentalItemUnit;
-import retrivr.retrivrspring.domain.entity.rental.Rental;
+import retrivr.retrivrspring.domain.entity.rental.*;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor

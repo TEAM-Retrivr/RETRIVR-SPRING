@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import retrivr.retrivrspring.application.service.AdminAuthService;
+import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
 import retrivr.retrivrspring.presentation.admin.auth.req.*;
 import retrivr.retrivrspring.presentation.admin.auth.res.*;
 

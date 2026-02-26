@@ -2,9 +2,6 @@ package retrivr.retrivrspring.application.service.rental;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,14 +9,17 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
-import retrivr.retrivrspring.global.error.ApplicationException;
-import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
 import retrivr.retrivrspring.infrastructure.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
 import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor

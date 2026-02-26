@@ -3,14 +3,15 @@ package retrivr.retrivrspring.infrastructure.repository.organization;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor

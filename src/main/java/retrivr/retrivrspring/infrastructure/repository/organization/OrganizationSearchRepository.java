@@ -1,7 +1,8 @@
 package retrivr.retrivrspring.infrastructure.repository.organization;
 
-import java.util.List;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
+
+import java.util.List;
 
 public interface OrganizationSearchRepository {
 
