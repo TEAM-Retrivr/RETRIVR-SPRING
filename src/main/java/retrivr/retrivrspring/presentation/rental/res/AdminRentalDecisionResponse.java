@@ -6,9 +6,8 @@ import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalDecisionStatus
 public record AdminRentalDecisionResponse(
     Long rentalId,
     RentalDecisionStatus rentalDecisionStatus,
-    String adminNameToApprove,
+    String adminNameToDecide,
     LocalDateTime decisionDate
-
 ) {
 
 }

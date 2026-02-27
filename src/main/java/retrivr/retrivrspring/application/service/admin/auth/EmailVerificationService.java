@@ -1,11 +1,11 @@
-package retrivr.retrivrspring.application.service;
+package retrivr.retrivrspring.application.service.admin.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
-import retrivr.retrivrspring.domain.entity.organization.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.SignupTokenRepository;

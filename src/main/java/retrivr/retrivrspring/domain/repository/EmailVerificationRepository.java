@@ -2,7 +2,7 @@ package retrivr.retrivrspring.domain.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
-import retrivr.retrivrspring.domain.entity.organization.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 
 import java.util.Optional;
 

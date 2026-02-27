@@ -3,12 +3,9 @@ package retrivr.retrivrspring.domain.entity.rental;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -18,7 +15,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
-import retrivr.retrivrspring.domain.entity.organization.Organization;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,10 +29,6 @@ public class Borrower extends BaseTimeEntity {
   @Column(name = "borrower_id")
   private Long id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "organization_id", nullable = false)
-  private Organization organization;
-
   @Column(nullable = false, length = 255)
   private String name;
 
@@ -46,4 +38,30 @@ public class Borrower extends BaseTimeEntity {
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "additional_borrower_info", columnDefinition = "jsonb")
   private JsonNode additionalBorrowerInfo;
+
+  public static Borrower create(String name, String phone, JsonNode additionalBorrowerInfo) {
+    return Borrower.builder()
+        .name(name)
+        .phone(phone)
+        .additionalBorrowerInfo(additionalBorrowerInfo)
+        .build();
+  }
+
+  public boolean hasAdditionalInfo() {
+    return additionalBorrowerInfo != null
+        && !additionalBorrowerInfo.isEmpty()
+        && !additionalBorrowerInfo.isNull();
+  }
+
+  public String getMajor() {
+    return additionalBorrowerInfo
+        .path("학과")
+        .asText("");
+  }
+
+  public String getStudentNumber() {
+    return additionalBorrowerInfo
+        .path("학번")
+        .asText("");
+  }
 }

@@ -15,11 +15,20 @@ public class GlobalExceptionHandler {
      * CustomException Registration
      */
     @ExceptionHandler(ApplicationException.class)
-    public ResponseEntity<ErrorResponse> handleCustomException(ApplicationException e) {
+    public ResponseEntity<ErrorResponse> handleApplicationException(ApplicationException e) {
         ErrorCode errorCode = e.getErrorCode();
-        log.error("[CustomException] code={}, message={}", errorCode.getCode(), errorCode.getMessage(), e);
+        log.error("[ApplicationException] code={}, message={}", errorCode.getCode(), errorCode.getMessage(), e);
         return ResponseEntity
             .status(errorCode.getHttpStatus())
-            .body(ErrorResponse.of(errorCode, e.getMessage()));
+            .body(ErrorResponse.of(errorCode, e.getDetail()));
+    }
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ErrorResponse> handleDomainException(DomainException e) {
+        ErrorCode errorCode = e.getErrorCode();
+        log.error("[DomainException] code={}, message={}", errorCode.getCode(), errorCode.getMessage(), e);
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ErrorResponse.of(errorCode, e.getDetail()));
     }
 }
