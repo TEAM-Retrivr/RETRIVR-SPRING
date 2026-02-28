@@ -120,6 +120,9 @@ public class Item extends BaseTimeEntity {
   }
 
   public boolean isRentalAble() {
+    if (!this.isActive) {
+      return false;
+    }
     return availableQuantity > 0;
   }
 
@@ -128,6 +131,10 @@ public class Item extends BaseTimeEntity {
   }
 
   public void onRentalRejected() {
+    plusOneAvailableQuantity();
+  }
+
+  public void onRentalReturned() {
     plusOneAvailableQuantity();
   }
 

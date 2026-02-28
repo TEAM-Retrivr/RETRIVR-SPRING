@@ -44,4 +44,13 @@ public class ReturnEvent extends BaseTimeEntity {
 
   @Column(name = "event_at", nullable = false)
   private LocalDateTime eventAt;
+
+  public static ReturnEvent create(Rental rental, Organization organization, String receivedBy) {
+    return ReturnEvent.builder()
+        .rental(rental)
+        .organization(organization)
+        .receivedBy(receivedBy)
+        .eventAt(rental.getReturnedAt())
+        .build();
+  }
 }
