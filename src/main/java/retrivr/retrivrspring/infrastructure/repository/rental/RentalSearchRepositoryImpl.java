@@ -159,12 +159,14 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
 
     jpaQueryFactory
         .selectFrom(rentalItem)
+        .join(rentalItem.rental, rental)
         .join(rentalItem.item, item).fetchJoin()
         .where(rental.id.in(foundRentalIds))
         .fetch();
 
     jpaQueryFactory
         .selectFrom(rentalItemUnit)
+        .join(rentalItemUnit.rental, rental)
         .join(rentalItemUnit.itemUnit, itemUnit).fetchJoin()
         .where(rental.id.in(foundRentalIds))
         .fetch();
@@ -185,7 +187,10 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
         .select(rentalItemUnit.itemUnit.id, rental)
         .from(rentalItemUnit)
         .join(rentalItemUnit.rental, rental)
-        .where(rentalItemUnit.itemUnit.in(itemUnits))
+        .where(
+            rentalItemUnit.itemUnit.in(itemUnits),
+            rental.status.in(RentalStatus.APPROVED, RentalStatus.OVERDUE)
+        )
         .fetch();
 
     return results.stream()
