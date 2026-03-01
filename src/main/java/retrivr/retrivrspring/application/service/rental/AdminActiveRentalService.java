@@ -120,7 +120,7 @@ public class AdminActiveRentalService {
     validateItemOwner(item, organizationId);
 
     if (!item.isUnitType()) {
-
+      //todo: UnitType 이 아닌 경우 처리
     }
 
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
