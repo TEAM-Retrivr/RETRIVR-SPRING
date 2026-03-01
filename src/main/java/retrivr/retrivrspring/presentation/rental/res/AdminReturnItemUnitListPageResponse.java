@@ -36,7 +36,7 @@ public record AdminReturnItemUnitListPageResponse(
           borrower.getName(),
           borrower.getStudentNumber(),
           borrower.getMajor(),
-          rental.getRequestedAt().toLocalDate(),
+          rental.getDecidedAt().toLocalDate(),
           rental.getDueDate()
       );
     }
