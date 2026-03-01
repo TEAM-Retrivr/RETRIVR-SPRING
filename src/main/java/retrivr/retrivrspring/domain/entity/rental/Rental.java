@@ -193,6 +193,9 @@ public class Rental extends BaseTimeEntity {
   }
 
   public void changeDueDate(LocalDate newDueDate) {
+    if (newDueDate == null) {
+      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date to null");
+    }
     if (!this.status.equals(RentalStatus.APPROVED) && !this.status.equals(RentalStatus.OVERDUE)) {
       throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date of rental that is not in APPROVED OR OVERDUE status");
     }
@@ -208,7 +211,7 @@ public class Rental extends BaseTimeEntity {
         }
       }
       case OVERDUE -> {
-        if (this.dueDate.isAfter(LocalDate.now())) {
+        if (this.dueDate.isAfter(LocalDate.now()) || this.dueDate.isEqual(LocalDate.now())) {
           this.status = RentalStatus.APPROVED;
         }
       }
@@ -228,10 +231,7 @@ public class Rental extends BaseTimeEntity {
   }
 
   public int getOverdueDays() {
-    if (this.status != RentalStatus.OVERDUE) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot get overdue days of rental that is not in OVERDUE status");
-    }
-
+    // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
     long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
     return (int) Math.max(days, 0);
   }
@@ -241,7 +241,6 @@ public class Rental extends BaseTimeEntity {
   }
 
   public boolean isOverdue() {
-    long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
-    return days != 0;
+    return this.dueDate != null && this.dueDate.isBefore(LocalDate.now());
   }
 }
