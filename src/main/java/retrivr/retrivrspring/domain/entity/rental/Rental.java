@@ -232,8 +232,11 @@ public class Rental extends BaseTimeEntity {
 
   public int getOverdueDays() {
     // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
-    long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
-    return (int) Math.max(days, 0);
+    if (this.status == RentalStatus.APPROVED || this.status == RentalStatus.OVERDUE) {
+      long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
+      return (int) Math.max(days, 0);
+    }
+    return 0;
   }
 
   public boolean canSendOverdueSms() {
