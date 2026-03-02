@@ -14,6 +14,9 @@ import java.util.Optional;
 public interface RentalRepository
         extends JpaRepository<Rental, Long>, RentalSearchRepository {
 
+    @EntityGraph(attributePaths = {"organization"})
+    Optional<Rental> findFetchOrganizationById(Long rentalId);
+
     @EntityGraph(attributePaths = {"rentalItems", "organization"})
     Optional<Rental> findFetchRentalItemAndOrganizationById(Long rentalId);
 

@@ -16,6 +16,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -28,6 +29,7 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -175,5 +177,73 @@ public class Rental extends BaseTimeEntity {
       throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
     }
     return this.rentalItems.getFirst().getItem();
+  }
+
+  public ItemUnit getItemUnit() {
+    if (hasItemUnit()) {
+      return this.rentalItemUnits.getFirst().getItemUnit();
+    }
+    return null;
+  }
+
+  public void validateRentalOwner(Organization organization) {
+    if (!this.organization.getId().equals(organization.getId())) {
+      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
+    }
+  }
+
+  public void changeDueDate(LocalDate newDueDate) {
+    if (newDueDate == null) {
+      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date to null");
+    }
+    if (!this.status.equals(RentalStatus.APPROVED) && !this.status.equals(RentalStatus.OVERDUE)) {
+      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date of rental that is not in APPROVED OR OVERDUE status");
+    }
+    this.dueDate = newDueDate;
+    changeStatusByDeterminingOverDue();
+  }
+
+  public void changeStatusByDeterminingOverDue() {
+    switch (this.status) {
+      case APPROVED -> {
+        if (this.dueDate.isBefore(LocalDate.now())) {
+          this.status = RentalStatus.OVERDUE;
+        }
+      }
+      case OVERDUE -> {
+        if (this.dueDate.isAfter(LocalDate.now()) || this.dueDate.isEqual(LocalDate.now())) {
+          this.status = RentalStatus.APPROVED;
+        }
+      }
+    }
+  }
+
+  public void markReturned() {
+    if (this.status == RentalStatus.RETURNED || this.returnedAt != null) {
+      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Already returned rental");
+    }
+    if (this.status != RentalStatus.APPROVED && this.status != RentalStatus.OVERDUE) {
+      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot mark returned rental that is not in APPROVED OR OVERDUE status");
+    }
+
+    this.status = RentalStatus.RETURNED;
+    this.returnedAt = LocalDateTime.now();
+  }
+
+  public int getOverdueDays() {
+    // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
+    if (this.status == RentalStatus.APPROVED || this.status == RentalStatus.OVERDUE) {
+      long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
+      return (int) Math.max(days, 0);
+    }
+    return 0;
+  }
+
+  public boolean canSendOverdueSms() {
+    return borrower.getPhone() != null && !borrower.getPhone().isBlank();
+  }
+
+  public boolean isOverdue() {
+    return this.dueDate != null && this.dueDate.isBefore(LocalDate.now());
   }
 }

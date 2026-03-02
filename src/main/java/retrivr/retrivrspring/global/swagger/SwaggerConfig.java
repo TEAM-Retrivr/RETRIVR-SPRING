@@ -35,6 +35,8 @@ public class SwaggerConfig {
 
   @Bean
   public OpenAPI retrivrOpenAPI() {
+    String securitySchemeName = "bearerAuth";
+
     return new OpenAPI()
         .info(new Info()
             .title("Retrivr API")
@@ -43,7 +45,18 @@ public class SwaggerConfig {
         )
         .servers(List.of(
             new Server().url(baseUrl + ":" + port).description("Server")
-        ));
+        ))
+        .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement()
+            .addList(securitySchemeName))
+        .components(new io.swagger.v3.oas.models.Components()
+            .addSecuritySchemes(securitySchemeName,
+                new io.swagger.v3.oas.models.security.SecurityScheme()
+                    .name("Authorization")
+                    .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                    .scheme("bearer")
+                    .bearerFormat("JWT")
+            )
+        );
   }
 
   @Bean

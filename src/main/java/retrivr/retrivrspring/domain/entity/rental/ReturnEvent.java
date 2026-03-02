@@ -17,6 +17,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -44,4 +47,16 @@ public class ReturnEvent extends BaseTimeEntity {
 
   @Column(name = "event_at", nullable = false)
   private LocalDateTime eventAt;
+
+  public static ReturnEvent create(Rental rental, Organization organization, String receivedBy) {
+    if (rental.getReturnedAt() == null || rental.getStatus() != RentalStatus.RETURNED) {
+      throw new DomainException(ErrorCode.RETURN_EVENT_CAN_NOT_CREATE, "해당 대여 내역이 아직 반납처리 되지 않았습니다.");
+    }
+    return ReturnEvent.builder()
+        .rental(rental)
+        .organization(organization)
+        .receivedBy(receivedBy)
+        .eventAt(rental.getReturnedAt())
+        .build();
+  }
 }

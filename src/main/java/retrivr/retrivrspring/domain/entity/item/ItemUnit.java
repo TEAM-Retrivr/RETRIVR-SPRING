@@ -64,6 +64,10 @@ public class ItemUnit extends BaseTimeEntity {
     transitionToRentedStatus();
   }
 
+  public void onRentalReturned() {
+    transitionToAvailableStatus();
+  }
+
   private void transitionToRentedStatus() {
     if (!this.status.equals(ItemUnitStatus.RENTAL_PENDING)) {
       throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
@@ -81,7 +85,7 @@ public class ItemUnit extends BaseTimeEntity {
   }
 
   public void transitionToAvailableStatus() {
-    if (this.status != ItemUnitStatus.RENTAL_PENDING) {
+    if (this.status != ItemUnitStatus.RENTAL_PENDING && this.status != ItemUnitStatus.RENTED) {
       throw new DomainException(ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
           "Cannot transition to AVAILABLE from status: " + this.status);
     }
