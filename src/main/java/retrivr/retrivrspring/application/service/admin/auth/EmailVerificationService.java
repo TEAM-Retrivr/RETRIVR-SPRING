@@ -5,8 +5,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
@@ -34,15 +34,14 @@ public class EmailVerificationService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final SignupTokenRepository signupTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationCodeSender emailVerificationCodeSender;
 
     public EmailVerificationSendResponse sendCode(EmailVerificationSendRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         EmailVerificationPurpose purpose = request.purpose();
 
         LocalDateTime now = LocalDateTime.now();
-
-        //        String rawCode = generateCode();
-        String rawCode = "123456"; //todo : 개발용 고정 코드 이메일 연결 하십쇼
+        String rawCode = generateCode();
         String hashedCode = passwordEncoder.encode(rawCode);
 
         EmailVerification verification = emailVerificationRepository
@@ -66,11 +65,9 @@ public class EmailVerificationService {
                 );
 
         emailVerificationRepository.save(verification);
+        emailVerificationCodeSender.sendVerificationCode(email, rawCode, purpose, EXPIRES_SECONDS);
         return new EmailVerificationSendResponse(email, purpose.name(), EXPIRES_SECONDS);
-
-        // TODO: rawCode를 이메일로 발송
     }
-
 
     public Object verify(EmailVerificationRequest request) {
 
@@ -102,7 +99,6 @@ public class EmailVerificationService {
 
         // SIGNUP이면 signupToken 생성
         if (purpose == EmailVerificationPurpose.SIGNUP) {
-
             String rawSignupToken = "st_" + UUID.randomUUID();
             String signupTokenHash = passwordEncoder.encode(rawSignupToken);
 
