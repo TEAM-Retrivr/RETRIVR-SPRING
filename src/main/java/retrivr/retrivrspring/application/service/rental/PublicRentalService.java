@@ -33,44 +33,29 @@ public class PublicRentalService {
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
+    // 1. 대여할 Item 조회
     Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
-    if (!targetItem.isRentalAble()) {
-      throw new ApplicationException(ErrorCode.NOT_AVAILABLE_ITEM);
+    // 2. ItemUnit 조회
+    ItemUnit targetItemUnit = null;
+    if (request.itemUnitId() != null) {
+      targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
+          .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
     }
 
-    //itemBorrower Field 를 통해서 request.rentalFields를 확인해야함
+    // 3. itemBorrower Field 를 통해서 request.rentalFields를 검증
     targetItem.validationItemBorrowerFieldsWith(request.renterFields());
 
+    // 4. Borrower 생성
     Borrower borrower = Borrower.create(
         request.name(),
         request.phone(),
         objectMapper.valueToTree(request.renterFields())
     );
 
-    Rental requestedRental;
-    if (targetItem.isUnitType()) {
-      if (request.itemUnitId() == null) {
-        throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "요청에 아이템 고유번호가 없습니다.");
-      }
-      ItemUnit targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
-          .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
-
-      if (!targetItemUnit.isBelongTo(targetItem)) {
-        throw new ApplicationException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
-      }
-      if (!targetItemUnit.isRentalAble()) {
-        throw new ApplicationException(ErrorCode.NOT_AVAILABLE_ITEM_UNIT);
-      }
-
-      requestedRental = Rental.request(targetItem.getOrganization(), targetItem,
-          targetItemUnit, borrower);
-    }
-    else {
-      requestedRental = Rental.request(targetItem.getOrganization(), targetItem, borrower);
-    }
-
+    // 5. Rental 생성 및 저장
+    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower);
     rentalRepository.save(requestedRental);
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),

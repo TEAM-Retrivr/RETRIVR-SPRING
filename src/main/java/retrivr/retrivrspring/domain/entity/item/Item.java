@@ -22,6 +22,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -80,6 +81,77 @@ public class Item extends BaseTimeEntity {
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "item")
   List<ItemBorrowerField> itemBorrowerFields = new ArrayList<>();
 
+  public boolean isRentalAble() {
+    if (!this.isActive) {
+      return false;
+    }
+    return availableQuantity > 0;
+  }
+
+  public boolean isUnitType() {
+    if (this.itemManagementType == null) {
+      throw new DomainException(ErrorCode.INVALID_ITEM, "물건에는 물건 유형이 지정되어 있어야 합니다.");
+    }
+    return this.itemManagementType.equals(ItemManagementType.UNIT);
+  }
+
+  public void onRentalRequested(@Nullable ItemUnit itemUnit) {
+    // 1. 대여 가능 여부 확인
+    if (!isRentalAble()) {
+      throw new DomainException(ErrorCode.NOT_AVAILABLE_ITEM);
+    }
+    // 2. itemUnit 이 null 일 경우 Non Unit Type 전용 메소드 호축
+    if (itemUnit == null) {
+      onRentalRequestedForNonUnitType();
+      return;
+    }
+
+    // 3. Unit 타입이 아닐 경우 예외 처리
+    if (!this.isUnitType()) {
+      throw new DomainException(ErrorCode.ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE);
+    }
+    // 4. ItemUnit 이 해당 Item 소유가 아닐 경우 예외 처리
+    if (!itemUnit.isBelongTo(this)) {
+      throw new DomainException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
+    }
+
+    // 5. ItemUnit 의 대여 요청 처리
+    itemUnit.onRentalRequested();
+    // 6. 해당 Item 의 수량 감소
+    minusOneAvailableQuantity();
+  }
+  
+  private void onRentalRequestedForNonUnitType() {
+    // 1. Unit 타입일 경우 예외
+    if (this.isUnitType()) {
+      throw new DomainException(ErrorCode.ITEM_UNIT_REQUIRED_FOR_UNIT_TYPE);
+    }
+    // 2. 해당 Item 의 수량 감소
+    minusOneAvailableQuantity();
+  }
+
+  public void onRentalRejected() {
+    plusOneAvailableQuantity();
+  }
+
+  public void onRentalReturned() {
+    plusOneAvailableQuantity();
+  }
+
+  private void plusOneAvailableQuantity() {
+    if (this.availableQuantity >= this.totalQuantity) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION);
+    }
+    availableQuantity++;
+  }
+
+  private void minusOneAvailableQuantity() {
+    if (this.availableQuantity <= 0) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
+    }
+    availableQuantity--;
+  }
+
   public void validationItemBorrowerFieldsWith(Map<String, String> values) {
     if (values == null) {
       throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Borrower fields map is null");
@@ -117,45 +189,5 @@ public class Item extends BaseTimeEntity {
       // type 체크
       field.validateType(raw, key);
     }
-  }
-
-  public boolean isRentalAble() {
-    if (!this.isActive) {
-      return false;
-    }
-    return availableQuantity > 0;
-  }
-
-  public void onRentalRequested() {
-    minusOneAvailableQuantity();
-  }
-
-  public void onRentalRejected() {
-    plusOneAvailableQuantity();
-  }
-
-  public void onRentalReturned() {
-    plusOneAvailableQuantity();
-  }
-
-  public void plusOneAvailableQuantity() {
-    if (this.availableQuantity >= this.totalQuantity) {
-      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION);
-    }
-    availableQuantity++;
-  }
-
-  public void minusOneAvailableQuantity() {
-    if (this.availableQuantity <= 0) {
-      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
-    }
-    availableQuantity--;
-  }
-
-  public boolean isUnitType() {
-    if (this.itemManagementType == null) {
-      throw new DomainException(ErrorCode.INVALID_ITEM, "물건에는 물건 유형이 지정되어 있어야 합니다.");
-    }
-    return this.itemManagementType.equals(ItemManagementType.UNIT);
   }
 }

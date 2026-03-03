@@ -22,14 +22,20 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.domain.entity.rental.state.RejectedState;
+import retrivr.retrivrspring.domain.entity.rental.state.RentalState;
+import retrivr.retrivrspring.domain.entity.rental.state.RentedState;
+import retrivr.retrivrspring.domain.entity.rental.state.RequestedState;
+import retrivr.retrivrspring.domain.entity.rental.state.ReturnedState;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -55,12 +61,12 @@ public class Rental extends BaseTimeEntity {
   @JoinColumn(name = "borrower_id", nullable = false, unique = true)
   private Borrower borrower;
 
-  @Builder.Default
+  @Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "rental",
       cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RentalItem> rentalItems = new ArrayList<>();
 
-  @Builder.Default
+  @Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "rental",
       cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RentalItemUnit> rentalItemUnits = new ArrayList<>();
@@ -84,36 +90,21 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
 
-  public static Rental request(Organization organization, Item item, Borrower borrower) {
+  public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower) {
     Rental newRental = Rental.builder()
-        .organization(organization)
+        .organization(item.getOrganization())
         .borrower(borrower)
         .status(RentalStatus.REQUESTED)
         .requestedAt(LocalDateTime.now())
         .build();
 
-    item.onRentalRequested();
+    item.onRentalRequested(itemUnit);
+    newRental.addItem(item);
 
-    RentalItem newRentalItem = RentalItem.builder()
-        .rental(newRental)
-        .item(item)
-        .build();
+    if (itemUnit != null) {
+      newRental.addItemUnit(itemUnit);
+    }
 
-    newRental.rentalItems.add(newRentalItem);
-    return newRental;
-  }
-
-  public static Rental request(Organization organization, Item item, ItemUnit itemUnit, Borrower borrower) {
-    Rental newRental = request(organization, item, borrower);
-
-    RentalItemUnit newRentalItemUnit = RentalItemUnit.builder()
-        .rental(newRental)
-        .itemUnit(itemUnit)
-        .build();
-
-    itemUnit.onRentalRequested();
-
-    newRental.rentalItemUnits.add(newRentalItemUnit);
     return newRental;
   }
 
@@ -245,5 +236,23 @@ public class Rental extends BaseTimeEntity {
 
   public boolean isOverdue() {
     return this.dueDate != null && this.dueDate.isBefore(LocalDate.now());
+  }
+
+  private void addItem(Item item) {
+    RentalItem newRentalItem = RentalItem.builder()
+        .rental(this)
+        .item(item)
+        .build();
+
+    this.rentalItems.add(newRentalItem);
+  }
+
+  private void addItemUnit(ItemUnit itemUnit) {
+    RentalItemUnit newRentalItemUnit = RentalItemUnit.builder()
+        .rental(this)
+        .itemUnit(itemUnit)
+        .build();
+
+    this.rentalItemUnits.add(newRentalItemUnit);
   }
 }
