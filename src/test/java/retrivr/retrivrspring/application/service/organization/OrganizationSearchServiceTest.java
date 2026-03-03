@@ -1,7 +1,6 @@
 package retrivr.retrivrspring.application.service.organization;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -27,7 +26,7 @@ import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSiz
 import retrivr.retrivrspring.application.vo.OrganizationSearchCursor;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.presentation.organization.res.OrganizationSearchPageResponse;
 
 @ExtendWith(MockitoExtension.class)

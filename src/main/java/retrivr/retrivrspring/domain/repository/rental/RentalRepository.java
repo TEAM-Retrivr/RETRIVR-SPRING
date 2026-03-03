@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.infrastructure.repository.rental;
+package retrivr.retrivrspring.domain.repository.rental;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;

@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.domain.repository;
+package retrivr.retrivrspring.domain.repository.auth;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.QItem;
+import retrivr.retrivrspring.domain.repository.item.ItemLookupRepository;
 
 @Repository
 @RequiredArgsConstructor

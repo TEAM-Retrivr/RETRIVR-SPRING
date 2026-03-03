@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.QItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
+import retrivr.retrivrspring.domain.repository.item.ItemUnitLookupRepository;
 
 @Repository
 @RequiredArgsConstructor

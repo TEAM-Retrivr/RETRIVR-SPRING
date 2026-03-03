@@ -1,8 +1,7 @@
-package retrivr.retrivrspring.domain.repository;
+package retrivr.retrivrspring.domain.repository.organization;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.infrastructure.repository.organization.OrganizationSearchRepository;
 
 import java.util.Optional;
 

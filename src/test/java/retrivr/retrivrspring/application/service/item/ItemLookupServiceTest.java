@@ -28,9 +28,9 @@ import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemUnitRepository;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.item.ItemRepository;
+import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.presentation.item.res.PublicItemDetailResponse;
 import retrivr.retrivrspring.presentation.item.res.PublicItemListPageResponse;
 

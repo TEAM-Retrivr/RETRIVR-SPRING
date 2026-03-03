@@ -1,7 +1,6 @@
 package retrivr.retrivrspring.application.service.rental;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -13,15 +12,13 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
-import retrivr.retrivrspring.domain.entity.rental.ReturnEvent;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
-import retrivr.retrivrspring.domain.repository.ReturnEventRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemUnitRepository;
-import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
+import retrivr.retrivrspring.domain.repository.item.ItemRepository;
+import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalReturnRequest;
 import retrivr.retrivrspring.presentation.rental.req.RentalItemUpdateDueDateRequest;
 import retrivr.retrivrspring.presentation.rental.res.AdminOverdueRentalItemPageResponse;

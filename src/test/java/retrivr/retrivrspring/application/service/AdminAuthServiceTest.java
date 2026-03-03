@@ -12,9 +12,9 @@ import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationSer
 import retrivr.retrivrspring.domain.entity.organization.*;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
-import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
-import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;

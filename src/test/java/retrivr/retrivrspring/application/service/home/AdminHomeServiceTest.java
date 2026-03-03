@@ -15,8 +15,8 @@ import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.RentalItem;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
-import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 
 import java.time.LocalDateTime;

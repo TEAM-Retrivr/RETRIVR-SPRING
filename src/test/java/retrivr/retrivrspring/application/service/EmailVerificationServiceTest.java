@@ -11,8 +11,8 @@ import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationSer
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
-import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
-import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
+import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;

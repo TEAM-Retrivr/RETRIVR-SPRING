@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.infrastructure.repository.item;
+package retrivr.retrivrspring.domain.repository.item;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;

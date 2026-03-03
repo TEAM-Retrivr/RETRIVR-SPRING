@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationSearchRepository;
 
 @Repository
 @RequiredArgsConstructor

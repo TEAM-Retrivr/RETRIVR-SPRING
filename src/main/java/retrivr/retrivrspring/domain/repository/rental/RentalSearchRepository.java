@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.infrastructure.repository.rental;
+package retrivr.retrivrspring.domain.repository.rental;
 
 import java.time.LocalDate;
 import java.util.List;
