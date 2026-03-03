@@ -23,13 +23,13 @@ public class RejectedState implements RentalState {
   }
 
   @Override
-  public void changeDueDate(Rental rental, LocalDate newDueDate, LocalDate today) {
+  public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot changeDueDate when REJECTED");
   }
 
   @Override
-  public void markReturned(Rental rental, LocalDateTime now) {
+  public void markReturned(Rental rental, String adminName, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot markReturned when REJECTED");
   }

@@ -2,6 +2,7 @@ package retrivr.retrivrspring.domain.entity.rental.state;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -23,12 +24,16 @@ public class RentedState implements RentalState {
   }
 
   @Override
-  public void changeDueDate(Rental rental, LocalDate newDueDate, LocalDate today) {
-
+  public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
+    rental.validateRentalOwner(org);
+    rental.updateDueDate(newDueDate);
   }
 
   @Override
-  public void markReturned(Rental rental, LocalDateTime now) {
-
+  public void markReturned(Rental rental, String adminName, Organization org) {
+    rental.validateRentalOwner(org);
+    Item item = rental.getItem();
+    item.onRentalReturned(rental.getItemUnit());
+    rental.setReturned(adminName, LocalDateTime.now());
   }
 }

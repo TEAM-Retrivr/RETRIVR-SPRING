@@ -52,13 +52,13 @@ public final class RequestedState implements RentalState {
    *
    */
   @Override
-  public void changeDueDate(Rental rental, LocalDate newDueDate, LocalDate today) {
+  public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot return when REQUESTED");
   }
 
   @Override
-  public void markReturned(Rental rental, LocalDateTime now) {
+  public void markReturned(Rental rental, String adminName, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot return when REQUESTED");
   }

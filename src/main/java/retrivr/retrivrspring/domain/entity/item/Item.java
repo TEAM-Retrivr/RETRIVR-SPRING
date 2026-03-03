@@ -148,11 +148,20 @@ public class Item extends BaseTimeEntity {
     if (!itemUnit.isBelongTo(this)) {
       throw new DomainException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
     }
+    plusOneAvailableQuantity();
     itemUnit.onRentalRejected();
   }
 
-  public void onRentalReturned() {
+  public void onRentalReturned(@Nullable ItemUnit itemUnit) {
+    if (itemUnit == null) {
+      plusOneAvailableQuantity();
+      return;
+    }
+    if (!itemUnit.isBelongTo(this)) {
+      throw new DomainException(ErrorCode.ITEM_UNIT_DO_NOT_BELONG_TO_ITEM);
+    }
     plusOneAvailableQuantity();
+    itemUnit.onRentalReturned();
   }
 
   private void plusOneAvailableQuantity() {

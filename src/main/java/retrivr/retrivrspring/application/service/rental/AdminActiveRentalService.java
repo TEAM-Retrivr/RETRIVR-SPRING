@@ -43,7 +43,6 @@ public class AdminActiveRentalService {
   private final OrganizationRepository organizationRepository;
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
-  private final ReturnEventRepository returnEventRepository;
 
   /**
    * 연체된 물품 리스트 조회 (status 기반)
@@ -162,30 +161,16 @@ public class AdminActiveRentalService {
       Long rentalId,
       AdminRentalReturnRequest request
   ) {
+    // 1. 대여 정보 조회
     Rental rental = rentalRepository.findByIdWithItems(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
+    // 2. 로그인된 조직 정보 조회
     Organization loginOrganization = organizationRepository.findById(organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    rental.validateRentalOwner(loginOrganization);
-
-    // 1) 반납 처리
-    rental.markReturned();
-
-    // 2) 재고 복원 (UNIT / SINGLE)
-    if (rental.hasItemUnit()) {
-      rental.getItemUnit().onRentalReturned();
-    }
-    rental.getItem().onRentalReturned();
-
-    // 3) return_event 기록
-    ReturnEvent event = ReturnEvent.create(
-        rental,
-        loginOrganization,
-        request.adminNameToConfirm()
-    );
-    returnEventRepository.save(event);
+    // 3. 반납 처리
+    rental.markReturned(request.adminNameToConfirm(), loginOrganization);
 
     return new AdminRentalReturnResponse(rentalId, RentalStatus.RETURNED,
         request.adminNameToConfirm());
@@ -200,14 +185,16 @@ public class AdminActiveRentalService {
       Long rentalId,
       RentalItemUpdateDueDateRequest request
   ) {
+    // 1. 대여 정보 조회
     Rental rental = rentalRepository.findFetchOrganizationById(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
+    // 2. 로그인한 조직 정보 조회
     Organization loginOrganization = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    rental.validateRentalOwner(loginOrganization);
-    rental.changeDueDate(request.newReturnDueDate());
+    // 3. DueDate 변경
+    rental.changeDueDate(request.newReturnDueDate(), loginOrganization);
 
     return new AdminRentalDueDateUpdateResponse(rentalId, rental.getDueDate());
   }

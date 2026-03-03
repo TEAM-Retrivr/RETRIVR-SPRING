@@ -87,6 +87,9 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "due_date")
   private LocalDate dueDate;
 
+  @Column(name = "received_by")
+  private String receivedBy;
+
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
 
@@ -126,6 +129,14 @@ public class Rental extends BaseTimeEntity {
     state().reject(this, adminNameToReject, organizationToApprove);
   }
 
+  public void changeDueDate(LocalDate newDueDate, Organization loginOrganization) {
+    state().changeDueDate(this, newDueDate, loginOrganization);
+  }
+
+  public void markReturned(String adminNameToConfirm, Organization loginOrganization) {
+    state().markReturned(this, adminNameToConfirm, loginOrganization);
+  }
+
   public void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
     this.status = RentalStatus.APPROVED;
     this.decidedBy = admin;
@@ -137,6 +148,12 @@ public class Rental extends BaseTimeEntity {
     this.status = RentalStatus.REJECTED;
     this.decidedAt = now;
     this.decidedBy = admin;
+  }
+
+  public void setReturned(String admin, LocalDateTime now) {
+    this.status = RentalStatus.RETURNED;
+    this.receivedBy = admin;
+    this.returnedAt = now;
   }
 
   public boolean hasItemUnit() {
@@ -163,42 +180,11 @@ public class Rental extends BaseTimeEntity {
     }
   }
 
-  public void changeDueDate(LocalDate newDueDate) {
-    if (newDueDate == null) {
+  public void updateDueDate(LocalDate dueDate) {
+    if (dueDate == null) {
       throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date to null");
     }
-    if (!this.status.equals(RentalStatus.APPROVED) && !this.status.equals(RentalStatus.OVERDUE)) {
-      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date of rental that is not in APPROVED OR OVERDUE status");
-    }
-    this.dueDate = newDueDate;
-    changeStatusByDeterminingOverDue();
-  }
-
-  public void changeStatusByDeterminingOverDue() {
-    switch (this.status) {
-      case APPROVED -> {
-        if (this.dueDate.isBefore(LocalDate.now())) {
-          this.status = RentalStatus.OVERDUE;
-        }
-      }
-      case OVERDUE -> {
-        if (this.dueDate.isAfter(LocalDate.now()) || this.dueDate.isEqual(LocalDate.now())) {
-          this.status = RentalStatus.APPROVED;
-        }
-      }
-    }
-  }
-
-  public void markReturned() {
-    if (this.status == RentalStatus.RETURNED || this.returnedAt != null) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Already returned rental");
-    }
-    if (this.status != RentalStatus.APPROVED && this.status != RentalStatus.OVERDUE) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot mark returned rental that is not in APPROVED OR OVERDUE status");
-    }
-
-    this.status = RentalStatus.RETURNED;
-    this.returnedAt = LocalDateTime.now();
+    this.dueDate = dueDate;
   }
 
   public int getOverdueDays() {
