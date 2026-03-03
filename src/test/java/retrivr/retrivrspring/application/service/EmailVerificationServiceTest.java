@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.application.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,7 @@ import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificat
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
+import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,10 +44,20 @@ class EmailVerificationServiceTest {
     @Mock
     private EmailVerificationCodeSender emailVerificationCodeSender;
 
+    @Mock
+    private EmailVerificationProperties emailVerificationProperties;
+
     @InjectMocks
     private EmailVerificationService emailVerificationService;
 
     private final String email = "test@test.com";
+
+    @BeforeEach
+    void setUpPolicy() {
+        lenient().when(emailVerificationProperties.getExpiresSeconds()).thenReturn(600);
+        lenient().when(emailVerificationProperties.getResendBlockSeconds()).thenReturn(60L);
+        lenient().when(emailVerificationProperties.getMaxFailedAttempts()).thenReturn(5);
+    }
 
     @Test
     void sendCode_success_create() {
