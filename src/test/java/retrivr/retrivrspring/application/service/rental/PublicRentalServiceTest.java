@@ -301,7 +301,7 @@ class PublicRentalServiceTest {
   void checkRental_detail_withUnit() {
     Rental rental = mock(Rental.class);
     when(rental.getId()).thenReturn(2L);
-    when(rental.getStatus()).thenReturn(RentalStatus.APPROVED);
+    when(rental.getStatus()).thenReturn(RentalStatus.RENTED);
     when(rental.getDecidedAt()).thenReturn(LocalDateTime.now());
     when(rental.getDueDate()).thenReturn(LocalDate.now().plusDays(7));
 
@@ -333,6 +333,6 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("노트북");
     assertThat(res.itemUnitCode()).isEqualTo("UMB-001");
     assertThat(res.borrowerField()).containsEntry("학번", "20251234");
-    assertThat(res.rentalStatus()).isEqualTo(RentalStatus.APPROVED);
+    assertThat(res.rentalStatus()).isEqualTo(RentalStatus.RENTED);
   }
 }

@@ -96,10 +96,9 @@ public class Rental extends BaseTimeEntity {
   private RentalState state() {
     return switch (this.status) {
       case REQUESTED -> RequestedState.INSTANCE;
-      case APPROVED -> new RentedState();
+      case RENTED -> new RentedState();
       case RETURNED -> new ReturnedState();
       case REJECTED -> new RejectedState();
-      default -> null;
     };
   }
 
@@ -138,7 +137,7 @@ public class Rental extends BaseTimeEntity {
   }
 
   public void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
-    this.status = RentalStatus.APPROVED;
+    this.status = RentalStatus.RENTED;
     this.decidedBy = admin;
     this.decidedAt = now;
     this.dueDate = dueDate;
@@ -189,7 +188,7 @@ public class Rental extends BaseTimeEntity {
 
   public int getOverdueDays() {
     // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
-    if (this.status == RentalStatus.APPROVED || this.status == RentalStatus.OVERDUE) {
+    if (this.status == RentalStatus.RENTED) {
       long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
       return (int) Math.max(days, 0);
     }
