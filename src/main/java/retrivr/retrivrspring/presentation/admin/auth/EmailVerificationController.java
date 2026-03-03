@@ -9,8 +9,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
@@ -37,6 +42,7 @@ public class EmailVerificationController {
             ),
             @ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
+    @ApiErrorCodeExamples({ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS})
     public ResponseEntity<EmailVerificationSendResponse> sendEmailVerificationCode(
             @Valid @RequestBody EmailVerificationSendRequest request
     ) {
@@ -57,6 +63,12 @@ public class EmailVerificationController {
             ),
             @ApiResponse(responseCode = "400", description = "인증 코드 불일치 또는 만료"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 이메일")
+    })
+    @ApiErrorCodeExamples({
+            ErrorCode.EMAIL_VERIFICATION_NOT_FOUND,
+            ErrorCode.EMAIL_VERIFICATION_EXPIRED,
+            ErrorCode.EMAIL_ALREADY_VERIFIED,
+            ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH
     })
     @PostMapping("/verify")
     public ResponseEntity<?> verifyEmail(
