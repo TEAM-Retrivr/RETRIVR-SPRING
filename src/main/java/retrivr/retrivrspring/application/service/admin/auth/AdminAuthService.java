@@ -35,8 +35,6 @@ public class AdminAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SignupTokenRepository signupTokenRepository;
 
-    private final EmailVerificationService emailVerificationService;
-
     @Transactional
     public AdminLoginResponse login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
