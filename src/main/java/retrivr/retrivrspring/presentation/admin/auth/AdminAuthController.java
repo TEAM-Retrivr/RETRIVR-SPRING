@@ -22,7 +22,7 @@ import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 @RequestMapping("/api/admin/v1/auth")
 @Tag(name = "Admin API / Auth", description = "관리자 인증 관련 API")
 @RequiredArgsConstructor
-public class AdminAuthMockController {
+public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
 

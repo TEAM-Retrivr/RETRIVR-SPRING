@@ -20,7 +20,7 @@ import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/v1/home")
 @Tag(name = "Admin API / Home", description = "관리자 홈 화면 API")
-public class AdminHomeMockController {
+public class AdminHomeController {
 
     private final AdminHomeService adminHomeService;
 
