@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -32,9 +33,9 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
-import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
-import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
-import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;
+import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalCreateRequest;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalCreateResponse;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalDetailResponse;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
