@@ -30,6 +30,7 @@ public class EmailVerificationService {
 
     private static final int EXPIRES_SECONDS = 600;
     private static final long RESEND_BLOCK_SECONDS = 60;
+    private static final int MAX_FAILED_ATTEMPTS = 5;
 
     private final EmailVerificationRepository emailVerificationRepository;
     private final SignupTokenRepository signupTokenRepository;
@@ -95,6 +96,15 @@ public class EmailVerificationService {
         }
 
         if (!passwordEncoder.matches(code, verification.getCode())) {
+            int failedAttempts = verification.increaseFailedAttempts();
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                verification.expire(now);
+            }
+            emailVerificationRepository.save(verification);
+
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
+            }
             throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH);
         }
 

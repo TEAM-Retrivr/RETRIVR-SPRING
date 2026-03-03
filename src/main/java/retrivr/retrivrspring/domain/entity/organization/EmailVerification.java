@@ -41,6 +41,9 @@ public class EmailVerification extends BaseTimeEntity {
   @Column(name = "verified_at")
   private LocalDateTime verifiedAt;
 
+  @Column(name = "failed_attempts", nullable = false)
+  private int failedAttempts;
+
   public static EmailVerification create(
           String email,
           EmailVerificationPurpose purpose,
@@ -52,17 +55,19 @@ public class EmailVerification extends BaseTimeEntity {
     verification.purpose = purpose;
     verification.code = hashedCode;
     verification.expiresAt = expiresAt;
-      return verification;
+    verification.failedAttempts = 0;
+    return verification;
   }
 
   public void refresh(String hashedCode, LocalDateTime expiresAt) {
     this.code = hashedCode;
     this.expiresAt = expiresAt;
-    this.verifiedAt = null; // 새 코드 발급 시 인증 상태 초기화
+    this.failedAttempts = 0;
+    this.verifiedAt = null;
   }
 
   public boolean isExpired(LocalDateTime now) {
-    return now.isAfter(this.expiresAt);
+    return !now.isBefore(this.expiresAt);
   }
 
   public boolean isVerified() {
@@ -71,5 +76,16 @@ public class EmailVerification extends BaseTimeEntity {
 
   public void markVerified(LocalDateTime now) {
     this.verifiedAt = now;
+    this.failedAttempts = 0;
+  }
+
+  public int increaseFailedAttempts() {
+    this.failedAttempts += 1;
+    return this.failedAttempts;
+  }
+
+  public void expire(LocalDateTime now) {
+    this.expiresAt = now;
   }
 }
+
