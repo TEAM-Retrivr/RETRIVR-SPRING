@@ -14,7 +14,9 @@ import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeRequestSummary;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,16 +36,30 @@ public class AdminHomeService {
                 RentalStatus.REQUESTED
         );
 
-        // 엔티티 조회 (fetch join)
-        List<Rental> rentals = rentalRepository.findRecentHomeRentals(
+        // rental 엔티티 id 조회
+        List<Long> recentRentalIds = rentalRepository.findRecentHomeRentalIds(
                 organizationId,
                 RentalStatus.REQUESTED,
                 PageRequest.of(0, 2)
         );
 
-        // Service 레벨에서 DTO 매핑
+        // rental 엔티티 조회 (fetch join)
+        List<Rental> rentals = recentRentalIds.isEmpty()
+                ? List.of()
+                : rentalRepository.findRecentHomeRentalsByIds(recentRentalIds);
+
+        Map<Long, Rental> rentalById = new HashMap<>();
+        for (Rental rental : rentals) {
+            rentalById.put(rental.getId(), rental);
+        }
+
+        List<Rental> orderedRentals = recentRentalIds.stream()
+                .map(rentalById::get)
+                .filter(rental -> rental != null)
+                .toList();
+
         List<AdminHomeRequestSummary> recentRequests =
-                rentals.stream()
+                orderedRentals.stream()
                         .filter(rental -> !rental.getRentalItems().isEmpty())
                         .map(rental -> {
                             var rentalItem = rental.getRentalItems().get(0);
