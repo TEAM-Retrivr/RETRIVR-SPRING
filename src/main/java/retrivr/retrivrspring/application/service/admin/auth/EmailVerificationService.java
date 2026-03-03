@@ -70,6 +70,7 @@ public class EmailVerificationService {
         return new EmailVerificationSendResponse(email, purpose.name(), EXPIRES_SECONDS);
     }
 
+    @Transactional(noRollbackFor = ApplicationException.class)
     public Object verify(EmailVerificationRequest request) {
 
         String email = request.email();
