@@ -82,11 +82,13 @@ class AdminHomeServiceTest {
         when(rental.getRentalItems())
                 .thenReturn(List.of(rentalItem));
 
-        when(rentalRepository.findRecentHomeRentals(
+        when(rentalRepository.findRecentHomeRentalIds(
                 eq(orgId),
                 eq(RentalStatus.REQUESTED),
                 any()
-        )).thenReturn(List.of(rental));
+        )).thenReturn(List.of(1001L));
+        when(rentalRepository.findRecentHomeRentalsByIds(eq(List.of(1001L))))
+                .thenReturn(List.of(rental));
 
         // when
         AdminHomeResponse result = adminHomeService.getHome(orgId);
@@ -115,7 +117,9 @@ class AdminHomeServiceTest {
                 .countByOrganization_IdAndStatus(orgId, RentalStatus.REQUESTED);
 
         verify(rentalRepository, times(1))
-                .findRecentHomeRentals(eq(orgId), eq(RentalStatus.REQUESTED), any());
+                .findRecentHomeRentalIds(eq(orgId), eq(RentalStatus.REQUESTED), any());
+        verify(rentalRepository, times(1))
+                .findRecentHomeRentalsByIds(eq(List.of(1001L)));
     }
 
     @Test
@@ -151,11 +155,13 @@ class AdminHomeServiceTest {
         when(rental.getRequestedAt()).thenReturn(LocalDateTime.now());
         when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
 
-        when(rentalRepository.findRecentHomeRentals(
+        when(rentalRepository.findRecentHomeRentalIds(
                 eq(orgId),
                 eq(RentalStatus.REQUESTED),
                 any()
-        )).thenReturn(List.of(rental));
+        )).thenReturn(List.of(200L));
+        when(rentalRepository.findRecentHomeRentalsByIds(eq(List.of(200L))))
+                .thenReturn(List.of(rental));
 
         AdminHomeResponse result = adminHomeService.getHome(orgId);
 
