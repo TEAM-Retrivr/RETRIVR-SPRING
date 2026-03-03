@@ -44,6 +44,7 @@ public class AdminHomeService {
         // Service 레벨에서 DTO 매핑
         List<AdminHomeRequestSummary> recentRequests =
                 rentals.stream()
+                        .filter(rental -> !rental.getRentalItems().isEmpty())
                         .map(rental -> {
                             var rentalItem = rental.getRentalItems().get(0);
                             var item = rentalItem.getItem();
