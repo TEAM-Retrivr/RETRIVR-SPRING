@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
-import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
@@ -17,6 +16,8 @@ import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
@@ -24,10 +25,11 @@ import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AdminAuthServiceTest {
@@ -37,7 +39,6 @@ class AdminAuthServiceTest {
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private SignupTokenRepository signupTokenRepository;
-    @Mock private EmailVerificationService emailVerificationService;
 
     @InjectMocks
     private AdminAuthService adminAuthService;
@@ -47,7 +48,7 @@ class AdminAuthServiceTest {
     private final String hashedPassword = "$2a$10$mockhashedpasswordhashhashhash";
 
     @Test
-    @DisplayName("login 성공")
+    @DisplayName("login success")
     void login_success() {
         Organization org = Organization.builder()
                 .id(1L)
@@ -69,7 +70,7 @@ class AdminAuthServiceTest {
     }
 
     @Test
-    @DisplayName("signup 성공")
+    @DisplayName("signup success")
     void signup_success() {
 
         String rawSignupToken = "st_xxx";
@@ -87,6 +88,7 @@ class AdminAuthServiceTest {
         given(passwordEncoder.matches(rawSignupToken, hashedSignupToken)).willReturn(true);
         given(organizationRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordEncoder.encode(rawPassword)).willReturn(hashedPassword);
+        given(passwordEncoder.encode("DEV")).willReturn("encoded-admin-code");
 
         Organization saved = Organization.builder()
                 .id(2L)
@@ -107,7 +109,30 @@ class AdminAuthServiceTest {
     }
 
     @Test
-    @DisplayName("resetPassword 성공")
+    void signup_blankAdminCode_throwsInvalidValue() {
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash("$2a$10$signupHash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        token.markCodeVerified(LocalDateTime.now());
+
+        given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
+        given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.signup(
+                        new AdminSignupRequest(email, rawPassword, "Org", "   ", "st_xxx")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verify(passwordEncoder, never()).encode(rawPassword);
+    }
+
+    @Test
+    @DisplayName("resetPassword success")
     void resetPassword_success() {
 
         Organization org = Organization.builder()
