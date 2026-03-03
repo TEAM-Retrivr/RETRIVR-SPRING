@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.home.AdminHomeService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 
 @RestController
@@ -34,6 +36,7 @@ public class AdminHomeMockController {
                     schema = @Schema(implementation = AdminHomeResponse.class)
             )
     )
+    @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION})
     public AdminHomeResponse getHome(@AuthOrg AuthUser authUser) {
         return adminHomeService.getHome(authUser.organizationId());
     }
