@@ -78,6 +78,12 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
+        String adminCode = request.adminCode();
+        if (adminCode == null || adminCode.trim().isEmpty()) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
+        String trimmedAdminCode = adminCode.trim();
+
         // 3. 중복 검사
         if (organizationRepository.findByEmail(email).isPresent()) {
             throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
@@ -85,6 +91,7 @@ public class AdminAuthService {
 
         // 7) Organization 생성
         String hashedPw = passwordEncoder.encode(request.password());
+        String encodedAdminCode = passwordEncoder.encode(trimmedAdminCode);
 
         String safeName = request.organizationName() == null ? "" : request.organizationName().trim();
         String searchKey = safeName.replaceAll("\\s+", "-") + "-" + System.currentTimeMillis();
@@ -95,7 +102,7 @@ public class AdminAuthService {
                 .passwordHash(hashedPw)
                 .name(safeName)
                 .status(OrganizationStatus.ACTIVE) // TODO: 가입 승인 프로세스 도입 시 PENDING으로 변경
-                .adminCodeHash(passwordEncoder.encode(request.adminCode()))
+                .adminCodeHash(encodedAdminCode)
                 .searchKey(searchKey)
                 .build();
 
