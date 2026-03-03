@@ -5,8 +5,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.domain.entity.organization.*;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
@@ -14,12 +15,15 @@ import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.auth.req.*;
-import retrivr.retrivrspring.presentation.admin.auth.res.*;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -178,46 +182,4 @@ public class AdminAuthService {
         return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
     }
 
-    @Transactional
-    public EmailCodeSendResponse sendSignupEmailCode(EmailVerificationSendRequest request) {
-
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-
-        // 이미 가입된 이메일이면 차단
-        if (organizationRepository.findByEmail(email).isPresent()) {
-            throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
-        }
-
-        emailVerificationService.sendCode(
-                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP));
-
-        return new EmailCodeSendResponse(true, 600, "인증 코드가 이메일로 발송되었습니다.");
-    }
-
-    @Transactional
-    public EmailCodeVerifyResponse verifySignupEmailCode(EmailVerificationRequest request) {
-
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-
-        emailVerificationService.verify(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, request.code())
-        );
-
-        String rawSignupToken = "st_" + UUID.randomUUID();
-        String signupTokenHash = passwordEncoder.encode(rawSignupToken);
-
-        signupTokenRepository.deleteByEmail(email);
-
-        SignupToken token = SignupToken.builder()
-                .email(email)
-                .tokenHash(signupTokenHash)
-                .expiresAt(LocalDateTime.now().plusMinutes(10))
-                .build();
-
-        token.markCodeVerified(LocalDateTime.now());
-
-        signupTokenRepository.save(token);
-
-        return new EmailCodeVerifyResponse(rawSignupToken, 600);
-    }
 }

@@ -75,38 +75,4 @@ public class AdminAuthMockController {
     ) {
         return adminAuthService.resetPassword(request);
     }
-
-    @PostMapping("/signup/email-code/send")
-    @Operation(
-            summary = "UC-1.3.1-1 회원가입용 이메일 인증 코드 발송",
-            description = "입력된 이메일이 가입되어 있지 않으면 6자리 인증 코드를 발송한다. 코드는 10분간 유효하다."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "인증 코드 발송 성공",
-            content = @Content(schema = @Schema(implementation = EmailCodeSendResponse.class))
-    )
-    @ApiResponse(responseCode = "400", description = "이미 가입된 이메일/잘못된 요청")
-    public EmailCodeSendResponse sendSignupEmailCode(
-            @Valid @RequestBody EmailVerificationSendRequest request
-    ) {
-        return adminAuthService.sendSignupEmailCode(request);
-    }
-
-    @PostMapping("/signup/email-code/verify")
-    @Operation(
-            summary = "UC-1.3.1-2 회원가입용 이메일 인증 코드 검증",
-            description = "이메일과 인증 코드를 검증한다. 성공 시 회원가입에만 사용하는 signupToken을 발급한다. 토큰은 10분간 유효하다."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "이메일 인증 성공",
-            content = @Content(schema = @Schema(implementation = EmailCodeVerifyResponse.class))
-    )
-    @ApiResponse(responseCode = "400", description = "코드 불일치/만료/이미 사용됨")
-    public EmailCodeVerifyResponse verifySignupEmailCode(
-            @Valid @RequestBody EmailVerificationRequest request
-    ) {
-        return adminAuthService.verifySignupEmailCode(request);
-    }
 }
