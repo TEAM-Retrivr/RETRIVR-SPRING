@@ -73,7 +73,7 @@ public class EmailVerificationService {
     @Transactional(noRollbackFor = ApplicationException.class)
     public Object verify(EmailVerificationRequest request) {
 
-        String email = request.email();
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
         EmailVerificationPurpose purpose = request.purpose();
         String code = request.code();
 
