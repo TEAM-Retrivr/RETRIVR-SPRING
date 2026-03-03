@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.rental.AdminRentalRequestService;
+import retrivr.retrivrspring.global.auth.AuthOrg;
+import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.rental.req.AdminRentalApproveRequest;
@@ -60,10 +62,9 @@ public class AdminRentalRequestController {
   public AdminRentalDecisionResponse approve(
       @PathVariable Long rentalId,
       @RequestBody AdminRentalApproveRequest request,
-      //todo: 로그인 기능 완성 시 변경
-      @RequestParam(name = "login") Long mockOrganizationId
+      @AuthOrg AuthUser loginUser
   ) {
-    return adminRentalRequestService.approveRentalRequest(rentalId, request, mockOrganizationId);
+    return adminRentalRequestService.approveRentalRequest(rentalId, request, loginUser.organizationId());
   }
 
   @PostMapping("/{rentalId}/reject")
@@ -77,9 +78,9 @@ public class AdminRentalRequestController {
   public AdminRentalDecisionResponse reject(
       @PathVariable Long rentalId,
       @RequestBody AdminRentalRejectRequest request,
-      @RequestParam(name = "login") Long mockOrganizationId
+      @AuthOrg AuthUser loginUser
   ) {
-    return adminRentalRequestService.rejectRentalRequest(rentalId, request, mockOrganizationId);
+    return adminRentalRequestService.rejectRentalRequest(rentalId, request, loginUser.organizationId());
   }
 
 }

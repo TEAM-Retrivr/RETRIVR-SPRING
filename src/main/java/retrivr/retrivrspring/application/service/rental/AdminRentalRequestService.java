@@ -56,12 +56,18 @@ public class AdminRentalRequestService {
   @Transactional
   public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
       AdminRentalApproveRequest request, Long mockOrganizationId) {
+    // 1. 요청된 Rental 조회
     Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
+    // 2. 로그인한 Organization 조회
     Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
+    // 3. Rental 을 소유한 Organization 인지 검증
+    rental.validateRentalOwner(organizationToApprove);
+    
+    // 4. 대여 요청 승인
     rental.approve(request.adminNameToApprove(), organizationToApprove);
 
     return new AdminRentalDecisionResponse(
@@ -74,14 +80,17 @@ public class AdminRentalRequestService {
 
   @Transactional
   public AdminRentalDecisionResponse rejectRentalRequest(Long rentalId,
-      AdminRentalRejectRequest request, Long mockOrganizationId) {
+      AdminRentalRejectRequest request, Long loginOrganizationId) {
+    // 1. 대여 정보 조회
     Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
-    Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
+    // 2. 로그인된 조직 조회
+    Organization loginOrganization = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    rental.reject(request.adminNameToReject(), organizationToApprove);
+    // 3. 대여 거부
+    rental.reject(request.adminNameToReject(), loginOrganization);
 
     return new AdminRentalDecisionResponse(
         rentalId,

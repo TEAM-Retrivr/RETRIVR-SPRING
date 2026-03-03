@@ -90,6 +90,16 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
 
+  private RentalState state() {
+    return switch (this.status) {
+      case REQUESTED -> RequestedState.INSTANCE;
+      case APPROVED -> new RentedState();
+      case RETURNED -> new ReturnedState();
+      case REJECTED -> new RejectedState();
+      default -> null;
+    };
+  }
+
   public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower) {
     Rental newRental = Rental.builder()
         .organization(item.getOrganization())
@@ -109,54 +119,24 @@ public class Rental extends BaseTimeEntity {
   }
 
   public void approve(String adminNameToApprove, Organization organizationToApprove) {
-    if (!this.status.equals(RentalStatus.REQUESTED)) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot approve rental that is not in REQUESTED status");
-    }
-    if (!organizationToApprove.getId().equals(this.organization.getId())) {
-      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
-    }
-
-    if (this.rentalItems.isEmpty()) {
-      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
-    }
-    //todo: 장바구니
-    Item item = this.rentalItems.getFirst().getItem();
-
-    if (this.hasItemUnit()) {
-      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
-      itemUnit.onRentalApprove();
-    }
-
-    LocalDateTime now = LocalDateTime.now();
-    this.status = RentalStatus.APPROVED;
-    this.decidedAt = now;
-    this.decidedBy = adminNameToApprove;
-    this.dueDate = now.plusDays(item.getRentalDuration()).toLocalDate();
+    state().approve(this, adminNameToApprove, organizationToApprove);
   }
 
   public void reject(String adminNameToReject, Organization organizationToApprove) {
-    if (!this.status.equals(RentalStatus.REQUESTED)) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot reject rental that is not in REQUESTED status");
-    }
-    if (!organizationToApprove.getId().equals(this.organization.getId())) {
-      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
-    }
+    state().reject(this, adminNameToReject, organizationToApprove);
+  }
 
-    if (this.rentalItems.isEmpty()) {
-      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
-    }
-    //todo: 장바구니
-    Item item = this.rentalItems.getFirst().getItem();
-    item.onRentalRejected();
+  public void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
+    this.status = RentalStatus.APPROVED;
+    this.decidedBy = admin;
+    this.decidedAt = now;
+    this.dueDate = dueDate;
+  }
 
-    if (!rentalItemUnits.isEmpty()) {
-      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
-      itemUnit.onRentalRejected();
-    }
-
+  public void setReject(String admin, LocalDateTime now) {
     this.status = RentalStatus.REJECTED;
-    this.decidedAt = LocalDateTime.now();
-    this.decidedBy = adminNameToReject;
+    this.decidedAt = now;
+    this.decidedBy = admin;
   }
 
   public boolean hasItemUnit() {
