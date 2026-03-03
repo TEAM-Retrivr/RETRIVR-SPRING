@@ -31,10 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 로그인/회원가입은 필터 통과
         if (path.startsWith("/api/public/")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/api/admin/v1/auth/signup/**")
+                || path.startsWith("/v3/api-docs/")
                 || path.startsWith("/api/admin/v1/auth/")
-                || path.startsWith("/api/public/**")) {
+                ) {
             filterChain.doFilter(request, response);
             return;
         }
