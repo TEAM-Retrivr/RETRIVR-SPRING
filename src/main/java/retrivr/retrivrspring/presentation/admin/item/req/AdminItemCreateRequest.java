@@ -1,9 +1,11 @@
 package retrivr.retrivrspring.presentation.admin.item.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
 @Schema(description = "관리자 물품 등록 요청")
@@ -25,6 +27,7 @@ public record AdminItemCreateRequest(
         Boolean isActive,
 
         @Schema(description = "대여자 요구 정보 설정(JSONB)")
+        @Valid
         List<BorrowerRequirement> borrowerRequirements
 ) {
 
