@@ -66,30 +66,14 @@ public class AdminAuthService {
     public AdminSignupResponse signup(AdminSignupRequest request) {
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        LocalDateTime now = LocalDateTime.now();
 
         // 1) signupToken row 조회
         SignupToken token = signupTokenRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SIGNUP_TOKEN_NOT_FOUND));
 
-        // 2) 코드 검증을 거친 상태인지 확인
-        if (token.getCodeVerifiedAt() == null) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
-        }
-
-        // 3) signupToken 만료
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_EXPIRED);
-        }
-
-        // 4) signupToken 1회성
-        if (token.getUsedAt() != null) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_ALREADY_USED);
-        }
-
-        // 5) signupToken 비교 (현재 tokenHash는 signupTokenHash)
-        if (!passwordEncoder.matches(request.signupToken(), token.getTokenHash())) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
-        }
+        // 3) signupToken 검증
+        token.assertUsable(request.signupToken(), passwordEncoder, now);
 
         // 6) 가입 입력값 검증
         if (request.password() == null || request.password().length() < 8) {
@@ -121,7 +105,7 @@ public class AdminAuthService {
             Organization saved = organizationRepository.save(org);
 
             // 8) 가입 성공 시점에만 signupToken 사용 처리 (재시도 가능성 보장)
-            token.markUsed(LocalDateTime.now());
+            token.markUsed(now);
 
             return new AdminSignupResponse(
                     saved.getId(),

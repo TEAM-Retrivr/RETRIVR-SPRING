@@ -1,12 +1,19 @@
 package retrivr.retrivrspring.domain.entity.organization;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
-
-import java.time.LocalDateTime;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Getter
 @Entity
@@ -54,5 +61,23 @@ public class SignupToken extends BaseTimeEntity {
 
     public void extendExpiry(LocalDateTime newExpiry) {
         this.expiresAt = newExpiry;
+    }
+
+    public void assertUsable(String rawSignupToken, PasswordEncoder passwordEncoder, LocalDateTime now) {
+        if (this.codeVerifiedAt == null) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
+        }
+
+        if (this.expiresAt.isBefore(now)) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_EXPIRED);
+        }
+
+        if (this.usedAt != null) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_ALREADY_USED);
+        }
+
+        if (!passwordEncoder.matches(rawSignupToken, this.tokenHash)) {
+            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
+        }
     }
 }
