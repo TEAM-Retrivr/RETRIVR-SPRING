@@ -9,8 +9,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
-import retrivr.retrivrspring.presentation.admin.auth.req.*;
-import retrivr.retrivrspring.presentation.admin.auth.res.*;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -30,10 +36,11 @@ public class AdminAuthMockController {
             description = "로그인 성공",
             content = @Content(schema = @Schema(implementation = AdminLoginResponse.class))
     )
-    @ApiResponse(
-            responseCode = "400",
-            description = "이메일 또는 비밀번호 불일치"
-    )
+    @ApiErrorCodeExamples({
+            ErrorCode.INVALID_CREDENTIALS,
+            ErrorCode.ACCOUNT_SUSPENDED,
+            ErrorCode.ACCOUNT_NOT_APPROVED
+    })
     public AdminLoginResponse login(@Valid @RequestBody AdminLoginRequest request) {
         return adminAuthService.login(request);
     }
@@ -48,10 +55,14 @@ public class AdminAuthMockController {
             description = "회원가입 성공",
             content = @Content(schema = @Schema(implementation = AdminSignupResponse.class))
     )
-    @ApiResponse(
-            responseCode = "400",
-            description = "이미 가입된 이메일 또는 입력값 오류"
-    )
+    @ApiErrorCodeExamples({
+            ErrorCode.SIGNUP_TOKEN_NOT_FOUND,
+            ErrorCode.SIGNUP_TOKEN_INVALID,
+            ErrorCode.SIGNUP_TOKEN_EXPIRED,
+            ErrorCode.SIGNUP_TOKEN_ALREADY_USED,
+            ErrorCode.INVALID_VALUE_EXCEPTION,
+            ErrorCode.ALREADY_EXIST_EXCEPTION
+    })
     public AdminSignupResponse signup(
             @Valid @RequestBody AdminSignupRequest request
     ) {
@@ -70,9 +81,16 @@ public class AdminAuthMockController {
             description = "비밀번호 변경 성공",
             content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
     )
-    public PasswordResetResponse resetPassword(
-            @Valid @RequestBody PasswordResetRequest request
-    ) {
+    @ApiErrorCodeExamples({
+            ErrorCode.PASSWORD_RESET_POLICY_VIOLATION,
+            ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH,
+            ErrorCode.ACCOUNT_NOT_FOUND,
+            ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_RESET_TOKEN_ALREADY_USED,
+            ErrorCode.PASSWORD_RESET_TOKEN_INVALID
+    })
+    public PasswordResetResponse resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         return adminAuthService.resetPassword(request);
     }
 }
