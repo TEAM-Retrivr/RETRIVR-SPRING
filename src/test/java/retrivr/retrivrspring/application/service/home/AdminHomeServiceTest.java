@@ -94,6 +94,7 @@ class AdminHomeServiceTest {
         // then
         assertThat(result.organizationName())
                 .isEqualTo("건국대학교 도서관자치위원회");
+        assertThat(result.profileImageUrl()).isNull();
 
         assertThat(result.requestCount())
                 .isEqualTo(3);
@@ -108,6 +109,7 @@ class AdminHomeServiceTest {
         assertThat(summary.totalQuantity()).isEqualTo(5);
         assertThat(summary.borrowerName()).isEqualTo("조윤아");
         assertThat(summary.borrowerMajor()).isEqualTo("동물자원과학과");
+        assertThat(summary.requestedAt()).isEqualTo(LocalDateTime.of(2026, 1, 21, 17, 0));
 
         verify(rentalRepository, times(1))
                 .countByOrganization_IdAndStatus(orgId, RentalStatus.REQUESTED);
@@ -157,6 +159,8 @@ class AdminHomeServiceTest {
 
         AdminHomeResponse result = adminHomeService.getHome(orgId);
 
+        assertThat(result.profileImageUrl()).isNull();
         assertThat(result.recentRequests().get(0).borrowerMajor()).isNull();
+        assertThat(result.recentRequests().get(0).requestedAt()).isNotNull();
     }
 }

@@ -65,6 +65,4 @@ public class Organization extends BaseTimeEntity {
     }
   }
 
-//  public void changeProfileImageKey(String profileImageKey) { this.profileImageKey = profileImageKey; }
-
 }

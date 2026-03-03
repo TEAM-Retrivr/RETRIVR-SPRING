@@ -48,8 +48,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        System.out.println("VALID: true");
-
         AuthUser authUser = jwtTokenProvider.getAuthUser(token);
 
         request.setAttribute("authUser", authUser);
