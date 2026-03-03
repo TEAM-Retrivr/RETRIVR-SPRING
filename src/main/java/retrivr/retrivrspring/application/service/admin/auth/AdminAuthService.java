@@ -44,14 +44,7 @@ public class AdminAuthService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_CREDENTIALS));
 
         // 2. 계정 상태 확인
-        if (org.getStatus() == OrganizationStatus.SUSPENDED) {
-            throw new ApplicationException(ErrorCode.ACCOUNT_SUSPENDED);
-        }
-
-        // 승인 전(PENDING)은 로그인 불가
-        if (org.getStatus() != OrganizationStatus.ACTIVE) {
-            throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
-        }
+        org.assertLoginAllowed();
 
         if (!passwordEncoder.matches(request.password(), org.getPasswordHash())) {
             throw new ApplicationException(ErrorCode.INVALID_CREDENTIALS);

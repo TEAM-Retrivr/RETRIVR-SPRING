@@ -3,6 +3,8 @@ package retrivr.retrivrspring.domain.entity.organization;
 import jakarta.persistence.*;
 import lombok.*;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.time.LocalDateTime;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
@@ -51,6 +53,16 @@ public class Organization extends BaseTimeEntity {
 
   public void changePassword(String encodedPassword) {
     this.passwordHash = encodedPassword;
+  }
+
+  public void assertLoginAllowed() {
+    if (this.status == OrganizationStatus.SUSPENDED) {
+      throw new ApplicationException(ErrorCode.ACCOUNT_SUSPENDED);
+    }
+
+    if (this.status != OrganizationStatus.ACTIVE) {
+      throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
+    }
   }
 
 //  public void changeProfileImageKey(String profileImageKey) { this.profileImageKey = profileImageKey; }
