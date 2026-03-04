@@ -64,4 +64,8 @@ public class Borrower extends BaseTimeEntity {
         .path("학번")
         .asText("");
   }
+
+  public boolean hasPhone() {
+    return phone != null && !phone.isEmpty();
+  }
 }
