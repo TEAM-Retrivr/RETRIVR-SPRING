@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationCodeSender;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
@@ -37,6 +38,9 @@ class EmailVerificationServiceTest {
     @Mock
     private SignupTokenRepository signupTokenRepository;
 
+    @Mock
+    private EmailVerificationCodeSender emailVerificationCodeSender;
+
     @InjectMocks
     private EmailVerificationService emailVerificationService;
 
@@ -57,6 +61,8 @@ class EmailVerificationServiceTest {
 
         verify(emailVerificationRepository, times(1))
                 .save(any(EmailVerification.class));
+        verify(emailVerificationCodeSender, times(1))
+                .sendVerificationCode(eq(email), anyString(), eq(EmailVerificationPurpose.SIGNUP), eq(600));
     }
 
     @Test
