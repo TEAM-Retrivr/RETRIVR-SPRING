@@ -82,11 +82,13 @@ class AdminHomeServiceTest {
         when(rental.getRentalItems())
                 .thenReturn(List.of(rentalItem));
 
-        when(rentalRepository.findRecentHomeRentals(
+        when(rentalRepository.findRecentHomeRentalIds(
                 eq(orgId),
                 eq(RentalStatus.REQUESTED),
                 any()
-        )).thenReturn(List.of(rental));
+        )).thenReturn(List.of(1001L));
+        when(rentalRepository.findRecentHomeRentalsByIds(eq(List.of(1001L))))
+                .thenReturn(List.of(rental));
 
         // when
         AdminHomeResponse result = adminHomeService.getHome(orgId);
@@ -94,6 +96,7 @@ class AdminHomeServiceTest {
         // then
         assertThat(result.organizationName())
                 .isEqualTo("건국대학교 도서관자치위원회");
+        assertThat(result.profileImageUrl()).isNull();
 
         assertThat(result.requestCount())
                 .isEqualTo(3);
@@ -108,12 +111,15 @@ class AdminHomeServiceTest {
         assertThat(summary.totalQuantity()).isEqualTo(5);
         assertThat(summary.borrowerName()).isEqualTo("조윤아");
         assertThat(summary.borrowerMajor()).isEqualTo("동물자원과학과");
+        assertThat(summary.requestedAt()).isEqualTo(LocalDateTime.of(2026, 1, 21, 17, 0));
 
         verify(rentalRepository, times(1))
                 .countByOrganization_IdAndStatus(orgId, RentalStatus.REQUESTED);
 
         verify(rentalRepository, times(1))
-                .findRecentHomeRentals(eq(orgId), eq(RentalStatus.REQUESTED), any());
+                .findRecentHomeRentalIds(eq(orgId), eq(RentalStatus.REQUESTED), any());
+        verify(rentalRepository, times(1))
+                .findRecentHomeRentalsByIds(eq(List.of(1001L)));
     }
 
     @Test
@@ -149,14 +155,18 @@ class AdminHomeServiceTest {
         when(rental.getRequestedAt()).thenReturn(LocalDateTime.now());
         when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
 
-        when(rentalRepository.findRecentHomeRentals(
+        when(rentalRepository.findRecentHomeRentalIds(
                 eq(orgId),
                 eq(RentalStatus.REQUESTED),
                 any()
-        )).thenReturn(List.of(rental));
+        )).thenReturn(List.of(200L));
+        when(rentalRepository.findRecentHomeRentalsByIds(eq(List.of(200L))))
+                .thenReturn(List.of(rental));
 
         AdminHomeResponse result = adminHomeService.getHome(orgId);
 
+        assertThat(result.profileImageUrl()).isNull();
         assertThat(result.recentRequests().get(0).borrowerMajor()).isNull();
+        assertThat(result.recentRequests().get(0).requestedAt()).isNotNull();
     }
 }

@@ -17,8 +17,28 @@ spring:
         format_sql: true
         default_batch_fetch_size: 100
 
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+          starttls:
+            enable: true
+            required: true
+
 app:
   base-url: ${SERVER_BASE_URL}
+  email-verification:
+    expires-seconds: ${EMAIL_VERIFICATION_EXPIRES_SECONDS:600}
+    resend-block-seconds: ${EMAIL_VERIFICATION_RESEND_BLOCK_SECONDS:60}
+    max-failed-attempts: ${EMAIL_VERIFICATION_MAX_FAILED_ATTEMPTS:5}
 
 jwt:
   secret: ${JWT_SECRET}

@@ -8,9 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
-import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
-import retrivr.retrivrspring.domain.entity.organization.*;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
@@ -18,15 +18,18 @@ import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.auth.req.*;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyResponse;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AdminAuthServiceTest {
@@ -36,7 +39,6 @@ class AdminAuthServiceTest {
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private SignupTokenRepository signupTokenRepository;
-    @Mock private EmailVerificationService emailVerificationService; // ★ 추가
 
     @InjectMocks
     private AdminAuthService adminAuthService;
@@ -46,7 +48,7 @@ class AdminAuthServiceTest {
     private final String hashedPassword = "$2a$10$mockhashedpasswordhashhashhash";
 
     @Test
-    @DisplayName("login 성공")
+    @DisplayName("login success")
     void login_success() {
         Organization org = Organization.builder()
                 .id(1L)
@@ -68,7 +70,7 @@ class AdminAuthServiceTest {
     }
 
     @Test
-    @DisplayName("signup 성공")
+    @DisplayName("signup success")
     void signup_success() {
 
         String rawSignupToken = "st_xxx";
@@ -86,6 +88,7 @@ class AdminAuthServiceTest {
         given(passwordEncoder.matches(rawSignupToken, hashedSignupToken)).willReturn(true);
         given(organizationRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordEncoder.encode(rawPassword)).willReturn(hashedPassword);
+        given(passwordEncoder.encode("DEV")).willReturn("encoded-admin-code");
 
         Organization saved = Organization.builder()
                 .id(2L)
@@ -106,77 +109,30 @@ class AdminAuthServiceTest {
     }
 
     @Test
-    @DisplayName("sendSignupEmailCode 성공 - EmailVerificationService 호출")
-    void sendSignupEmailCode_success() {
+    void signup_blankAdminCode_throwsInvalidValue() {
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash("$2a$10$signupHash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        token.markCodeVerified(LocalDateTime.now());
 
-        given(organizationRepository.findByEmail(email)).willReturn(Optional.empty());
-
-        EmailVerificationSendRequest req =
-                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP);
-
-        var res = adminAuthService.sendSignupEmailCode(req);
-
-        assertTrue(res.success());
-        then(emailVerificationService)
-                .should()
-                .sendCode(any(EmailVerificationSendRequest.class));
-    }
-
-    @Test
-    @DisplayName("sendSignupEmailCode 실패 - 이미 가입된 이메일")
-    void sendSignupEmailCode_fail() {
-        given(organizationRepository.findByEmail(email))
-                .willReturn(Optional.of(Organization.builder().build()));
-
-        EmailVerificationSendRequest req =
-                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP);
+        given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
+        given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
 
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
-                () -> adminAuthService.sendSignupEmailCode(req)
+                () -> adminAuthService.signup(
+                        new AdminSignupRequest(email, rawPassword, "Org", "   ", "st_xxx")
+                )
         );
 
-        assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verify(passwordEncoder, never()).encode(rawPassword);
     }
 
     @Test
-    @DisplayName("verifySignupEmailCode 성공 - EmailVerification 검증 후 SignupToken 발급")
-    void verifySignupEmailCode_success() {
-
-        when(emailVerificationService.verify(any()))
-                .thenReturn(new EmailCodeVerifyResponse("st_test", 600));
-
-        given(passwordEncoder.encode(any()))
-                .willReturn("signupTokenHash");
-
-        var res = adminAuthService.verifySignupEmailCode(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-        );
-
-        assertNotNull(res.signupToken());
-    }
-
-    @Test
-    @DisplayName("verifySignupEmailCode 실패 - 이메일 인증 검증 실패")
-    void verifySignupEmailCode_fail() {
-
-        willThrow(new ApplicationException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH))
-                .given(emailVerificationService)
-                .verify(any());
-
-        EmailVerificationRequest req =
-                new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456");
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> adminAuthService.verifySignupEmailCode(req)
-        );
-
-        assertEquals(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH, ex.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("resetPassword 성공")
+    @DisplayName("resetPassword success")
     void resetPassword_success() {
 
         Organization org = Organization.builder()
