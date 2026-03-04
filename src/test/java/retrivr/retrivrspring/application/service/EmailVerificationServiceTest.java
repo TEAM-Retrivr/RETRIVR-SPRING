@@ -217,6 +217,7 @@ class EmailVerificationServiceTest {
                 () -> emailVerificationService.verify(
                         new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
                 ));
+        verify(emailVerificationRepository, times(1)).save(verification);
 
         ApplicationException ex = assertThrows(ApplicationException.class,
                 () -> emailVerificationService.verify(
