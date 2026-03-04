@@ -1,13 +1,11 @@
-package retrivr.retrivrspring.domain.entity.rental.state;
+package retrivr.retrivrspring.domain.entity.rental;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.item.Item;
-import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -42,7 +40,7 @@ public final class RequestedState implements RentalState {
     item.onRentalRejected(rental.getItemUnit());
 
     // 3. Reject 상태로 변경
-    rental.setReject(adminName, LocalDateTime.now());
+    rental.setRejected(adminName, LocalDateTime.now());
   }
 
 
@@ -54,12 +52,17 @@ public final class RequestedState implements RentalState {
   @Override
   public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
-        "Cannot return when REQUESTED");
+        "Cannot changeDueDate when REQUESTED");
   }
 
   @Override
   public void markReturned(Rental rental, String adminName, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
-        "Cannot return when REQUESTED");
+        "Cannot markReturned when REQUESTED");
   }
+
+  @Override
+  public int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt) {
+    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
+        "Cannot getOverdueDays when REQUESTED");  }
 }

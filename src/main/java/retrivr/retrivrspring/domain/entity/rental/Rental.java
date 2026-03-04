@@ -16,7 +16,6 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -31,11 +30,6 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.domain.entity.rental.state.RejectedState;
-import retrivr.retrivrspring.domain.entity.rental.state.RentalState;
-import retrivr.retrivrspring.domain.entity.rental.state.RentedState;
-import retrivr.retrivrspring.domain.entity.rental.state.RequestedState;
-import retrivr.retrivrspring.domain.entity.rental.state.ReturnedState;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -96,9 +90,9 @@ public class Rental extends BaseTimeEntity {
   private RentalState state() {
     return switch (this.status) {
       case REQUESTED -> RequestedState.INSTANCE;
-      case RENTED -> new RentedState();
-      case RETURNED -> new ReturnedState();
-      case REJECTED -> new RejectedState();
+      case RENTED -> RentedState.INSTANCE;
+      case RETURNED -> ReturnedState.INSTANCE;
+      case REJECTED -> RejectedState.INSTANCE;
     };
   }
 
@@ -136,25 +130,52 @@ public class Rental extends BaseTimeEntity {
     state().markReturned(this, adminNameToConfirm, loginOrganization);
   }
 
-  public void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
+  public int getOverdueDays() {
+    return state().getOverdueDays(this.dueDate, this.returnedAt);
+  }
+
+  /**
+   *
+   * 외부 사용 금지 메소드
+   * State 패턴 클래스 전용 메소드
+   *
+   */
+  protected void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
     this.status = RentalStatus.RENTED;
     this.decidedBy = admin;
     this.decidedAt = now;
     this.dueDate = dueDate;
   }
 
-  public void setReject(String admin, LocalDateTime now) {
+  protected void setRejected(String admin, LocalDateTime now) {
     this.status = RentalStatus.REJECTED;
     this.decidedAt = now;
     this.decidedBy = admin;
   }
 
-  public void setReturned(String admin, LocalDateTime now) {
+  protected void setReturned(String admin, LocalDateTime now) {
     this.status = RentalStatus.RETURNED;
     this.receivedBy = admin;
     this.returnedAt = now;
   }
 
+  protected void setDueDateInternal(LocalDate dueDate) {
+    this.dueDate = dueDate;
+  }
+
+  private void addItem(Item item) {
+    this.rentalItems.add(RentalItem.create(this, item));
+  }
+
+  private void addItemUnit(ItemUnit itemUnit) {
+    this.rentalItemUnits.add(RentalItemUnit.create(this, itemUnit));
+  }
+
+  /**
+   *
+   * 외부 사용 가능 메소드
+   *
+   */
   public boolean hasItemUnit() {
     return this.rentalItemUnits != null && !this.rentalItemUnits.isEmpty();
   }
@@ -179,45 +200,11 @@ public class Rental extends BaseTimeEntity {
     }
   }
 
-  public void updateDueDate(LocalDate dueDate) {
-    if (dueDate == null) {
-      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date to null");
-    }
-    this.dueDate = dueDate;
-  }
-
-  public int getOverdueDays() {
-    // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
-    if (this.status == RentalStatus.RENTED) {
-      long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
-      return (int) Math.max(days, 0);
-    }
-    return 0;
-  }
-
   public boolean canSendOverdueSms() {
-    return borrower.getPhone() != null && !borrower.getPhone().isBlank();
+    return this.borrower.hasPhone();
   }
 
   public boolean isOverdue() {
     return this.dueDate != null && this.dueDate.isBefore(LocalDate.now());
-  }
-
-  private void addItem(Item item) {
-    RentalItem newRentalItem = RentalItem.builder()
-        .rental(this)
-        .item(item)
-        .build();
-
-    this.rentalItems.add(newRentalItem);
-  }
-
-  private void addItemUnit(ItemUnit itemUnit) {
-    RentalItemUnit newRentalItemUnit = RentalItemUnit.builder()
-        .rental(this)
-        .itemUnit(itemUnit)
-        .build();
-
-    this.rentalItemUnits.add(newRentalItemUnit);
   }
 }

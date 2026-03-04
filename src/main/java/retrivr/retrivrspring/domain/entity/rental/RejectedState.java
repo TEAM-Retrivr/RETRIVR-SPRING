@@ -1,14 +1,17 @@
-package retrivr.retrivrspring.domain.entity.rental.state;
+package retrivr.retrivrspring.domain.entity.rental;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
-public class RejectedState implements RentalState {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class RejectedState implements RentalState {
 
+  public static final RejectedState INSTANCE = new RejectedState();
 
   @Override
   public void approve(Rental rental, String adminName, Organization org) {
@@ -32,5 +35,11 @@ public class RejectedState implements RentalState {
   public void markReturned(Rental rental, String adminName, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot markReturned when REJECTED");
+  }
+
+  @Override
+  public int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt) {
+    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
+        "Cannot getOverdueDays when REJECTED");
   }
 }
