@@ -27,16 +27,12 @@ public class EmailVerificationCodeSenderImpl implements EmailVerificationCodeSen
     }
 
     private String buildSubject(EmailVerificationPurpose purpose) {
-        if (purpose == EmailVerificationPurpose.SIGNUP) {
-            return "[RETRIVR] 회원가입 인증 코드";
-        }
-        if (purpose == EmailVerificationPurpose.PASSWORD_RESET) {
-            return "[RETRIVR] 비밀번호 재설정 인증 코드";
-        }
-        if (purpose == EmailVerificationPurpose.LOGIN) {
-            return "[RETRIVR] 로그인 인증 코드";
-        }
-        return "[RETRIVR] 인증 코드";
+        return switch (purpose) {
+            case SIGNUP -> "[RETRIVR] 회원가입 인증 코드";
+            case PASSWORD_RESET -> "[RETRIVR] 비밀번호 재설정 인증 코드";
+            case LOGIN -> "[RETRIVR] 로그인 인증 코드";
+            default -> "[RETRIVR] 인증 코드";
+        };
     }
 
     private String buildVerificationHtml(

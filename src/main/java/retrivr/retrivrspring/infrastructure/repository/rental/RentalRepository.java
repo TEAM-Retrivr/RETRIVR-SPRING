@@ -25,18 +25,25 @@ public interface RentalRepository
 
     // 최신 2건 Projection
     @Query("""
+                select r.id
+                from Rental r
+                where r.organization.id = :organizationId
+                  and r.status = :status
+                order by r.requestedAt desc
+            """)
+    List<Long> findRecentHomeRentalIds(
+            @Param("organizationId") Long organizationId,
+            @Param("status") RentalStatus status,
+            Pageable pageable
+    );
+
+    @Query("""
                 select distinct r
                 from Rental r
                 join fetch r.borrower
                 join fetch r.rentalItems ri
                 join fetch ri.item
-                where r.organization.id = :organizationId
-                  and r.status = :status
-                order by r.requestedAt desc
+                where r.id in :ids
             """)
-    List<Rental> findRecentHomeRentals(
-            @Param("organizationId") Long organizationId,
-            @Param("status") RentalStatus status,
-            Pageable pageable
-    );
+    List<Rental> findRecentHomeRentalsByIds(@Param("ids") List<Long> ids);
 }

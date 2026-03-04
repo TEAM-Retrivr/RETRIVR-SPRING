@@ -5,8 +5,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.domain.entity.organization.*;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
@@ -14,12 +15,15 @@ import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.auth.req.*;
-import retrivr.retrivrspring.presentation.admin.auth.res.*;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +35,6 @@ public class AdminAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SignupTokenRepository signupTokenRepository;
 
-    private final EmailVerificationService emailVerificationService;
-
     @Transactional
     public AdminLoginResponse login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
@@ -40,14 +42,7 @@ public class AdminAuthService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_CREDENTIALS));
 
         // 2. 계정 상태 확인
-        if (org.getStatus() == OrganizationStatus.SUSPENDED) {
-            throw new ApplicationException(ErrorCode.ACCOUNT_SUSPENDED);
-        }
-
-        // 승인 전(PENDING)은 로그인 불가
-        if (org.getStatus() != OrganizationStatus.ACTIVE) {
-            throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
-        }
+        org.assertLoginAllowed();
 
         if (!passwordEncoder.matches(request.password(), org.getPasswordHash())) {
             throw new ApplicationException(ErrorCode.INVALID_CREDENTIALS);
@@ -69,35 +64,25 @@ public class AdminAuthService {
     public AdminSignupResponse signup(AdminSignupRequest request) {
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        LocalDateTime now = LocalDateTime.now();
 
         // 1) signupToken row 조회
         SignupToken token = signupTokenRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SIGNUP_TOKEN_NOT_FOUND));
 
-        // 2) 코드 검증을 거친 상태인지 확인
-        if (token.getCodeVerifiedAt() == null) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
-        }
-
-        // 3) signupToken 만료
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_EXPIRED);
-        }
-
-        // 4) signupToken 1회성
-        if (token.getUsedAt() != null) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_ALREADY_USED);
-        }
-
-        // 5) signupToken 비교 (현재 tokenHash는 signupTokenHash)
-        if (!passwordEncoder.matches(request.signupToken(), token.getTokenHash())) {
-            throw new ApplicationException(ErrorCode.SIGNUP_TOKEN_INVALID);
-        }
+        // 3) signupToken 검증
+        token.assertUsable(request.signupToken(), passwordEncoder, now);
 
         // 6) 가입 입력값 검증
         if (request.password() == null || request.password().length() < 8) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
+
+        String adminCode = request.adminCode();
+        if (adminCode == null || adminCode.trim().isEmpty()) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
+        String trimmedAdminCode = adminCode.trim();
 
         // 3. 중복 검사
         if (organizationRepository.findByEmail(email).isPresent()) {
@@ -106,6 +91,7 @@ public class AdminAuthService {
 
         // 7) Organization 생성
         String hashedPw = passwordEncoder.encode(request.password());
+        String encodedAdminCode = passwordEncoder.encode(trimmedAdminCode);
 
         String safeName = request.organizationName() == null ? "" : request.organizationName().trim();
         String searchKey = safeName.replaceAll("\\s+", "-") + "-" + System.currentTimeMillis();
@@ -116,7 +102,7 @@ public class AdminAuthService {
                 .passwordHash(hashedPw)
                 .name(safeName)
                 .status(OrganizationStatus.ACTIVE) // TODO: 가입 승인 프로세스 도입 시 PENDING으로 변경
-                .adminCodeHash(passwordEncoder.encode(request.adminCode()))
+                .adminCodeHash(encodedAdminCode)
                 .searchKey(searchKey)
                 .build();
 
@@ -124,7 +110,7 @@ public class AdminAuthService {
             Organization saved = organizationRepository.save(org);
 
             // 8) 가입 성공 시점에만 signupToken 사용 처리 (재시도 가능성 보장)
-            token.markUsed(LocalDateTime.now());
+            token.markUsed(now);
 
             return new AdminSignupResponse(
                     saved.getId(),
@@ -178,46 +164,4 @@ public class AdminAuthService {
         return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
     }
 
-    @Transactional
-    public EmailCodeSendResponse sendSignupEmailCode(EmailVerificationSendRequest request) {
-
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-
-        // 이미 가입된 이메일이면 차단
-        if (organizationRepository.findByEmail(email).isPresent()) {
-            throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
-        }
-
-        emailVerificationService.sendCode(
-                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP));
-
-        return new EmailCodeSendResponse(true, 600, "인증 코드가 이메일로 발송되었습니다.");
-    }
-
-    @Transactional
-    public EmailCodeVerifyResponse verifySignupEmailCode(EmailVerificationRequest request) {
-
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-
-        emailVerificationService.verify(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, request.code())
-        );
-
-        String rawSignupToken = "st_" + UUID.randomUUID();
-        String signupTokenHash = passwordEncoder.encode(rawSignupToken);
-
-        signupTokenRepository.deleteByEmail(email);
-
-        SignupToken token = SignupToken.builder()
-                .email(email)
-                .tokenHash(signupTokenHash)
-                .expiresAt(LocalDateTime.now().plusMinutes(10))
-                .build();
-
-        token.markCodeVerified(LocalDateTime.now());
-
-        signupTokenRepository.save(token);
-
-        return new EmailCodeVerifyResponse(rawSignupToken, 600);
-    }
 }
