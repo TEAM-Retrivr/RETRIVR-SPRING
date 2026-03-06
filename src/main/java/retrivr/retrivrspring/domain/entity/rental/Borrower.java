@@ -34,7 +34,6 @@ public class Borrower extends BaseTimeEntity {
   private String name;
 
   @Embedded
-  @Column(nullable = false)
   private PhoneNumber phone;
 
   @JdbcTypeCode(SqlTypes.JSON)

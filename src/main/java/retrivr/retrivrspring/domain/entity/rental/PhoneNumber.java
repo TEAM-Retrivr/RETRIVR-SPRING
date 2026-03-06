@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.domain.entity.rental;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @NoArgsConstructor
 public class PhoneNumber {
 
+  @Column(nullable = false)
   private String phone;
 
   public PhoneNumber(String phone) {
