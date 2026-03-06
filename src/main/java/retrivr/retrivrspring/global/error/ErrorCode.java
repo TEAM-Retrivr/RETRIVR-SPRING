@@ -87,7 +87,10 @@ public enum ErrorCode {
     PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다."),
 
     // 9000: Return Event Error
-    RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다.")
+    RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
+
+    // 10000: Borrower Error
+    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다.")
     ;
 
     private final HttpStatus httpStatus;
