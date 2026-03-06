@@ -149,7 +149,7 @@ public class AdminActiveRentalService {
   }
 
   /**
-   * 반납 확인 - status: APPROVED/OVERDUE -> RETURNED - UNIT: rental_item_unit으로 점유한 유닛 AVAILABLE 복구 -
+   * 반납 확인 - status: RENTED -> RETURNED - UNIT: rental_item_unit으로 점유한 유닛 AVAILABLE 복구 -
    * SINGLE: rental_item.quantity 합산해서 item.available_quantity 증가 - return_event 기록
    */
   @Transactional
