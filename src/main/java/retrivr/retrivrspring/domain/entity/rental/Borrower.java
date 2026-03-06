@@ -2,6 +2,7 @@ package retrivr.retrivrspring.domain.entity.rental;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,14 +33,14 @@ public class Borrower extends BaseTimeEntity {
   @Column(nullable = false, length = 255)
   private String name;
 
-  @Column(length = 255)
-  private String phone;
+  @Embedded
+  private PhoneNumber phone;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "additional_borrower_info", columnDefinition = "jsonb")
   private JsonNode additionalBorrowerInfo;
 
-  public static Borrower create(String name, String phone, JsonNode additionalBorrowerInfo) {
+  public static Borrower create(String name, PhoneNumber phone, JsonNode additionalBorrowerInfo) {
     return Borrower.builder()
         .name(name)
         .phone(phone)
@@ -63,5 +64,9 @@ public class Borrower extends BaseTimeEntity {
     return additionalBorrowerInfo
         .path("학번")
         .asText("");
+  }
+
+  public boolean isValidPhoneFormat() {
+    return phone.isValid();
   }
 }

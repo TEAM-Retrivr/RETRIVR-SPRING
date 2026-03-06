@@ -7,10 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeRequestSummary;
 import retrivr.retrivrspring.presentation.admin.home.res.AdminHomeResponse;
 

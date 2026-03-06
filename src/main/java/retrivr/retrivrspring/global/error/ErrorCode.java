@@ -42,6 +42,8 @@ public enum ErrorCode {
     ITEM_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 4007, "물건의 대여 상태를 요청된 상태로 변경할 수 없습니다."),
     INVALID_ITEM(HttpStatus.INTERNAL_SERVER_ERROR, 4008, "물건 데이터가 잘못되었습니다."),
     INVALID_ITEM_UNIT(HttpStatus.INTERNAL_SERVER_ERROR, 4009, "아이템 유닛 데이터 잘못되었습니다."),
+    ITEM_UNIT_REQUIRED_FOR_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4010, "UNIT 타입 물건은 고유번호(ItemUnit)가 반드시 필요합니다."),
+    ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4011, "Non Unit 타입 물건은 고유번호를 사용할 수 없습니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
@@ -85,7 +87,10 @@ public enum ErrorCode {
     PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다."),
 
     // 9000: Return Event Error
-    RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다.");
+    RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
+
+    // 10000: Borrower Error
+    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다.")
     ;
 
     private final HttpStatus httpStatus;

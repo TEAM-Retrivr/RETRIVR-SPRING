@@ -37,4 +37,11 @@ public class RentalItem extends BaseTimeEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "item_id", nullable = false)
   private Item item;
+
+  public static RentalItem create(Rental rental, Item item) {
+    return RentalItem.builder()
+        .rental(rental)
+        .item(item)
+        .build();
+  }
 }

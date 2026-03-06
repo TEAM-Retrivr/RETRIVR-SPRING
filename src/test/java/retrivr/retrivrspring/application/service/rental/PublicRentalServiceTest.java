@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -29,12 +30,12 @@ import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemRepository;
-import retrivr.retrivrspring.infrastructure.repository.item.ItemUnitRepository;
-import retrivr.retrivrspring.infrastructure.repository.rental.RentalRepository;
-import retrivr.retrivrspring.presentation.rental.req.PublicRentalCreateRequest;
-import retrivr.retrivrspring.presentation.rental.res.PublicRentalCreateResponse;
-import retrivr.retrivrspring.presentation.rental.res.PublicRentalDetailResponse;
+import retrivr.retrivrspring.domain.repository.item.ItemRepository;
+import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
+import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalCreateRequest;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalCreateResponse;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalDetailResponse;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -301,7 +302,7 @@ class PublicRentalServiceTest {
   void checkRental_detail_withUnit() {
     Rental rental = mock(Rental.class);
     when(rental.getId()).thenReturn(2L);
-    when(rental.getStatus()).thenReturn(RentalStatus.APPROVED);
+    when(rental.getStatus()).thenReturn(RentalStatus.RENTED);
     when(rental.getDecidedAt()).thenReturn(LocalDateTime.now());
     when(rental.getDueDate()).thenReturn(LocalDate.now().plusDays(7));
 
@@ -333,6 +334,6 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("노트북");
     assertThat(res.itemUnitCode()).isEqualTo("UMB-001");
     assertThat(res.borrowerField()).containsEntry("학번", "20251234");
-    assertThat(res.rentalStatus()).isEqualTo(RentalStatus.APPROVED);
+    assertThat(res.rentalStatus()).isEqualTo(RentalStatus.RENTED);
   }
 }
