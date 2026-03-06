@@ -13,7 +13,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RentedState implements RentalState {
 
-  public static final RentedState INSTANCE = new RentedState();
+  protected static final RentedState INSTANCE = new RentedState();
 
   @Override
   public void approve(Rental rental, String adminName, Organization org) {
@@ -24,7 +24,7 @@ public final class RentedState implements RentalState {
   @Override
   public void reject(Rental rental, String adminName, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
-        "Cannot reject when RETURNED");
+        "Cannot reject when RENTED");
   }
 
   @Override
