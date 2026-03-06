@@ -41,7 +41,7 @@ public class RentalScenarioNonUnitTest {
         .totalQuantity(totalQty)
         .availableQuantity(availableQty)
         .isActive(true)
-        .itemManagementType(ItemManagementType.SINGLE)
+        .itemManagementType(ItemManagementType.NON_UNIT)
         .build();
   }
 
