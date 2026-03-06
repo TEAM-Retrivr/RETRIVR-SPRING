@@ -118,8 +118,8 @@ public class Rental extends BaseTimeEntity {
     state().approve(this, adminNameToApprove, organizationToApprove);
   }
 
-  public void reject(String adminNameToReject, Organization organizationToApprove) {
-    state().reject(this, adminNameToReject, organizationToApprove);
+  public void reject(String adminNameToReject, Organization organizationToReject) {
+    state().reject(this, adminNameToReject, organizationToReject);
   }
 
   public void changeDueDate(LocalDate newDueDate, Organization loginOrganization) {
