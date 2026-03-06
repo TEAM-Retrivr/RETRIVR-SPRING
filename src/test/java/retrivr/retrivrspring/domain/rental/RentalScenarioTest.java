@@ -93,6 +93,22 @@ public class RentalScenarioTest {
     assertThat(unit.getStatus()).isEqualTo(ItemUnitStatus.RENTAL_PENDING);
     assertThat(item.getAvailableQuantity()).isEqualTo(0);
   }
+  @Test
+  @DisplayName("요청 예외(UNIT): UNIT 관리 타입인데 itemUnit=null이면 요청 불가")
+  void request_fail_unitType_whenItemUnitNull() {
+    // given
+    Organization org = org(1L);
+    Item item = unitItem(org, 2, 1, 7);
+    Borrower borrower = borrower();
+
+    // when
+    Throwable t = catchThrowable(() -> Rental.request(item, null, borrower));
+
+    // then
+    assertThat(t).isInstanceOf(DomainException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ITEM_UNIT_REQUIRED_FOR_UNIT_TYPE);
+  }
 
   @Test
   @DisplayName("요청 예외: UNIT이 AVAILABLE이 아니면 요청 불가")
