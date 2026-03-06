@@ -12,6 +12,7 @@ import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
+import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -55,7 +56,7 @@ public class RentalScenarioTest {
   private Borrower borrower() {
     return Borrower.builder()
         .name("홍길동")
-        .phone("010-0000-0000")
+        .phone(new PhoneNumber("010-0000-0000"))
         .additionalBorrowerInfo(null)
         .build();
   }
