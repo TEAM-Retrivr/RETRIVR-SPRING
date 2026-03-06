@@ -201,7 +201,7 @@ public class Rental extends BaseTimeEntity {
   }
 
   public boolean canSendOverdueSms() {
-    return this.borrower.hasPhone();
+    return this.borrower.isValidPhoneFormat();
   }
 
   public boolean isOverdue() {
