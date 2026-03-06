@@ -20,7 +20,7 @@ class ItemPropertyTest extends ItemTestFixture {
     @Test
     @DisplayName("활성 상태이고 availableQuantity가 1 이상이면 true를 반환한다")
     void returnsTrueWhenActiveAndHasAvailableQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
 
       assertThat(item.isRentalAble()).isTrue();
     }
@@ -28,7 +28,7 @@ class ItemPropertyTest extends ItemTestFixture {
     @Test
     @DisplayName("비활성 상태면 false를 반환한다")
     void returnsFalseWhenInactive() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, false, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, false, 10, 3);
 
       assertThat(item.isRentalAble()).isFalse();
     }
@@ -36,7 +36,7 @@ class ItemPropertyTest extends ItemTestFixture {
     @Test
     @DisplayName("availableQuantity가 0이면 false를 반환한다")
     void returnsFalseWhenNoAvailableQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 0);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 0);
 
       assertThat(item.isRentalAble()).isFalse();
     }
@@ -57,7 +57,7 @@ class ItemPropertyTest extends ItemTestFixture {
     @Test
     @DisplayName("itemManagementType이 SINGLE이면 false를 반환한다")
     void returnsFalseWhenSingleType() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
 
       assertThat(item.isUnitType()).isFalse();
     }

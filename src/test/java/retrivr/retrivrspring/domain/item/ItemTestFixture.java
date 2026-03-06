@@ -38,7 +38,7 @@ public abstract class ItemTestFixture {
   }
 
   protected Item createItemWithBorrowerFields(ItemBorrowerField... fields) {
-    Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 10);
+    Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 10);
     ReflectionTestUtils.setField(item, "itemBorrowerFields", new ArrayList<>(List.of(fields)));
     return item;
   }

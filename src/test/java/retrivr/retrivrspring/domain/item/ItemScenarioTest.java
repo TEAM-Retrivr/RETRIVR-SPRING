@@ -22,7 +22,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품은 itemUnit 없이 요청하면 availableQuantity가 1 감소한다")
     void nonUnitRequestWithoutItemUnit() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
 
       item.onRentalRequested(null);
 
@@ -55,7 +55,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품인데 itemUnit을 전달하면 예외가 발생한다")
     void throwsWhenNonUnitTypeButItemUnitProvided() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
       ItemUnit itemUnit = createItemUnit(100L, item, ItemUnitStatus.AVAILABLE);
 
       assertThatThrownBy(() -> item.onRentalRequested(itemUnit))
@@ -80,7 +80,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("대여 불가능한 상태면 예외가 발생한다")
     void throwsWhenItemIsNotRentalAble() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 0);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 0);
 
       assertThatThrownBy(() -> item.onRentalRequested(null))
           .isInstanceOf(DomainException.class)
@@ -96,7 +96,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품은 approve 시 수량이 바뀌지 않는다")
     void nonUnitApproveDoesNotChangeQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
 
       item.onRentalApprove(null);
 
@@ -142,7 +142,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품인데 itemUnit을 전달하면 예외가 발생한다")
     void throwsWhenApproveNonUnitWithItemUnit() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
       ItemUnit itemUnit = createItemUnit(100L, item, ItemUnitStatus.RENTAL_PENDING);
 
       assertThatThrownBy(() -> item.onRentalApprove(itemUnit))
@@ -159,7 +159,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품은 reject 시 availableQuantity가 1 증가한다")
     void nonUnitRejectIncreasesQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 2);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 2);
 
       item.onRentalRejected(null);
 
@@ -181,7 +181,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("availableQuantity가 totalQuantity와 같으면 reject 시 overflow 예외가 발생한다")
     void throwsOverflowWhenRejectWouldExceedTotalQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 3, 3);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 3, 3);
 
       assertThatThrownBy(() -> item.onRentalRejected(null))
           .isInstanceOf(DomainException.class)
@@ -197,7 +197,7 @@ class ItemScenarioTest extends ItemTestFixture {
     @Test
     @DisplayName("NON_UNIT 물품은 return 시 availableQuantity가 1 증가한다")
     void nonUnitReturnIncreasesQuantity() {
-      Item item = createItem(1L, ItemManagementType.SINGLE, true, 10, 2);
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 2);
 
       item.onRentalReturned(null);
 
