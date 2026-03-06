@@ -10,6 +10,7 @@ import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 import java.util.List;
 import java.util.Optional;
+import retrivr.retrivrspring.infrastructure.repository.rental.RentalSearchRepository;
 
 public interface RentalRepository
         extends JpaRepository<Rental, Long>, RentalSearchRepository {

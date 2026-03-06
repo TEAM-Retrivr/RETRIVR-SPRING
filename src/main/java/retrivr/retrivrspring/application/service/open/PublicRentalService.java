@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
+import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
@@ -50,7 +51,7 @@ public class PublicRentalService {
     // 4. Borrower 생성
     Borrower borrower = Borrower.create(
         request.name(),
-        request.phone(),
+        new PhoneNumber(request.phone()),
         objectMapper.valueToTree(request.renterFields())
     );
 

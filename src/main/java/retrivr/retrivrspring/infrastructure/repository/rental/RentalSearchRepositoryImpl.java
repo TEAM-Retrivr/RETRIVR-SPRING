@@ -16,7 +16,6 @@ import retrivr.retrivrspring.domain.entity.rental.*;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 import java.util.List;
-import retrivr.retrivrspring.domain.repository.rental.RentalSearchRepository;
 
 @Repository
 @RequiredArgsConstructor

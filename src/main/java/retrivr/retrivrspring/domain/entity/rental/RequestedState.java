@@ -12,7 +12,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RequestedState implements RentalState {
 
-  public static final RequestedState INSTANCE = new RequestedState();
+  protected static final RequestedState INSTANCE = new RequestedState();
 
   @Override
   public void approve(Rental rental, String adminName, Organization loginOrganization) {

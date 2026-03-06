@@ -49,7 +49,9 @@ class RentalValidateOwnerTest {
   void validateOwner_match_ok() {
     // given
     Organization owner = mock(Organization.class);
+    Organization sameOwnerDifferentInstance = mock(Organization.class);
     when(owner.getId()).thenReturn(1L);
+    when(sameOwnerDifferentInstance.getId()).thenReturn(1L);
 
     Rental rental = Rental.builder()
         .organization(owner)
@@ -59,7 +61,7 @@ class RentalValidateOwnerTest {
         .build();
 
     // when & then
-    assertThatCode(() -> rental.validateRentalOwner(owner))
+    assertThatCode(() -> rental.validateRentalOwner(sameOwnerDifferentInstance))
         .doesNotThrowAnyException();
   }
 }
