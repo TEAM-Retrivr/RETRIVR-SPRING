@@ -32,7 +32,7 @@ public class Borrower extends BaseTimeEntity {
   @Column(nullable = false, length = 255)
   private String name;
 
-  @Column(length = 255)
+  @Column(nullable = false, length = 255)
   private String phone;
 
   @JdbcTypeCode(SqlTypes.JSON)
