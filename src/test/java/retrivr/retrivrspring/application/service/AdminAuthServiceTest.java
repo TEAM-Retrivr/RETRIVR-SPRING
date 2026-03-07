@@ -180,7 +180,7 @@ class AdminAuthServiceTest {
                 new PasswordResetRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "token", "NewPassword123!", "NewPassword123!")
         );
 
-        assertEquals(email, res.email());
+        assertTrue(res.success());
     }
 
     @Test
