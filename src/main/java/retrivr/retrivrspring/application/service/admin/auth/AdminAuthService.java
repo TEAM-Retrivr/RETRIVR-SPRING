@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
@@ -20,14 +21,18 @@ import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetSuccessResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AdminAuthService {
+    private static final Pattern PASSWORD_POLICY_PATTERN = Pattern.compile(
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*\\p{Punct})(?!.*\\s).{8,}$"
+    );
 
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
@@ -74,7 +79,7 @@ public class AdminAuthService {
         token.assertUsable(request.signupToken(), passwordEncoder, now);
 
         // 6) 가입 입력값 검증
-        if (request.password() == null || request.password().length() < 8) {
+        if (!isValidPassword(request.password())) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
@@ -125,9 +130,12 @@ public class AdminAuthService {
     }
 
     @Transactional
-    public PasswordResetResponse resetPassword(PasswordResetRequest request) {
+    public PasswordResetSuccessResponse resetPassword(PasswordResetRequest request) {
+        if (request.purpose() != EmailVerificationPurpose.PASSWORD_RESET) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
 
-        if (request.newPassword() == null || request.newPassword().length() < 8) {
+        if (!isValidPassword(request.newPassword())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);
         }
 
@@ -161,7 +169,14 @@ public class AdminAuthService {
         organization.changePassword(passwordEncoder.encode(request.newPassword()));
         token.markUsed(LocalDateTime.now());
 
-        return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
+        return PasswordResetSuccessResponse.ok();
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password == null) {
+            return false;
+        }
+        return PASSWORD_POLICY_PATTERN.matcher(password).matches();
     }
 
 }

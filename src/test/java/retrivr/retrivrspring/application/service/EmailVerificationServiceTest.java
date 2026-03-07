@@ -11,16 +11,20 @@ import org.springframework.test.util.ReflectionTestUtils;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationCodeSender;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
-import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
-import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
+import retrivr.retrivrspring.domain.repository.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -40,6 +44,12 @@ class EmailVerificationServiceTest {
 
     @Mock
     private SignupTokenRepository signupTokenRepository;
+
+    @Mock
+    private OrganizationRepository organizationRepository;
+
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Mock
     private EmailVerificationCodeSender emailVerificationCodeSender;
@@ -129,12 +139,13 @@ class EmailVerificationServiceTest {
         );
 
         // 반환 타입 확인
-        assertTrue(response instanceof EmailCodeVerifyResponse);
+        assertTrue(response instanceof EmailCodeVerifyTokenResponse);
 
-        EmailCodeVerifyResponse tokenResponse = (EmailCodeVerifyResponse) response;
+        EmailCodeVerifyTokenResponse tokenResponse = (EmailCodeVerifyTokenResponse) response;
 
-        assertNotNull(tokenResponse.signupToken());
-        assertTrue(tokenResponse.signupToken().startsWith("st_"));
+        assertEquals("SIGNUP", tokenResponse.tokenType());
+        assertNotNull(tokenResponse.token());
+        assertTrue(tokenResponse.token().startsWith("st_"));
         assertEquals(600, tokenResponse.expiresInSeconds());
 
         // DB 저장 확인
@@ -166,6 +177,45 @@ class EmailVerificationServiceTest {
         assertEquals(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH, ex.getErrorCode());
         assertEquals(1, ReflectionTestUtils.getField(verification, "failedAttempts"));
         verify(emailVerificationRepository, times(1)).save(verification);
+    }
+
+    @Test
+    void verify_success_passwordReset_generates_token() {
+
+        EmailVerification verification = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.PASSWORD_RESET,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        Organization org = Organization.builder()
+                .id(1L)
+                .email(email)
+                .build();
+
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.PASSWORD_RESET))
+                .thenReturn(Optional.of(verification));
+
+        when(passwordEncoder.matches("123456", "hashed"))
+                .thenReturn(true);
+
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.of(org));
+        when(passwordEncoder.encode(any())).thenReturn("passwordResetTokenHash");
+
+        var response = emailVerificationService.verify(
+                new EmailVerificationRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "123456")
+        );
+
+        assertTrue(response instanceof EmailCodeVerifyTokenResponse);
+
+        EmailCodeVerifyTokenResponse tokenResponse = (EmailCodeVerifyTokenResponse) response;
+        assertEquals("PASSWORD_RESET", tokenResponse.tokenType());
+        assertNotNull(tokenResponse.token());
+        assertTrue(tokenResponse.token().startsWith("prt_"));
+        assertEquals(600, tokenResponse.expiresInSeconds());
+
+        verify(passwordResetTokenRepository, times(1)).save(any(PasswordResetToken.class));
     }
 
     @Test

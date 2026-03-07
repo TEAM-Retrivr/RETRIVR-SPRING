@@ -5,16 +5,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
-import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -31,6 +35,8 @@ public class EmailVerificationService {
 
     private final EmailVerificationRepository emailVerificationRepository;
     private final SignupTokenRepository signupTokenRepository;
+    private final OrganizationRepository organizationRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationCodeSender emailVerificationCodeSender;
     private final EmailVerificationProperties emailVerificationProperties;
@@ -123,7 +129,30 @@ public class EmailVerificationService {
 
             signupTokenRepository.save(token);
 
-            return new EmailCodeVerifyResponse(rawSignupToken, emailVerificationProperties.getExpiresSeconds());
+            return EmailCodeVerifyTokenResponse.signupToken(rawSignupToken, emailVerificationProperties.getExpiresSeconds());
+        }
+
+        if (purpose == EmailVerificationPurpose.PASSWORD_RESET) {
+            Organization organization = organizationRepository.findByEmail(email)
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+            passwordResetTokenRepository.deleteByOrganization(organization);
+
+            String rawPasswordResetToken = "prt_" + UUID.randomUUID();
+            String passwordResetTokenHash = passwordEncoder.encode(rawPasswordResetToken);
+
+            PasswordResetToken token = PasswordResetToken.builder()
+                    .organization(organization)
+                    .tokenHash(passwordResetTokenHash)
+                    .expiresAt(now.plusSeconds(emailVerificationProperties.getExpiresSeconds()))
+                    .build();
+
+            passwordResetTokenRepository.save(token);
+
+            return EmailCodeVerifyTokenResponse.passwordResetToken(
+                    rawPasswordResetToken,
+                    emailVerificationProperties.getExpiresSeconds()
+            );
         }
 
         // 그 외 purpose는 일반 인증 응답
