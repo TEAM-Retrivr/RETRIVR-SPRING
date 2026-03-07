@@ -9,5 +9,7 @@ import java.util.Optional;
 public interface PasswordResetTokenRepository
         extends JpaRepository<PasswordResetToken, Long> {
 
+    void deleteByOrganization(Organization organization);
+
     Optional<PasswordResetToken> findTopByOrganizationOrderByCreatedAtDesc(Organization organization);
 }
