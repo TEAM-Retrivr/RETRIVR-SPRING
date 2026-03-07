@@ -133,6 +133,28 @@ class AdminAuthServiceTest {
     }
 
     @Test
+    void signup_invalidPasswordPolicy_throwsInvalidValue() {
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash("$2a$10$signupHash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        token.markCodeVerified(LocalDateTime.now());
+
+        given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
+        given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.signup(
+                        new AdminSignupRequest(email, "alllowercase1", "Org", "DEV", "st_xxx")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+    }
+
+    @Test
     @DisplayName("resetPassword success")
     void resetPassword_success() {
 
@@ -171,5 +193,17 @@ class AdminAuthServiceTest {
         );
 
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+    }
+
+    @Test
+    void resetPassword_policyViolation_throwsPolicyViolation() {
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.resetPassword(
+                        new PasswordResetRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "token", "NewPassword123", "NewPassword123")
+                )
+        );
+
+        assertEquals(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION, ex.getErrorCode());
     }
 }

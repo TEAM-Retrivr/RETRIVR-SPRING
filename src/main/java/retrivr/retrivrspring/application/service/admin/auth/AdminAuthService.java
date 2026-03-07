@@ -25,10 +25,14 @@ import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AdminAuthService {
+    private static final Pattern PASSWORD_POLICY_PATTERN = Pattern.compile(
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$"
+    );
 
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
@@ -75,7 +79,7 @@ public class AdminAuthService {
         token.assertUsable(request.signupToken(), passwordEncoder, now);
 
         // 6) 가입 입력값 검증
-        if (request.password() == null || request.password().length() < 8) {
+        if (!isValidPassword(request.password())) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
@@ -131,7 +135,7 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
-        if (request.newPassword() == null || request.newPassword().length() < 8) {
+        if (!isValidPassword(request.newPassword())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);
         }
 
@@ -166,6 +170,13 @@ public class AdminAuthService {
         token.markUsed(LocalDateTime.now());
 
         return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password == null) {
+            return false;
+        }
+        return PASSWORD_POLICY_PATTERN.matcher(password).matches();
     }
 
 }
