@@ -21,7 +21,7 @@ import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetSuccessResponse;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -130,7 +130,7 @@ public class AdminAuthService {
     }
 
     @Transactional
-    public PasswordResetResponse resetPassword(PasswordResetRequest request) {
+    public PasswordResetSuccessResponse resetPassword(PasswordResetRequest request) {
         if (request.purpose() != EmailVerificationPurpose.PASSWORD_RESET) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
@@ -169,7 +169,7 @@ public class AdminAuthService {
         organization.changePassword(passwordEncoder.encode(request.newPassword()));
         token.markUsed(LocalDateTime.now());
 
-        return new PasswordResetResponse(organization.getEmail(), "Password updated successfully");
+        return PasswordResetSuccessResponse.ok();
     }
 
     private boolean isValidPassword(String password) {

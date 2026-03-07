@@ -16,7 +16,7 @@ import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetSuccessResponse;
 
 @RestController
 @RequestMapping("/api/admin/v1/auth")
@@ -79,7 +79,7 @@ public class AdminAuthController {
     @ApiResponse(
             responseCode = "200",
             description = "비밀번호 변경 성공",
-            content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
+            content = @Content(schema = @Schema(implementation = PasswordResetSuccessResponse.class))
     )
     @ApiErrorCodeExamples({
             ErrorCode.INVALID_VALUE_EXCEPTION,
@@ -91,7 +91,7 @@ public class AdminAuthController {
             ErrorCode.PASSWORD_RESET_TOKEN_ALREADY_USED,
             ErrorCode.PASSWORD_RESET_TOKEN_INVALID
     })
-    public PasswordResetResponse resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+    public PasswordResetSuccessResponse resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         return adminAuthService.resetPassword(request);
     }
 }
