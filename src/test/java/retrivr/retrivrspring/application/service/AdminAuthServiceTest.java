@@ -11,6 +11,7 @@ import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
@@ -154,9 +155,21 @@ class AdminAuthServiceTest {
         given(passwordEncoder.encode("NewPassword123!")).willReturn("encoded");
 
         var res = adminAuthService.resetPassword(
-                new PasswordResetRequest(email, "token", "NewPassword123!", "NewPassword123!")
+                new PasswordResetRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "token", "NewPassword123!", "NewPassword123!")
         );
 
         assertEquals(email, res.email());
+    }
+
+    @Test
+    void resetPassword_withInvalidPurpose_throwsInvalidValue() {
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> adminAuthService.resetPassword(
+                        new PasswordResetRequest(email, EmailVerificationPurpose.SIGNUP, "token", "NewPassword123!", "NewPassword123!")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
     }
 }

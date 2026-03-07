@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
@@ -126,6 +127,9 @@ public class AdminAuthService {
 
     @Transactional
     public PasswordResetResponse resetPassword(PasswordResetRequest request) {
+        if (request.purpose() != EmailVerificationPurpose.PASSWORD_RESET) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
 
         if (request.newPassword() == null || request.newPassword().length() < 8) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);

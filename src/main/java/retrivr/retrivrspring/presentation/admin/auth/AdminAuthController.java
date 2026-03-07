@@ -82,6 +82,7 @@ public class AdminAuthController {
             content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
     )
     @ApiErrorCodeExamples({
+            ErrorCode.INVALID_VALUE_EXCEPTION,
             ErrorCode.PASSWORD_RESET_POLICY_VIOLATION,
             ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH,
             ErrorCode.ACCOUNT_NOT_FOUND,
