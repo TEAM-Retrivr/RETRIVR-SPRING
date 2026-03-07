@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class AdminAuthService {
     private static final Pattern PASSWORD_POLICY_PATTERN = Pattern.compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$"
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*\\p{Punct})(?!.*\\s).{8,}$"
     );
 
     private final OrganizationRepository organizationRepository;
