@@ -11,10 +11,8 @@ import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
-import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
-import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
-import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
@@ -137,6 +135,8 @@ public class EmailVerificationService {
         if (purpose == EmailVerificationPurpose.PASSWORD_RESET) {
             Organization organization = organizationRepository.findByEmail(email)
                     .orElseThrow(() -> new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+            passwordResetTokenRepository.deleteByOrganization(organization);
 
             String rawPasswordResetToken = "prt_" + UUID.randomUUID();
             String passwordResetTokenHash = passwordEncoder.encode(rawPasswordResetToken);
