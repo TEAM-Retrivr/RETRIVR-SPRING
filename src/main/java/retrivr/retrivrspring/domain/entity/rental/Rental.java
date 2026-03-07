@@ -16,20 +16,20 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
-import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -55,12 +55,12 @@ public class Rental extends BaseTimeEntity {
   @JoinColumn(name = "borrower_id", nullable = false, unique = true)
   private Borrower borrower;
 
-  @Builder.Default
+  @Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "rental",
       cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RentalItem> rentalItems = new ArrayList<>();
 
-  @Builder.Default
+  @Default
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "rental",
       cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RentalItemUnit> rentalItemUnits = new ArrayList<>();
@@ -81,93 +81,101 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "due_date")
   private LocalDate dueDate;
 
+  @Column(name = "received_by")
+  private String receivedBy;
+
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
 
-  public static Rental request(Organization organization, Item item, Borrower borrower) {
+  private RentalState state() {
+    return switch (this.status) {
+      case REQUESTED -> RequestedState.INSTANCE;
+      case RENTED -> RentedState.INSTANCE;
+      case RETURNED -> ReturnedState.INSTANCE;
+      case REJECTED -> RejectedState.INSTANCE;
+    };
+  }
+
+  public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower) {
     Rental newRental = Rental.builder()
-        .organization(organization)
+        .organization(item.getOrganization())
         .borrower(borrower)
         .status(RentalStatus.REQUESTED)
         .requestedAt(LocalDateTime.now())
         .build();
 
-    item.onRentalRequested();
+    item.onRentalRequested(itemUnit);
+    newRental.addItem(item);
 
-    RentalItem newRentalItem = RentalItem.builder()
-        .rental(newRental)
-        .item(item)
-        .build();
+    if (itemUnit != null) {
+      newRental.addItemUnit(itemUnit);
+    }
 
-    newRental.rentalItems.add(newRentalItem);
-    return newRental;
-  }
-
-  public static Rental request(Organization organization, Item item, ItemUnit itemUnit, Borrower borrower) {
-    Rental newRental = request(organization, item, borrower);
-
-    RentalItemUnit newRentalItemUnit = RentalItemUnit.builder()
-        .rental(newRental)
-        .itemUnit(itemUnit)
-        .build();
-
-    itemUnit.onRentalRequested();
-
-    newRental.rentalItemUnits.add(newRentalItemUnit);
     return newRental;
   }
 
   public void approve(String adminNameToApprove, Organization organizationToApprove) {
-    if (!this.status.equals(RentalStatus.REQUESTED)) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot approve rental that is not in REQUESTED status");
-    }
-    if (!organizationToApprove.getId().equals(this.organization.getId())) {
-      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
-    }
+    state().approve(this, adminNameToApprove, organizationToApprove);
+  }
 
-    if (this.rentalItems.isEmpty()) {
-      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
-    }
-    //todo: 장바구니
-    Item item = this.rentalItems.getFirst().getItem();
+  public void reject(String adminNameToReject, Organization organizationToReject) {
+    state().reject(this, adminNameToReject, organizationToReject);
+  }
 
-    if (this.hasItemUnit()) {
-      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
-      itemUnit.onRentalApprove();
-    }
+  public void changeDueDate(LocalDate newDueDate, Organization loginOrganization) {
+    state().changeDueDate(this, newDueDate, loginOrganization);
+  }
 
-    LocalDateTime now = LocalDateTime.now();
-    this.status = RentalStatus.APPROVED;
+  public void markReturned(String adminNameToConfirm, Organization loginOrganization) {
+    state().markReturned(this, adminNameToConfirm, loginOrganization);
+  }
+
+  public int getOverdueDays() {
+    return state().getOverdueDays(this.dueDate, this.returnedAt);
+  }
+
+  /**
+   *
+   * 외부 사용 금지 메소드
+   * State 패턴 클래스 전용 메소드
+   *
+   */
+  protected void setRented(String admin, LocalDateTime now, LocalDate dueDate) {
+    this.status = RentalStatus.RENTED;
+    this.decidedBy = admin;
     this.decidedAt = now;
-    this.decidedBy = adminNameToApprove;
-    this.dueDate = now.plusDays(item.getRentalDuration()).toLocalDate();
+    this.dueDate = dueDate;
   }
 
-  public void reject(String adminNameToReject, Organization organizationToApprove) {
-    if (!this.status.equals(RentalStatus.REQUESTED)) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot reject rental that is not in REQUESTED status");
-    }
-    if (!organizationToApprove.getId().equals(this.organization.getId())) {
-      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
-    }
-
-    if (this.rentalItems.isEmpty()) {
-      throw new DomainException(ErrorCode.INVALID_RENTAL_EXCEPTION, "대여정보에 아이템 내역이 없습니다.");
-    }
-    //todo: 장바구니
-    Item item = this.rentalItems.getFirst().getItem();
-    item.onRentalRejected();
-
-    if (!rentalItemUnits.isEmpty()) {
-      ItemUnit itemUnit = this.rentalItemUnits.getFirst().getItemUnit();
-      itemUnit.onRentalRejected();
-    }
-
+  protected void setRejected(String admin, LocalDateTime now) {
     this.status = RentalStatus.REJECTED;
-    this.decidedAt = LocalDateTime.now();
-    this.decidedBy = adminNameToReject;
+    this.decidedAt = now;
+    this.decidedBy = admin;
   }
 
+  protected void setReturned(String admin, LocalDateTime now) {
+    this.status = RentalStatus.RETURNED;
+    this.receivedBy = admin;
+    this.returnedAt = now;
+  }
+
+  protected void setDueDateInternal(LocalDate dueDate) {
+    this.dueDate = dueDate;
+  }
+
+  private void addItem(Item item) {
+    this.rentalItems.add(RentalItem.create(this, item));
+  }
+
+  private void addItemUnit(ItemUnit itemUnit) {
+    this.rentalItemUnits.add(RentalItemUnit.create(this, itemUnit));
+  }
+
+  /**
+   *
+   * 외부 사용 가능 메소드
+   *
+   */
   public boolean hasItemUnit() {
     return this.rentalItemUnits != null && !this.rentalItemUnits.isEmpty();
   }
@@ -192,55 +200,8 @@ public class Rental extends BaseTimeEntity {
     }
   }
 
-  public void changeDueDate(LocalDate newDueDate) {
-    if (newDueDate == null) {
-      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date to null");
-    }
-    if (!this.status.equals(RentalStatus.APPROVED) && !this.status.equals(RentalStatus.OVERDUE)) {
-      throw new DomainException(ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION, "Cannot change due date of rental that is not in APPROVED OR OVERDUE status");
-    }
-    this.dueDate = newDueDate;
-    changeStatusByDeterminingOverDue();
-  }
-
-  public void changeStatusByDeterminingOverDue() {
-    switch (this.status) {
-      case APPROVED -> {
-        if (this.dueDate.isBefore(LocalDate.now())) {
-          this.status = RentalStatus.OVERDUE;
-        }
-      }
-      case OVERDUE -> {
-        if (this.dueDate.isAfter(LocalDate.now()) || this.dueDate.isEqual(LocalDate.now())) {
-          this.status = RentalStatus.APPROVED;
-        }
-      }
-    }
-  }
-
-  public void markReturned() {
-    if (this.status == RentalStatus.RETURNED || this.returnedAt != null) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Already returned rental");
-    }
-    if (this.status != RentalStatus.APPROVED && this.status != RentalStatus.OVERDUE) {
-      throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, "Cannot mark returned rental that is not in APPROVED OR OVERDUE status");
-    }
-
-    this.status = RentalStatus.RETURNED;
-    this.returnedAt = LocalDateTime.now();
-  }
-
-  public int getOverdueDays() {
-    // 배치 처리가 되지 않았을 수 있으니 모든 상태에서 처리 가능
-    if (this.status == RentalStatus.APPROVED || this.status == RentalStatus.OVERDUE) {
-      long days = ChronoUnit.DAYS.between(this.dueDate, LocalDate.now());
-      return (int) Math.max(days, 0);
-    }
-    return 0;
-  }
-
   public boolean canSendOverdueSms() {
-    return borrower.getPhone() != null && !borrower.getPhone().isBlank();
+    return this.borrower.isValidPhoneFormat();
   }
 
   public boolean isOverdue() {

@@ -141,11 +141,8 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
         .where(
             rental.organization.id.eq(organizationId),
             cursorLt(rental, cursor),
-            rental.status.eq(RentalStatus.OVERDUE)
-                .or(
-                    rental.status.eq(RentalStatus.APPROVED)
-                        .and(rental.dueDate.lt(today))
-                )
+            rental.status.eq(RentalStatus.RENTED)
+                .and(rental.dueDate.lt(today))
         )
         .orderBy(rental.id.desc())
         .limit(limit)
@@ -189,7 +186,7 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
         .join(rentalItemUnit.rental, rental)
         .where(
             rentalItemUnit.itemUnit.in(itemUnits),
-            rental.status.in(RentalStatus.APPROVED, RentalStatus.OVERDUE)
+            rental.status.eq(RentalStatus.RENTED)
         )
         .fetch();
 
