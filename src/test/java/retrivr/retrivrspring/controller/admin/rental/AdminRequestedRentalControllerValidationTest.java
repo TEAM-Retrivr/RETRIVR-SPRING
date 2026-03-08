@@ -19,12 +19,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import retrivr.retrivrspring.application.service.admin.rental.AdminRequestedRentalService;
-import retrivr.retrivrspring.presentation.admin.rental.AdminRentalRequestController;
+import retrivr.retrivrspring.presentation.admin.rental.AdminRequestedRentalController;
 
-@WebMvcTest(AdminRentalRequestController.class)
+@WebMvcTest(AdminRequestedRentalController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
-public class AdminRentalRequestControllerValidationTest {
+public class AdminRequestedRentalControllerValidationTest {
   @Autowired
   private MockMvc mockMvc;
 

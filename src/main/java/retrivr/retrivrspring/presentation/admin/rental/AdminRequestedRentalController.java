@@ -29,7 +29,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalRequestPag
 @RestController
 @RequestMapping("/api/admin/v1/rentals")
 @Tag(name = "Admin API / Rental Request", description = "대여 요청 관리")
-public class AdminRentalRequestController {
+public class AdminRequestedRentalController {
 
   private final AdminRequestedRentalService adminRequestedRentalService;
 
