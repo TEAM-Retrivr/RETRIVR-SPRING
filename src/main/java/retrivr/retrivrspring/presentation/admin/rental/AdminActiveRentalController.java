@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -97,7 +98,7 @@ public class AdminActiveRentalController {
   @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION, ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION})
   public AdminRentalReturnResponse confirmReturn(
       @PathVariable("rentalId") Long rentalId,
-      @RequestBody AdminRentalReturnRequest request,
+      @Valid @RequestBody AdminRentalReturnRequest request,
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return adminActiveRentalService.confirmReturn(loginUser.organizationId(), rentalId, request);
@@ -113,7 +114,7 @@ public class AdminActiveRentalController {
   @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.RENTAL_DUE_DATE_UPDATE_EXCEPTION})
   public AdminRentalDueDateUpdateResponse updateDueDate(
       @PathVariable("rentalId") Long rentalId,
-      @RequestBody AdminRentalDueDateUpdateRequest request,
+      @Valid  @RequestBody AdminRentalDueDateUpdateRequest request,
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return adminActiveRentalService.updateDueDate(loginUser.organizationId(), rentalId, request);

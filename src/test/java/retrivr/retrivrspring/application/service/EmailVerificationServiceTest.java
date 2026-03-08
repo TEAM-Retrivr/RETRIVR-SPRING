@@ -15,10 +15,11 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
-import retrivr.retrivrspring.domain.repository.EmailVerificationRepository;
-import retrivr.retrivrspring.domain.repository.OrganizationRepository;
-import retrivr.retrivrspring.domain.repository.PasswordResetTokenRepository;
-import retrivr.retrivrspring.domain.repository.SignupTokenRepository;
+
+import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
+import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
