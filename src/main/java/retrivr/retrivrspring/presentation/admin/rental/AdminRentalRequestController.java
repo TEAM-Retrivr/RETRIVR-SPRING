@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,11 +45,10 @@ public class AdminRentalRequestController {
       @Parameter(description = "커서(마지막 조회된 rentalId). 다음 페이지 조회 시 사용", example = "1001")
       @RequestParam(name = "cursor", required = false) Long cursor,
       @RequestParam(name = "size", required = false, defaultValue = "15") Integer size,
-      //todo: 로그인 기능 완성 시 변경
-      @RequestParam(name = "login") Long mockOrganizationId
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
 
-    return adminRequestedRentalService.getRequestedList(mockOrganizationId, cursor, size);
+    return adminRequestedRentalService.getRequestedList(loginUser.organizationId(), cursor, size);
   }
 
   @PostMapping("/{rentalId}/approve")
@@ -61,8 +61,8 @@ public class AdminRentalRequestController {
   @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION, ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION})
   public AdminRentalDecisionResponse approve(
       @PathVariable Long rentalId,
-      @RequestBody AdminRentalApproveRequest request,
-      @AuthOrg AuthUser loginUser
+      @Valid @RequestBody AdminRentalApproveRequest request,
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return adminRequestedRentalService.approveRentalRequest(rentalId, request, loginUser.organizationId());
   }
@@ -77,8 +77,8 @@ public class AdminRentalRequestController {
   @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION, ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION, ErrorCode.AVAILABLE_QUANTITY_OVERFLOW_EXCEPTION, ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION})
   public AdminRentalDecisionResponse reject(
       @PathVariable Long rentalId,
-      @RequestBody AdminRentalRejectRequest request,
-      @AuthOrg AuthUser loginUser
+      @Valid @RequestBody AdminRentalRejectRequest request,
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return adminRequestedRentalService.rejectRentalRequest(rentalId, request, loginUser.organizationId());
   }
