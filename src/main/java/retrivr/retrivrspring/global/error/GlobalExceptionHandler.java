@@ -46,6 +46,6 @@ public class GlobalExceptionHandler {
             .orElse("잘못된 요청입니다.");
 
         return ResponseEntity.badRequest()
-            .body(ErrorResponse.of(ErrorCode.METHOD_ARGUMENT_NOT_VALID_EXCEPTION, message));
+            .body(ErrorResponse.of(ErrorCode.BAD_REQUEST_EXCEPTION, message));
     }
 }
