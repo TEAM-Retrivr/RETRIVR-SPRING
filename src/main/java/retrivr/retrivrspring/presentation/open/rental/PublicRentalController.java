@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +38,7 @@ public class PublicRentalController {
   @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.NOT_FOUND_ITEM_UNIT, ErrorCode.ILLEGAL_BORROWER_FIELD})
   public PublicRentalCreateResponse createRental(
       @PathVariable("itemId") Long itemId,
-      @RequestBody PublicRentalCreateRequest request
+      @Valid @RequestBody PublicRentalCreateRequest request
   ) {
     return publicRentalService.requestRental(itemId, request);
   }
