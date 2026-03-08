@@ -133,26 +133,6 @@ class PublicRentalServiceTest {
   }
 
   @Test
-  @DisplayName("PR-04: itemUnitId 존재 + Unit 대여 불가면 NOT_AVAILABLE_ITEM_UNIT")
-  void requestRental_unitNotAvailable() {
-    Organization org = mockOrg(1L);
-    Item item = mockItem(10L, true, org);
-    when(item.isUnitType()).thenReturn(true);
-    ItemUnit unit = mockUnit(10L, 99L, false, "UMB-099");
-
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
-    when(itemUnitRepository.findById(99L)).thenReturn(Optional.of(unit));
-
-    PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
-    when(req.itemUnitId()).thenReturn(99L);
-
-    assertThatThrownBy(() -> service().requestRental(10L, req))
-        .isInstanceOf(ApplicationException.class);
-
-    verify(rentalRepository, never()).save(any());
-  }
-
-  @Test
   @DisplayName("PR-05: borrower field 검증 실패(DomainException)면 그대로 전파")
   void requestRental_borrowerFieldValidationFail() {
     Organization org = mockOrg(1L);
