@@ -22,6 +22,7 @@ public enum ErrorCode {
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
     SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
     BAD_REQUEST_EXCEPTION(HttpStatus.BAD_REQUEST, 2008, "잘못된 요청입니다."),
+    METHOD_ARGUMENT_NOT_VALID_EXCEPTION(HttpStatus.METHOD_NOT_ALLOWED, 2008, "잘못된 요청입니다."),
 
     // 3000: Organization Error
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
