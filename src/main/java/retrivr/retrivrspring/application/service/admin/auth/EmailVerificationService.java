@@ -155,6 +155,14 @@ public class EmailVerificationService {
             );
         }
 
+        if (purpose == EmailVerificationPurpose.EMAIL_CHANGE) {
+            String rawEmailChangeToken = "ect_" + UUID.randomUUID();
+            return EmailCodeVerifyTokenResponse.emailChangeToken(
+                    rawEmailChangeToken,
+                    emailVerificationProperties.getExpiresSeconds()
+            );
+        }
+
         // 그 외 purpose는 일반 인증 응답
         return new EmailVerificationResponse(
                 email,

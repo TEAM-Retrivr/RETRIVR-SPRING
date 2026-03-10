@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.auth.req;
+﻿package retrivr.retrivrspring.presentation.admin.auth.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -18,7 +18,7 @@ public record EmailVerificationRequest(
         @Schema(
                 description = "인증 목적",
                 example = "SIGNUP",
-                allowableValues = {"SIGNUP", "PASSWORD_RESET", "LOGIN"}
+                allowableValues = {"SIGNUP", "PASSWORD_RESET", "EMAIL_CHANGE"}
         )
         @NotNull
         EmailVerificationPurpose purpose,
