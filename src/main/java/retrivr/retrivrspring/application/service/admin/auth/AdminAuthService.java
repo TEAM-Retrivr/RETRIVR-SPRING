@@ -5,8 +5,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.domain.entity.organization.AdminAuthCodeHash;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.PasswordHash;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
@@ -25,15 +27,10 @@ import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetSuccessRes
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AdminAuthService {
-    private static final Pattern PASSWORD_POLICY_PATTERN = Pattern.compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*\\p{Punct})(?!.*\\s).{8,}$"
-    );
-
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
@@ -79,15 +76,15 @@ public class AdminAuthService {
         token.assertUsable(request.signupToken(), passwordEncoder, now);
 
         // 6) 가입 입력값 검증
-        if (!isValidPassword(request.password())) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
-        }
-
-        String adminCode = request.adminCode();
-        if (adminCode == null || adminCode.trim().isEmpty()) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
-        }
-        String trimmedAdminCode = adminCode.trim();
+        PasswordHash passwordHash = PasswordHash.fromRawOrThrow(
+                request.password(),
+                passwordEncoder,
+                ErrorCode.INVALID_VALUE_EXCEPTION
+        );
+        AdminAuthCodeHash adminAuthCodeHash = AdminAuthCodeHash.fromRawOrThrow(
+                request.adminCode(),
+                passwordEncoder
+        );
 
         // 3. 중복 검사
         if (organizationRepository.findByEmail(email).isPresent()) {
@@ -95,19 +92,16 @@ public class AdminAuthService {
         }
 
         // 7) Organization 생성
-        String hashedPw = passwordEncoder.encode(request.password());
-        String encodedAdminCode = passwordEncoder.encode(trimmedAdminCode);
-
         String safeName = request.organizationName() == null ? "" : request.organizationName().trim();
         String searchKey = safeName.replaceAll("\\s+", "-") + "-" + System.currentTimeMillis();
 
         // 6. 엔티티 생성 및 저장
         Organization org = Organization.builder()
                 .email(email)
-                .passwordHash(hashedPw)
+                .passwordHash(passwordHash.getValue())
                 .name(safeName)
                 .status(OrganizationStatus.ACTIVE) // TODO: 가입 승인 프로세스 도입 시 PENDING으로 변경
-                .adminCodeHash(encodedAdminCode)
+                .adminCodeHash(adminAuthCodeHash.getValue())
                 .searchKey(searchKey)
                 .build();
 
@@ -135,9 +129,11 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
-        if (!isValidPassword(request.newPassword())) {
-            throw new ApplicationException(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION);
-        }
+        PasswordHash newPasswordHash = PasswordHash.fromRawOrThrow(
+                request.newPassword(),
+                passwordEncoder,
+                ErrorCode.PASSWORD_RESET_POLICY_VIOLATION
+        );
 
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
@@ -166,17 +162,9 @@ public class AdminAuthService {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_INVALID);
         }
 
-        organization.changePassword(passwordEncoder.encode(request.newPassword()));
+        organization.changePassword(newPasswordHash.getValue());
         token.markUsed(LocalDateTime.now());
 
         return PasswordResetSuccessResponse.ok();
     }
-
-    private boolean isValidPassword(String password) {
-        if (password == null) {
-            return false;
-        }
-        return PASSWORD_POLICY_PATTERN.matcher(password).matches();
-    }
-
 }
