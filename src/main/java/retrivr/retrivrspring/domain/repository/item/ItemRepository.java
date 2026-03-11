@@ -10,4 +10,10 @@ public interface ItemRepository extends JpaRepository<Item, Long>, ItemLookupRep
 
   @EntityGraph(attributePaths = "itemBorrowerFields")
   Optional<Item> findFetchItemBorrowerFieldsById(Long itemId);
+
+  @EntityGraph(attributePaths = "itemBorrowerFields")
+  Optional<Item> findFetchItemBorrowerFieldsByIdAndOrganization_Id(Long itemId,
+      Long organizationId);
+
+  Optional<Item> findByIdAndOrganization_Id(Long itemId, Long organizationId);
 }
