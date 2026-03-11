@@ -2,11 +2,12 @@ package retrivr.retrivrspring.infrastructure.repository.item;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.QItem;
+
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
