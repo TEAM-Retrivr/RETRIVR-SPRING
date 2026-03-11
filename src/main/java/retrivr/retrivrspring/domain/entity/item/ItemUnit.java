@@ -89,6 +89,37 @@ public class ItemUnit extends BaseTimeEntity {
     transitionToAvailableStatus();
   }
 
+
+
+  public void changeAvailability(boolean isAvailable) {
+    validateStatusExists();
+
+    if (this.status == ItemUnitStatus.RENTED || this.status == ItemUnitStatus.RENTAL_PENDING) {
+      throw new DomainException(
+          ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+          "Cannot change availability for rented item unit"
+      );
+    }
+
+    if (isAvailable) {
+      if (this.status != ItemUnitStatus.INACTIVE) {
+        throw new DomainException(
+            ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+            "Cannot transition to AVAILABLE from status: " + this.status
+        );
+      }
+      this.status = ItemUnitStatus.AVAILABLE;
+      return;
+    }
+
+    if (this.status != ItemUnitStatus.AVAILABLE) {
+      throw new DomainException(
+          ErrorCode.ITEM_STATUS_TRANSITION_EXCEPTION,
+          "Cannot transition to INACTIVE from status: " + this.status
+      );
+    }
+    this.status = ItemUnitStatus.INACTIVE;
+  }
   /**
    * 현재 유닛을 RENTED 상태로 전이한다.
    * RENTAL_PENDING 상태에서만 허용된다.
