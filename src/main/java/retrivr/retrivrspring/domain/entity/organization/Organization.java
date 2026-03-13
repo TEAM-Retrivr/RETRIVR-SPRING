@@ -61,7 +61,7 @@ public class Organization extends BaseTimeEntity {
           String profileImageKey
   ) {
     this.id = id;
-    this.email = email;
+    this.email = requireNonBlankEmail(email);
     this.password = PasswordHash.fromHashed(requireHashedValue(passwordHash, "passwordHash"));
     this.name = name;
     this.status = status;
@@ -85,7 +85,7 @@ public class Organization extends BaseTimeEntity {
           String organizationName,
           String encodedAdminCode
   ) {
-    this.email = email;
+    this.email = requireNonBlankEmail(email);
     this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
     this.name = organizationName;
     this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));
@@ -116,6 +116,13 @@ public class Organization extends BaseTimeEntity {
       throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
     return value;
+  }
+
+  private String requireNonBlankEmail(String email) {
+    if (email == null || email.trim().isEmpty()) {
+      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION, "email must not be blank");
+    }
+    return email;
   }
 
 }
