@@ -329,4 +329,47 @@ public class Item extends BaseTimeEntity {
   private boolean isBlank(String value) {
     return value == null || value.isBlank();
   }
+
+  public void overwrite(String name, String description, Integer rentalDuration, Boolean isActive) {
+    this.name = name;
+    this.description = description;
+    this.rentalDuration = rentalDuration;
+    this.isActive = isActive;
+  }
+
+  public void overwriteAdmin(String name, String description, Integer rentalDuration,
+      Boolean isActive, ItemManagementType itemManagementType, Integer totalQuantity,
+      Integer availableQuantity) {
+    this.name = name;
+    this.description = description;
+    this.rentalDuration = rentalDuration;
+    this.isActive = isActive;
+    this.itemManagementType = itemManagementType;
+    this.totalQuantity = totalQuantity;
+    this.availableQuantity = availableQuantity;
+  }
+
+  public void addAvailableUnitQuantity() {
+    this.availableQuantity++;
+  }
+
+  public void removeAvailableUnitQuantity() {
+    if (this.availableQuantity <= 0) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
+    }
+    this.availableQuantity--;
+  }
+
+  public void addUnitInventory() {
+    this.totalQuantity++;
+    this.availableQuantity++;
+  }
+
+  public void removeUnitInventory() {
+    if (this.totalQuantity <= 0 || this.availableQuantity <= 0) {
+      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
+    }
+    this.totalQuantity--;
+    this.availableQuantity--;
+  }
 }
