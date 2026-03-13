@@ -1,13 +1,16 @@
 package retrivr.retrivrspring.domain.entity.organization;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.time.LocalDateTime;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -106,9 +109,11 @@ public class Organization extends BaseTimeEntity {
     }
   }
 
+
+
   private String requireHashedValue(String value, String fieldName) {
     if (value == null) {
-      throw new IllegalArgumentException(fieldName + " must not be null");
+      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
     return value;
   }
