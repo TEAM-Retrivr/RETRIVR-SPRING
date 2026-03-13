@@ -146,7 +146,7 @@ class PublicRentalServiceTest {
     when(req.name()).thenReturn("홍길동");
     when(req.phone()).thenReturn("010-0000-0000");
 
-    doThrow(new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "bad fields"))
+    doThrow(new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "bad fields"))
         .when(item).validationItemBorrowerFieldsWith(anyMap());
 
     assertThatThrownBy(() -> service().requestRental(10L, req))

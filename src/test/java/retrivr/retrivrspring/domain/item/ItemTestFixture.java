@@ -55,13 +55,13 @@ public abstract class ItemTestFixture {
   }
 
   protected ItemBorrowerField borrowerField(
-      String fieldKey,
+      String label,
       BorrowerFieldType fieldType,
       boolean required
   ) {
     return ItemBorrowerField.builder()
-        .fieldKey(fieldKey)
-        .label(fieldKey + " label")
+        .fieldKey(label)
+        .label(label)
         .fieldType(fieldType)
         .isRequired(required)
         .sortOrder(1)

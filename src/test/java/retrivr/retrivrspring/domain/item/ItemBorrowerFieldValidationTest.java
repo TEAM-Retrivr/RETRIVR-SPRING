@@ -29,7 +29,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
       assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(null))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_FIELD);
+          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
     @Test
@@ -47,7 +47,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
       assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_FIELD);
+          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
     @Test
@@ -66,7 +66,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
       assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_FIELD);
+          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
     @Test
@@ -81,7 +81,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
       assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_FIELD);
+          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
     @Test
@@ -96,7 +96,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
       assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_FIELD);
+          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
     @Test
