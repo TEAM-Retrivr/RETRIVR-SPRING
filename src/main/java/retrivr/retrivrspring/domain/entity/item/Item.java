@@ -220,7 +220,7 @@ public class Item extends BaseTimeEntity {
    */
   public void validationItemBorrowerFieldsWith(Map<String, String> values) {
     validateBorrowerFieldMapNotNull(values);
-    validateNoUnknownBorrowerFieldKey(values);
+    validateNoUnknownBorrowerLabel(values);
     validateRequiredAndType(values);
   }
 
@@ -229,24 +229,24 @@ public class Item extends BaseTimeEntity {
    */
   private void validateBorrowerFieldMapNotNull(Map<String, String> values) {
     if (values == null) {
-      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Borrower fields map is null");
+      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Borrower fields map is null");
     }
   }
 
   /**
    * 정의되지 않은 borrower field key가 포함되었는지 검증한다.
    */
-  private void validateNoUnknownBorrowerFieldKey(Map<String, String> values) {
+  private void validateNoUnknownBorrowerLabel(Map<String, String> values) {
     Set<String> allowedKeys = new HashSet<>();
     for (ItemBorrowerField field : itemBorrowerFields) {
-      allowedKeys.add(field.getFieldKey());
+      allowedKeys.add(field.getLabel());
     }
 
-    for (String key : values.keySet()) {
-      if (!allowedKeys.contains(key)) {
+    for (String label : values.keySet()) {
+      if (!allowedKeys.contains(label)) {
         throw new DomainException(
-            ErrorCode.ILLEGAL_BORROWER_FIELD,
-            "Unknown borrower field key: " + key
+            ErrorCode.ILLEGAL_BORROWER_LABEL,
+            "Unknown borrower label : " + label
         );
       }
     }
@@ -257,22 +257,22 @@ public class Item extends BaseTimeEntity {
    * optional 필드는 값이 비어 있으면 타입 검증을 생략한다.
    */
   private void validateRequiredAndType(Map<String, String> values) {
-    for (ItemBorrowerField field : itemBorrowerFields) {
-      String key = field.getFieldKey();
-      String raw = values.get(key);
+    for (ItemBorrowerField itemBorrowerField : itemBorrowerFields) {
+      String label = itemBorrowerField.getFieldKey();
+      String value = values.get(label);
 
-      if (field.isRequired() && isBlank(raw)) {
+      if (itemBorrowerField.isRequired() && isBlank(value)) {
         throw new DomainException(
-            ErrorCode.ILLEGAL_BORROWER_FIELD,
-            "Required borrower field missing: " + key
+            ErrorCode.ILLEGAL_BORROWER_LABEL,
+            "Required borrower label missing: " + label
         );
       }
 
-      if (isBlank(raw)) {
+      if (isBlank(value)) {
         continue;
       }
 
-      field.validateType(raw, key);
+      itemBorrowerField.validateType(value, label);
     }
   }
 
