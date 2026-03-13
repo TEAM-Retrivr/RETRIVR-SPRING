@@ -17,7 +17,7 @@ public record EmailVerificationSendRequest(
         @Schema(
                 description = "인증 목적",
                 example = "SIGNUP",
-                allowableValues = {"SIGNUP", "PASSWORD_RESET", "LOGIN"}
+                allowableValues = {"SIGNUP", "PASSWORD_RESET", "EMAIL_CHANGE"}
         )
         @NotNull
         EmailVerificationPurpose purpose

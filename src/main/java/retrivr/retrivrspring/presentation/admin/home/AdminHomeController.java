@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.presentation.admin.home;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,7 +38,7 @@ public class AdminHomeController {
             )
     )
     @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION})
-    public AdminHomeResponse getHome(@AuthOrg AuthUser authUser) {
+    public AdminHomeResponse getHome(@Parameter(hidden = true) @AuthOrg AuthUser authUser) {
         return adminHomeService.getHome(authUser.organizationId());
     }
 }

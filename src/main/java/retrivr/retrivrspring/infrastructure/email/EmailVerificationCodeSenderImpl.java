@@ -30,8 +30,7 @@ public class EmailVerificationCodeSenderImpl implements EmailVerificationCodeSen
         return switch (purpose) {
             case SIGNUP -> "[RETRIVR] 회원가입 인증 코드";
             case PASSWORD_RESET -> "[RETRIVR] 비밀번호 재설정 인증 코드";
-            case LOGIN -> "[RETRIVR] 로그인 인증 코드";
-            default -> "[RETRIVR] 인증 코드";
+            case EMAIL_CHANGE -> "[RETRIVR] 이메일 변경 인증 코드";
         };
     }
 
@@ -74,16 +73,11 @@ public class EmailVerificationCodeSenderImpl implements EmailVerificationCodeSen
     }
 
     private String toActionLabel(EmailVerificationPurpose purpose) {
-        if (purpose == EmailVerificationPurpose.SIGNUP) {
-            return "회원가입";
-        }
-        if (purpose == EmailVerificationPurpose.PASSWORD_RESET) {
-            return "비밀번호 재설정";
-        }
-        if (purpose == EmailVerificationPurpose.LOGIN) {
-            return "로그인";
-        }
-        return "이메일 인증";
+        return switch (purpose) {
+            case SIGNUP -> "회원가입";
+            case PASSWORD_RESET -> "비밀번호 재설정";
+            case EMAIL_CHANGE -> "이메일 변경";
+        };
     }
 
     private String buildSecurityMessage(EmailVerificationPurpose purpose) {
