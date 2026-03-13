@@ -35,7 +35,7 @@ public class PublicRentalController {
       description = "대여 요청 생성 성공",
       content = @Content(schema = @Schema(implementation = PublicRentalCreateResponse.class))
   )
-  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.NOT_FOUND_ITEM_UNIT, ErrorCode.ILLEGAL_BORROWER_FIELD})
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.NOT_FOUND_ITEM_UNIT, ErrorCode.ILLEGAL_BORROWER_LABEL})
   public PublicRentalCreateResponse createRental(
       @PathVariable("itemId") Long itemId,
       @Valid @RequestBody PublicRentalCreateRequest request

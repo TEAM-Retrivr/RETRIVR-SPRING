@@ -71,7 +71,7 @@ public class ItemBorrowerField extends BaseTimeEntity {
           // 간단 검증 (정교한건 @Email 추천)
           String v = raw.trim();
           if (!v.contains("@") || v.startsWith("@") || v.endsWith("@")) {
-            throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Field must be email: " + key);
+            throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Field must be email: " + key);
           }
         }
 
@@ -79,17 +79,17 @@ public class ItemBorrowerField extends BaseTimeEntity {
           // 숫자/하이픈만 허용 같은 룰로 간단 검증
           String v = raw.trim();
           if (!v.matches("[0-9\\-+ ]{7,20}")) {
-            throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Field must be phone: " + key);
+            throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Field must be phone: " + key);
           }
         }
 
         default -> {
           // enum이 확장되었지만 추가하지 않았을 경우 방어
-          throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Unsupported borrower field type: " + fieldType + ", key=" + key);
+          throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Unsupported borrower field type: " + fieldType + ", key=" + key);
         }
       }
     } catch (NumberFormatException | DateTimeParseException e) {
-      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Invalid value for field type " + fieldType + ": key=" + key + ", value=" + raw);
+      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Invalid value for field type " + fieldType + ": key=" + key + ", value=" + raw);
     }
   }
 }
