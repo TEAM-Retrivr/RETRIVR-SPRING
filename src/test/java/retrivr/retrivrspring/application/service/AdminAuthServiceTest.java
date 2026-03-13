@@ -161,6 +161,9 @@ class AdminAuthServiceTest {
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
+                .passwordHash("encoded-password")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("encoded-admin-code")
                 .build();
 
         PasswordResetToken token = PasswordResetToken.builder()

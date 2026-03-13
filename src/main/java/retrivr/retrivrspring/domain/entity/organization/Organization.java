@@ -59,12 +59,12 @@ public class Organization extends BaseTimeEntity {
   ) {
     this.id = id;
     this.email = email;
-    this.password = PasswordHash.fromHashed(passwordHash);
+    this.password = PasswordHash.fromHashed(requireHashedValue(passwordHash, "passwordHash"));
     this.name = name;
     this.status = status;
     this.lastLoginAt = lastLoginAt;
     this.searchKey = searchKey;
-    this.adminAuthCode = AdminAuthCodeHash.fromHashed(adminCodeHash);
+    this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(adminCodeHash, "adminCodeHash"));
     this.profileImageKey = profileImageKey;
   }
 
@@ -73,7 +73,7 @@ public class Organization extends BaseTimeEntity {
   }
 
   public void changePassword(String encodedPassword) {
-    this.password = PasswordHash.fromHashed(encodedPassword);
+    this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
   }
 
   public void updateProfile(
@@ -83,9 +83,9 @@ public class Organization extends BaseTimeEntity {
           String encodedAdminCode
   ) {
     this.email = email;
-    this.password = PasswordHash.fromHashed(encodedPassword);
+    this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
     this.name = organizationName;
-    this.adminAuthCode = AdminAuthCodeHash.fromHashed(encodedAdminCode);
+    this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));
   }
 
   public String getPasswordHash() {
@@ -104,6 +104,13 @@ public class Organization extends BaseTimeEntity {
     if (this.status != OrganizationStatus.ACTIVE) {
       throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
     }
+  }
+
+  private String requireHashedValue(String value, String fieldName) {
+    if (value == null) {
+      throw new IllegalArgumentException(fieldName + " must not be null");
+    }
+    return value;
   }
 
 }

@@ -14,6 +14,7 @@ import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
@@ -28,18 +29,8 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenRes
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceTest {
@@ -181,6 +172,9 @@ class EmailVerificationServiceTest {
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
+                .passwordHash("encoded-password")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("encoded-admin-code")
                 .build();
 
         when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.PASSWORD_RESET))
