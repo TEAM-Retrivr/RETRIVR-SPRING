@@ -13,19 +13,19 @@ import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.BorrowerFieldType;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
-import retrivr.retrivrspring.global.error.ApplicationException;
-import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,18 +61,13 @@ class AdminItemServiceTest {
     Item item13 = createItem(13L, "item13", ItemManagementType.UNIT);
     Item item12 = createItem(12L, "item12", ItemManagementType.NON_UNIT);
     Item item11 = createItem(11L, "item11", ItemManagementType.NON_UNIT);
-    ItemUnit unit = createItemUnit(101L, item13, "UNIT-001", ItemUnitStatus.AVAILABLE);
-
-    when(organizationRepository.existsById(organizationId)).thenReturn(true);
     when(itemRepository.findPageByOrganizationWithCursor(organizationId, 20L, 3))
         .thenReturn(List.of(item13, item12, item11));
-    when(itemUnitRepository.findAllByItemId(13L)).thenReturn(List.of(unit));
 
     AdminItemPageResponse response = adminItemService.getItems(organizationId, 20L, 2);
 
     assertThat(response.items()).hasSize(2);
     assertThat(response.items().get(0).itemManagementType()).isEqualTo(ItemManagementType.UNIT);
-    assertThat(response.items().get(0).itemUnits()).hasSize(1);
     assertThat(response.nextCursor()).isEqualTo(12L);
   }
 
@@ -88,14 +83,15 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
     });
-    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
-        "노트북",
-        "대여용 노트북",
+        "unit item",
+        "description",
         7,
-        true,
+        1,
         ItemManagementType.UNIT,
+        false,
+        null,
         null
     );
 
@@ -103,60 +99,69 @@ class AdminItemServiceTest {
 
     assertThat(response.itemId()).isEqualTo(12L);
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
-    assertThat(response.borrowerRequirements()).hasSize(3);
+    assertThat(response.borrowerRequirements()).isEmpty();
   }
 
   @Test
-  @DisplayName("createItem에서 preset field label이 의미와 다르면 예외가 발생한다")
-  void createItem_invalidPresetLabel_throws() {
+  @DisplayName("createItem returns borrower requirements from request")
+  void createItem_withBorrowerRequirements() {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> {
+      Item saved = invocation.getArgument(0);
+      ReflectionTestUtils.setField(saved, "id", 12L);
+      return saved;
+    });
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
-        "충전기",
+        "charger",
         "desc",
         3,
-        true,
+        1,
         ItemManagementType.NON_UNIT,
-        List.of(
-            new AdminItemCreateRequest.BorrowerRequirement("name", "학과", BorrowerFieldType.TEXT,
-                true)
-        )
+        false,
+        null,
+        List.of(new BorrowerRequirementRequest("name", true))
     );
 
-    assertThatThrownBy(() -> adminItemService.createItem(organizationId, request))
-        .isInstanceOf(ApplicationException.class)
-        .satisfies(ex -> assertThat(((ApplicationException) ex).getErrorCode())
-            .isEqualTo(ErrorCode.BAD_REQUEST_EXCEPTION));
+    AdminItemCreateResponse response = adminItemService.createItem(organizationId, request);
+
+    assertThat(response.borrowerRequirements()).hasSize(1);
+    assertThat(response.borrowerRequirements().get(0).label()).isEqualTo("name");
   }
 
   @Test
-  @DisplayName("updateItem에서 관리 타입 변경은 허용하지 않는다")
-  void updateItem_changeManagementType_throws() {
+  @DisplayName("updateItem updates admin fields")
+  void updateItem_updatesFields() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
     Item item = createItem(itemId, "old", ItemManagementType.NON_UNIT);
     ReflectionTestUtils.setField(item, "organization", organization);
 
-    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     AdminItemUpdateRequest request = new AdminItemUpdateRequest(
         "new name",
         "desc",
         5,
-        true,
+        3,
         ItemManagementType.UNIT,
-        null
+        true,
+        "student id",
+        List.of(new BorrowerRequirementRequest("name", true)),
+        true
     );
 
-    assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
-        .isInstanceOf(ApplicationException.class)
-        .satisfies(ex -> assertThat(((ApplicationException) ex).getErrorCode())
-            .isEqualTo(ErrorCode.BAD_REQUEST_EXCEPTION));
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.name()).isEqualTo("new name");
+    assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
+    assertThat(response.useMessageAlarmService()).isTrue();
   }
 
   @Test
@@ -166,13 +171,12 @@ class AdminItemServiceTest {
     Long itemId = 10L;
     Long itemUnitId = 100L;
     Organization organization = createOrganization(organizationId);
-    Item item = createItem(itemId, "노트북", ItemManagementType.UNIT);
+    Item item = createItem(itemId, "unit item", ItemManagementType.UNIT);
     ReflectionTestUtils.setField(item, "organization", organization);
     ReflectionTestUtils.setField(item, "totalQuantity", 2);
     ReflectionTestUtils.setField(item, "availableQuantity", 2);
     ItemUnit itemUnit = createItemUnit(itemUnitId, item, "NB-001", ItemUnitStatus.AVAILABLE);
 
-    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findByIdAndOrganization_Id(itemId, organizationId)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId, organizationId))
         .thenReturn(Optional.of(itemUnit));
@@ -195,11 +199,10 @@ class AdminItemServiceTest {
     Long itemId = 10L;
     Long itemUnitId = 100L;
     Organization organization = createOrganization(organizationId);
-    Item item = createItem(itemId, "노트북", ItemManagementType.UNIT);
+    Item item = createItem(itemId, "unit item", ItemManagementType.UNIT);
     ReflectionTestUtils.setField(item, "organization", organization);
     ItemUnit itemUnit = createItemUnit(itemUnitId, item, "NB-001", ItemUnitStatus.RENTED);
 
-    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findByIdAndOrganization_Id(itemId, organizationId)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId, organizationId))
         .thenReturn(Optional.of(itemUnit));
@@ -209,14 +212,19 @@ class AdminItemServiceTest {
         itemId,
         itemUnitId,
         new AdminItemUnitAvailabilityUpdateRequest(false)
-    ))
-        .isInstanceOf(RuntimeException.class);
+    )).isInstanceOf(RuntimeException.class);
   }
 
   private Organization createOrganization(Long id) {
-    Organization organization = Organization.builder().build();
-    ReflectionTestUtils.setField(organization, "id", id);
-    return organization;
+    return Organization.builder()
+        .id(id)
+        .email("org" + id + "@example.com")
+        .passwordHash("$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M6Qp6xGX2YeliYg5OtTSGTN/xGHy")
+        .name("org" + id)
+        .status(OrganizationStatus.ACTIVE)
+        .searchKey("org-" + id)
+        .adminCodeHash("$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6M6Qp6xGX2YeliYg5OtTSGTN/xGHy")
+        .build();
   }
 
   private Item createItem(Long id, String name, ItemManagementType itemManagementType) {
