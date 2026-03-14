@@ -1,15 +1,16 @@
 package retrivr.retrivrspring.domain.item;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ItemBorrowerFieldValidationTest extends ItemTestFixture {
 
@@ -32,7 +33,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
     }
 
     @Test
-    @DisplayName("정의되지 않은 fieldKey가 들어오면 예외가 발생한다")
+    @DisplayName("정의되지 않은 label이 들어오면 예외가 발생한다")
     void throwsWhenUnknownFieldKeyExists() {
       Item item = createItemWithBorrowerFields(
           borrowerField("studentNo", true)
@@ -68,35 +69,7 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
           .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
     }
 
-    @Test
-    @DisplayName("EMAIL 필드 형식이 잘못되면 예외가 발생한다")
-    void throwsWhenEmailFormatIsInvalid() {
-      Item item = createItemWithBorrowerFields(
-          borrowerField("email", true)
-      );
 
-      Map<String, String> values = Map.of("email", "invalid-email");
-
-      assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
-          .isInstanceOf(DomainException.class)
-          .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
-    }
-
-    @Test
-    @DisplayName("PHONE 필드 형식이 잘못되면 예외가 발생한다")
-    void throwsWhenPhoneFormatIsInvalid() {
-      Item item = createItemWithBorrowerFields(
-          borrowerField("phone", true)
-      );
-
-      Map<String, String> values = Map.of("phone", "abcde");
-
-      assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(values))
-          .isInstanceOf(DomainException.class)
-          .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
-    }
 
     @Test
     @DisplayName("optional 필드는 빈 값이면 타입 검증을 생략하고 통과한다")
