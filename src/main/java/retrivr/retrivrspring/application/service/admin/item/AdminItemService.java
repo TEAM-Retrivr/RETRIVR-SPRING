@@ -65,9 +65,11 @@ public class AdminItemService {
                 .description(request.description())
                 .rentalDuration(request.rentalDuration())
                 .totalQuantity(request.totalQuantity())
+                .availableQuantity(request.totalQuantity())
                 .useMessageAlarmService(request.useMessageAlarmService())
                 .itemManagementType(request.itemManagementType())
                 .guaranteedGoods(request.guaranteedGoods())
+                .isActive(true)
                 .build();
 
         Item savedItem = itemRepository.save(item);
