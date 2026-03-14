@@ -1,14 +1,14 @@
 package retrivr.retrivrspring.domain.item;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.test.util.ReflectionTestUtils;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.BorrowerFieldType;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class ItemTestFixture {
 
@@ -56,13 +56,10 @@ public abstract class ItemTestFixture {
 
   protected ItemBorrowerField borrowerField(
       String label,
-      BorrowerFieldType fieldType,
       boolean required
   ) {
     return ItemBorrowerField.builder()
-        .fieldKey(label)
         .label(label)
-        .fieldType(fieldType)
         .isRequired(required)
         .sortOrder(1)
         .build();

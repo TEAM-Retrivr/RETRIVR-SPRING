@@ -38,25 +38,4 @@ public record AdminItemCreateRequest(
     @Valid
     List<BorrowerRequirement> borrowerRequirements
 ) {
-
-  @Schema(description = "대여자 입력 요구 항목")
-  public record BorrowerRequirement(
-      @Schema(description = "필드 키. preset(name, studentNumber, phone) 또는 custom_[숫자] 형식", example = "studentNumber")
-      @NotBlank
-      @Size(max = 255)
-      String fieldKey,
-
-      @Schema(description = "필드 라벨", example = "학번")
-      @NotBlank
-      @Size(max = 255)
-      String label,
-
-      @Schema(description = "필드 타입", example = "TEXT")
-      @NotNull
-      BorrowerFieldType fieldType,
-
-      @Schema(description = "필수 입력 여부", example = "true")
-      boolean required
-  ) {
-  }
 }
