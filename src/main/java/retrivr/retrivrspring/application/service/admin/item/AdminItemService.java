@@ -84,35 +84,33 @@ public class AdminItemService {
         return AdminItemCreateResponse.from(savedItem, borrowerFields);
     }
 
-  @Transactional
-  public AdminItemUpdateResponse updateItem(Long organizationId, Long itemId,
-      AdminItemUpdateRequest request) {
-    getOrganization(organizationId);
-    List<AdminItemCreateRequest.BorrowerRequirement> requirements =
-        resolveBorrowerRequirements(request.borrowerRequirements());
+    @Transactional
+    public AdminItemUpdateResponse updateItem(Long organizationId, Long itemId,
+                                              AdminItemUpdateRequest request) {
 
-    Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
-            organizationId)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+        Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
+                        organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
         List<BorrowerRequirementRequest> requirements =
                 request.borrowerRequirements();
 
-    item.overwriteAdmin(
-        request.name(),
-        request.description(),
-        request.rentalDuration(),
-        request.isActive(),
-        request.itemManagementType(),
-        item.getTotalQuantity(),
-        item.getAvailableQuantity()
-    );
+        item.overwriteAdmin(
+                request.name(),
+                request.description(),
+                request.rentalDuration(),
+                request.totalQuantity(),
+                request.itemManagementType(),
+                request.useMessageAlarmService(),
+                request.guaranteedGoods(),
+                request.isActive()
+        );
 
         itemBorrowerFieldRepository.deleteByItem(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
 
-    return AdminItemUpdateResponse.from(item, borrowerFields);
-  }
+        return AdminItemUpdateResponse.from(item, borrowerFields);
+    }
 
   @Transactional
   public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
