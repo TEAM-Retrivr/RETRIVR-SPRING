@@ -203,7 +203,7 @@ public class Item extends BaseTimeEntity {
   public void validationItemBorrowerFieldsWith(Map<String, String> values) {
     validateBorrowerFieldMapNotNull(values);
     validateNoUnknownBorrowerLabel(values);
-    validateRequiredAndType(values);
+    validateRequired(values);
   }
 
   /**
@@ -238,9 +238,9 @@ public class Item extends BaseTimeEntity {
    * 필수값 여부와 타입을 검증한다.
    * optional 필드는 값이 비어 있으면 타입 검증을 생략한다.
    */
-  private void validateRequiredAndType(Map<String, String> values) {
+  private void validateRequired(Map<String, String> values) {
     for (ItemBorrowerField itemBorrowerField : itemBorrowerFields) {
-      String label = itemBorrowerField.getFieldKey();
+      String label = itemBorrowerField.getLabel();
       String value = values.get(label);
 
       if (itemBorrowerField.isRequired() && isBlank(value)) {
@@ -249,12 +249,6 @@ public class Item extends BaseTimeEntity {
             "Required borrower label missing: " + label
         );
       }
-
-      if (isBlank(value)) {
-        continue;
-      }
-
-      itemBorrowerField.validateType(value, label);
     }
   }
 
@@ -312,12 +306,6 @@ public class Item extends BaseTimeEntity {
     return value == null || value.isBlank();
   }
 
-  public void overwrite(String name, String description, Integer rentalDuration, Boolean isActive) {
-    this.name = name;
-    this.description = description;
-    this.rentalDuration = rentalDuration;
-    this.isActive = isActive;
-  }
 
   public void overwriteAdmin(String name, String description, Integer rentalDuration,
       Integer totalQuantity, ItemManagementType itemManagementType,
@@ -340,19 +328,6 @@ public class Item extends BaseTimeEntity {
     if (this.availableQuantity <= 0) {
       throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
-    this.availableQuantity--;
-  }
-
-  public void addUnitInventory() {
-    this.totalQuantity++;
-    this.availableQuantity++;
-  }
-
-  public void removeUnitInventory() {
-    if (this.totalQuantity <= 0 || this.availableQuantity <= 0) {
-      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
-    }
-    this.totalQuantity--;
     this.availableQuantity--;
   }
 }
