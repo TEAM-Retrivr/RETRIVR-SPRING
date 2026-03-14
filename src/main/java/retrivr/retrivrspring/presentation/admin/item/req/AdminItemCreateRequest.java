@@ -36,6 +36,6 @@ public record AdminItemCreateRequest(
 
     @Schema(description = "대여자 입력 요구 정보 목록. null이면 기본 preset 필드가 생성됩니다.")
     @Valid
-    List<BorrowerRequirement> borrowerRequirements
+    List<BorrowerRequirementRequest> borrowerRequirements
 ) {
 }

@@ -35,6 +35,10 @@ public record AdminItemUpdateRequest(
 
     @Schema(description = "대여자 입력 요구 정보 목록. null이면 기본 preset 필드로 재설정됩니다.")
     @Valid
-    List<AdminItemCreateRequest.BorrowerRequirement> borrowerRequirements
+    List<BorrowerRequirementRequest> borrowerRequirements,
+
+    @Schema(description = "활성 여부", example = "true")
+    @NotNull
+    Boolean isActive
 ) {
 }

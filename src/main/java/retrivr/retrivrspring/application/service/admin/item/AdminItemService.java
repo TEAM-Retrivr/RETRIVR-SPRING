@@ -70,11 +70,12 @@ public class AdminItemService {
     return new AdminItemPageResponse(rows, nextCursor);
   }
 
-  @Transactional
-  public AdminItemCreateResponse createItem(Long organizationId, AdminItemCreateRequest request) {
-    Organization organization = getOrganization(organizationId);
-    List<AdminItemCreateRequest.BorrowerRequirement> requirements =
-        resolveBorrowerRequirements(request.borrowerRequirements());
+    @Transactional
+    public AdminItemCreateResponse createItem(Long organizationId, AdminItemCreateRequest request) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+        List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
     Item item = Item.builder()
         .organization(organization)
@@ -89,8 +90,8 @@ public class AdminItemService {
         .itemManagementType(request.itemManagementType())
         .build();
 
-    Item savedItem = itemRepository.save(item);
-    List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
+        Item savedItem = itemRepository.save(item);
+        List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
 
     return AdminItemCreateResponse.from(savedItem, borrowerFields);
   }
@@ -106,7 +107,8 @@ public class AdminItemService {
             organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
-    validateManagementTypeTransition(item, request.itemManagementType());
+        List<BorrowerRequirementRequest> requirements =
+                request.borrowerRequirements();
 
     item.overwriteAdmin(
         request.name(),
@@ -118,8 +120,8 @@ public class AdminItemService {
         item.getAvailableQuantity()
     );
 
-    itemBorrowerFieldRepository.deleteByItem(item);
-    List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
+        itemBorrowerFieldRepository.deleteByItem(item);
+        List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
 
     return AdminItemUpdateResponse.from(item, borrowerFields);
   }
@@ -149,105 +151,24 @@ public class AdminItemService {
     return AdminItemUnitMutationResponse.from(item, itemUnit);
   }
 
-  private List<ItemBorrowerField> createBorrowerFields(Item item,
-      List<AdminItemCreateRequest.BorrowerRequirement> requirements) {
-    if (requirements.isEmpty()) {
-      return List.of();
+    private List<ItemBorrowerField> createBorrowerFields(
+            Item item,
+            List<BorrowerRequirementRequest> requirements
+    ) {
+        if (requirements == null || requirements.isEmpty()) {
+            return List.of();
+        }
+
+        List<ItemBorrowerField> fields = new ArrayList<>();
+        for (int i = 0; i < requirements.size(); i++) {
+            BorrowerRequirementRequest req = requirements.get(i);
+            fields.add(ItemBorrowerField.of(
+                    item,
+                    req.label(),
+                    req.required(),
+                    i + 1
+            ));
+        }
+        return itemBorrowerFieldRepository.saveAll(fields);
     }
-
-    List<ItemBorrowerField> borrowerFields = new ArrayList<>();
-    for (int index = 0; index < requirements.size(); index++) {
-      AdminItemCreateRequest.BorrowerRequirement requirement = requirements.get(index);
-      borrowerFields.add(ItemBorrowerField.builder()
-          .item(item)
-          .fieldKey(requirement.fieldKey())
-          .label(requirement.label())
-          .fieldType(requirement.fieldType())
-          .isRequired(requirement.required())
-          .sortOrder(index + 1)
-          .build());
-    }
-
-    return itemBorrowerFieldRepository.saveAll(borrowerFields);
-  }
-
-  private List<AdminItemCreateRequest.BorrowerRequirement> resolveBorrowerRequirements(
-      List<AdminItemCreateRequest.BorrowerRequirement> borrowerRequirements) {
-    List<AdminItemCreateRequest.BorrowerRequirement> normalizedRequirements =
-        borrowerRequirements == null ? defaultBorrowerRequirements() : borrowerRequirements;
-
-    validateBorrowerRequirements(normalizedRequirements);
-    return normalizedRequirements;
-  }
-
-  private void validateBorrowerRequirements(
-      List<AdminItemCreateRequest.BorrowerRequirement> borrowerRequirements) {
-    Set<String> fieldKeys = new HashSet<>();
-
-    for (AdminItemCreateRequest.BorrowerRequirement borrowerRequirement : borrowerRequirements) {
-      String fieldKey = borrowerRequirement.fieldKey();
-
-      if (!fieldKeys.add(fieldKey)) {
-        throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-            "Duplicate borrower requirement fieldKey: " + fieldKey);
-      }
-
-      if (isPresetField(fieldKey)) {
-        validatePresetFieldLabel(fieldKey, borrowerRequirement.label());
-        continue;
-      }
-
-      if (!CUSTOM_FIELD_KEY_PATTERN.matcher(fieldKey).matches()) {
-        throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-            "Invalid borrower requirement fieldKey: " + fieldKey);
-      }
-    }
-  }
-
-  private void validateManagementTypeTransition(Item item, ItemManagementType requestedType) {
-    if (item.getItemManagementType() != requestedType) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-          "Changing itemManagementType is not allowed");
-    }
-  }
-
-  private void validateUnitType(Item item) {
-    if (!item.isUnitType()) {
-      throw new ApplicationException(ErrorCode.ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE);
-    }
-  }
-
-  private boolean isPresetField(String fieldKey) {
-    return PRESET_FIELD_LABELS.containsKey(fieldKey);
-  }
-
-  private void validatePresetFieldLabel(String fieldKey, String label) {
-    String expectedLabel = PRESET_FIELD_LABELS.get(fieldKey);
-    if (!expectedLabel.equals(label)) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-          "Invalid label for preset fieldKey: " + fieldKey);
-    }
-  }
-
-  private List<AdminItemCreateRequest.BorrowerRequirement> defaultBorrowerRequirements() {
-    return List.of(
-        new AdminItemCreateRequest.BorrowerRequirement("name", "이름", BorrowerFieldType.TEXT,
-            true),
-        new AdminItemCreateRequest.BorrowerRequirement("studentNumber", "학번",
-            BorrowerFieldType.TEXT, true),
-        new AdminItemCreateRequest.BorrowerRequirement("phone", "전화번호",
-            BorrowerFieldType.PHONE, true)
-    );
-  }
-
-  private Organization getOrganization(Long organizationId) {
-    return organizationRepository.findById(organizationId)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
-  }
-
-  private void validateOrganizationExists(Long organizationId) {
-    if (!organizationRepository.existsById(organizationId)) {
-      throw new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION);
-    }
-  }
 }
