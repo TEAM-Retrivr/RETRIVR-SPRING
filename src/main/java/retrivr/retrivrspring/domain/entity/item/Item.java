@@ -1,33 +1,15 @@
 package retrivr.retrivrspring.domain.entity.item;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+
+import java.util.*;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -49,11 +31,21 @@ public class Item extends BaseTimeEntity {
   @Column(nullable = false, length = 255)
   private String name;
 
+  @Column(columnDefinition = "text")
+  private String description;
+
+  @Column(nullable = false)
+  private Integer availableQuantity;
+
+  @Column(nullable = false)
+  private Integer totalQuantity;
+
   @Column(name = "rental_duration", nullable = false)
   private Integer rentalDuration;
 
-  @Column(columnDefinition = "text")
-  private String description;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private ItemManagementType itemManagementType;
 
   @Column(nullable = true)
   private String guaranteedGoods;
@@ -61,18 +53,8 @@ public class Item extends BaseTimeEntity {
   @Column(nullable = false)
   private boolean useMessageAlarmService;
 
-  @Column(nullable = false)
-  private Integer totalQuantity;
-
-  @Column(nullable = false)
-  private Integer availableQuantity;
-
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
-
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 20)
-  private ItemManagementType itemManagementType;
 
   @Builder.Default
   @OneToMany(mappedBy = "item", fetch = FetchType.LAZY)
@@ -338,15 +320,16 @@ public class Item extends BaseTimeEntity {
   }
 
   public void overwriteAdmin(String name, String description, Integer rentalDuration,
-      Boolean isActive, ItemManagementType itemManagementType, Integer totalQuantity,
-      Integer availableQuantity) {
+      Integer totalQuantity, ItemManagementType itemManagementType,
+      Boolean useMessageAlarmService, String guaranteedGoods, Boolean isActive) {
     this.name = name;
     this.description = description;
     this.rentalDuration = rentalDuration;
-    this.isActive = isActive;
-    this.itemManagementType = itemManagementType;
     this.totalQuantity = totalQuantity;
-    this.availableQuantity = availableQuantity;
+    this.itemManagementType = itemManagementType;
+    this.useMessageAlarmService = useMessageAlarmService;
+    this.guaranteedGoods = guaranteedGoods;
+    this.isActive = isActive;
   }
 
   public void addAvailableUnitQuantity() {
