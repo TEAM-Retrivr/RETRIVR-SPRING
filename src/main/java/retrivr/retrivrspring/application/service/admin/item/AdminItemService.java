@@ -30,20 +30,10 @@ import java.util.regex.Pattern;
 @Transactional(readOnly = true)
 public class AdminItemService {
 
-  private static final int DEFAULT_TOTAL_QUANTITY = 0;
-  private static final int DEFAULT_AVAILABLE_QUANTITY = 0;
-  private static final boolean DEFAULT_USE_MESSAGE_ALARM_SERVICE = false;
-  private static final Pattern CUSTOM_FIELD_KEY_PATTERN = Pattern.compile("custom_[1-9]\\d*");
-  private static final Map<String, String> PRESET_FIELD_LABELS = Map.of(
-      "name", "이름",
-      "studentNumber", "학번",
-      "phone", "전화번호"
-  );
-
-  private final OrganizationRepository organizationRepository;
-  private final ItemRepository itemRepository;
-  private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
-  private final ItemUnitRepository itemUnitRepository;
+    private final OrganizationRepository organizationRepository;
+    private final ItemRepository itemRepository;
+    private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
+    private final ItemUnitRepository itemUnitRepository;
 
   public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
     validateOrganizationExists(organizationId);
@@ -77,24 +67,22 @@ public class AdminItemService {
 
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
-    Item item = Item.builder()
-        .organization(organization)
-        .name(request.name())
-        .description(request.description())
-        .rentalDuration(request.rentalDuration())
-        .guaranteedGoods(null)
-        .useMessageAlarmService(DEFAULT_USE_MESSAGE_ALARM_SERVICE)
-        .totalQuantity(DEFAULT_TOTAL_QUANTITY)
-        .availableQuantity(DEFAULT_AVAILABLE_QUANTITY)
-        .isActive(request.isActive())
-        .itemManagementType(request.itemManagementType())
-        .build();
+        Item item = Item.builder()
+                .organization(organization)
+                .name(request.name())
+                .description(request.description())
+                .rentalDuration(request.rentalDuration())
+                .totalQuantity(request.totalQuantity())
+                .useMessageAlarmService(request.useMessageAlarmService())
+                .itemManagementType(request.itemManagementType())
+                .guaranteedGoods(request.guaranteedGoods())
+                .build();
 
         Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
 
-    return AdminItemCreateResponse.from(savedItem, borrowerFields);
-  }
+        return AdminItemCreateResponse.from(savedItem, borrowerFields);
+    }
 
   @Transactional
   public AdminItemUpdateResponse updateItem(Long organizationId, Long itemId,
