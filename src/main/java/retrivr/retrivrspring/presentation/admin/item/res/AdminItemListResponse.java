@@ -1,49 +1,64 @@
 package retrivr.retrivrspring.presentation.admin.item.res;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import retrivr.retrivrspring.domain.entity.item.Item;
-import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
-import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
+
+import java.util.List;
 
 @Schema(description = "관리자 물품 목록 항목")
 public record AdminItemListResponse(
-
     @Schema(description = "물품 ID", example = "11")
     Long itemId,
 
-    @Schema(description = "물품명", example = "노트북")
+    @Schema(description = "물품명", example = "C타입 충전기")
+    @NotBlank
+    @Size(max = 255)
     String name,
 
-    @Schema(description = "물품 설명", example = "대여용 노트북")
+    @Schema(description = "물품 설명", example = "고속 충전 지원 충전기")
+    @Size(max = 2000)
     String description,
 
-    @Schema(description = "대여 가능 기간(일)", example = "7")
+    @Schema(description = "대여 가능 기간(일)", example = "3")
+    @NotNull
+    @Positive
     Integer rentalDuration,
 
-    @Schema(description = "총 수량", example = "10")
-    int totalQuantity,
+    @Schema(description = "물품 총 개수(개)", example = "3")
+    @NotNull
+    @Positive
+    Integer totalQuantity,
 
     @Schema(description = "대여 가능한 수량", example = "7")
-    int availableQuantity,
+    Integer availableQuantity,
 
-    @Schema(description = "활성 여부", example = "true")
-    boolean isActive,
-
-    @Schema(description = "물품 관리 방식", example = "UNIT")
+    @Schema(description = "물품 관리 방식", example = "NON_UNIT")
+    @NotNull
     ItemManagementType itemManagementType,
 
-    @Schema(description = "UNIT 물품일 때의 고유번호 목록")
-    List<AdminItemUnitSummary> itemUnits
+    @Schema(description = "독촉 문자 발송 여부", example = "true")
+    @NotNull
+    Boolean useMessageAlarmService,
+
+    @Schema(description = "담보물품 여부 및 종류", example = "학생증")
+    String guaranteedGoods,
+
+    @Schema(description = "대여자 입력 요구 정보 목록")
+    @Valid
+    List<BorrowerRequirementResponse> borrowerRequirements,
+
+    @Schema(description = "활성 여부", example = "true")
+    @NotNull
+    Boolean isActive
 ) {
 
-  public static AdminItemListResponse from(Item item, List<ItemUnit> itemUnits) {
-    List<AdminItemUnitSummary> itemUnitSummaries =
-        item.isUnitType()
-            ? itemUnits.stream().map(AdminItemUnitSummary::from).toList()
-            : List.of();
-
+  public static AdminItemListResponse from(Item item) {
     return new AdminItemListResponse(
         item.getId(),
         item.getName(),
@@ -51,28 +66,13 @@ public record AdminItemListResponse(
         item.getRentalDuration(),
         item.getTotalQuantity(),
         item.getAvailableQuantity(),
-        item.isActive(),
         item.getItemManagementType(),
-        itemUnitSummaries
+        item.isUseMessageAlarmService(),
+        item.getGuaranteedGoods(),
+        item.getItemBorrowerFields().stream()
+            .map(BorrowerRequirementResponse::from)
+            .toList(),
+        item.isActive()
     );
-  }
-
-  @Schema(description = "UNIT 물품 고유번호 요약")
-  public record AdminItemUnitSummary(
-      @Schema(description = "고유번호 ID", example = "101")
-      Long itemUnitId,
-      @Schema(description = "고유번호 코드", example = "NB-001")
-      String code,
-      @Schema(description = "고유번호 상태", example = "AVAILABLE")
-      ItemUnitStatus status
-  ) {
-
-    public static AdminItemUnitSummary from(ItemUnit itemUnit) {
-      return new AdminItemUnitSummary(
-          itemUnit.getId(),
-          itemUnit.getCode(),
-          itemUnit.getStatus()
-      );
-    }
   }
 }

@@ -7,10 +7,8 @@ import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSiz
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
-import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.BorrowerFieldType;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
@@ -20,10 +18,11 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.*;
 
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,30 +34,23 @@ public class AdminItemService {
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
 
-  public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
-    validateOrganizationExists(organizationId);
+    public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
+        DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
+                size);
 
-    DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
-        size);
+        List<Item> items = itemRepository.findPageByOrganizationWithCursor(organizationId, cursor,
+                normalizedSize.sizePlusOne());
 
-    List<Item> items = itemRepository.findPageByOrganizationWithCursor(organizationId, cursor,
-        normalizedSize.sizePlusOne());
+        boolean hasNext = items.size() > normalizedSize.size();
+        List<Item> page = hasNext ? items.subList(0, normalizedSize.size()) : items;
+        Long nextCursor = hasNext ? page.getLast().getId() : null;
 
-    boolean hasNext = items.size() > normalizedSize.size();
-    List<Item> page = hasNext ? items.subList(0, normalizedSize.size()) : items;
-    Long nextCursor = hasNext ? page.getLast().getId() : null;
+        List<AdminItemListResponse> rows = page.stream()
+                .map(AdminItemListResponse::from)
+                .toList();
 
-    List<AdminItemListResponse> rows = page.stream()
-        .map(item -> {
-          List<ItemUnit> itemUnits = item.isUnitType()
-              ? itemUnitRepository.findAllByItemId(item.getId())
-              : List.of();
-          return AdminItemListResponse.from(item, itemUnits);
-        })
-        .toList();
-
-    return new AdminItemPageResponse(rows, nextCursor);
-  }
+        return new AdminItemPageResponse(rows, nextCursor);
+    }
 
     @Transactional
     public AdminItemCreateResponse createItem(Long organizationId, AdminItemCreateRequest request) {
@@ -112,30 +104,30 @@ public class AdminItemService {
         return AdminItemUpdateResponse.from(item, borrowerFields);
     }
 
-  @Transactional
-  public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
-      Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {
-    getOrganization(organizationId);
 
-    Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
-    validateUnitType(item);
+    //이거는 추후 수정 예정
+    @Transactional
+    public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
+                                                                Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {
 
-    ItemUnit itemUnit = itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId,
-            organizationId)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
+        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
-    boolean wasAvailable = itemUnit.getStatus() == ItemUnitStatus.AVAILABLE;
-    itemUnit.changeAvailability(request.isAvailable());
+        ItemUnit itemUnit = itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId,
+                        organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
 
-    if (wasAvailable && !request.isAvailable()) {
-      item.removeAvailableUnitQuantity();
-    } else if (!wasAvailable && request.isAvailable()) {
-      item.addAvailableUnitQuantity();
+        boolean wasAvailable = itemUnit.getStatus() == ItemUnitStatus.AVAILABLE;
+        itemUnit.changeAvailability(request.isAvailable());
+
+        if (wasAvailable && !request.isAvailable()) {
+            item.removeAvailableUnitQuantity();
+        } else if (!wasAvailable && request.isAvailable()) {
+            item.addAvailableUnitQuantity();
+        }
+
+        return AdminItemUnitMutationResponse.from(item, itemUnit);
     }
-
-    return AdminItemUnitMutationResponse.from(item, itemUnit);
-  }
 
     private List<ItemBorrowerField> createBorrowerFields(
             Item item,
