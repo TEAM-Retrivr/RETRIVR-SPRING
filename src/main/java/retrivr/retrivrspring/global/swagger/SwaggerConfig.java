@@ -43,9 +43,6 @@ public class SwaggerConfig {
             .description("Retrivr 대여 서비스 API 문서")
             .version("v1.0.0")
         )
-        .servers(List.of(
-            new Server().url(baseUrl + ":" + port).description("Server")
-        ))
         .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement()
             .addList(securitySchemeName))
         .components(new io.swagger.v3.oas.models.Components()
