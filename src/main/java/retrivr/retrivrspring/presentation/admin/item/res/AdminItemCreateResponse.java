@@ -27,7 +27,7 @@ public record AdminItemCreateResponse(
     ItemManagementType itemManagementType,
 
     @Schema(description = "대여자 입력 요구 정보 목록")
-    List<AdminItemBorrowerRequirementResponse> borrowerRequirements
+    List<BorrowerRequirementResponse> borrowerRequirements
 ) {
 
   public static AdminItemCreateResponse from(Item item, List<ItemBorrowerField> borrowerFields) {
@@ -39,7 +39,7 @@ public record AdminItemCreateResponse(
         item.isActive(),
         item.getItemManagementType(),
         borrowerFields.stream()
-            .map(AdminItemBorrowerRequirementResponse::from)
+            .map(BorrowerRequirementResponse::from)
             .toList()
     );
   }

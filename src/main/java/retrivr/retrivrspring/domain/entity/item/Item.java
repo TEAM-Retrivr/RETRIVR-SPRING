@@ -1,33 +1,15 @@
 package retrivr.retrivrspring.domain.entity.item;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+
+import java.util.*;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -49,11 +31,21 @@ public class Item extends BaseTimeEntity {
   @Column(nullable = false, length = 255)
   private String name;
 
+  @Column(columnDefinition = "text")
+  private String description;
+
+  @Column(nullable = false)
+  private Integer availableQuantity;
+
+  @Column(nullable = false)
+  private Integer totalQuantity;
+
   @Column(name = "rental_duration", nullable = false)
   private Integer rentalDuration;
 
-  @Column(columnDefinition = "text")
-  private String description;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private ItemManagementType itemManagementType;
 
   @Column(nullable = true)
   private String guaranteedGoods;
@@ -61,18 +53,8 @@ public class Item extends BaseTimeEntity {
   @Column(nullable = false)
   private boolean useMessageAlarmService;
 
-  @Column(nullable = false)
-  private Integer totalQuantity;
-
-  @Column(nullable = false)
-  private Integer availableQuantity;
-
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
-
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 20)
-  private ItemManagementType itemManagementType;
 
   @Builder.Default
   @OneToMany(mappedBy = "item", fetch = FetchType.LAZY)
@@ -220,8 +202,8 @@ public class Item extends BaseTimeEntity {
    */
   public void validationItemBorrowerFieldsWith(Map<String, String> values) {
     validateBorrowerFieldMapNotNull(values);
-    validateNoUnknownBorrowerFieldKey(values);
-    validateRequiredAndType(values);
+    validateNoUnknownBorrowerLabel(values);
+    validateRequired(values);
   }
 
   /**
@@ -229,24 +211,24 @@ public class Item extends BaseTimeEntity {
    */
   private void validateBorrowerFieldMapNotNull(Map<String, String> values) {
     if (values == null) {
-      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_FIELD, "Borrower fields map is null");
+      throw new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "Borrower fields map is null");
     }
   }
 
   /**
    * 정의되지 않은 borrower field key가 포함되었는지 검증한다.
    */
-  private void validateNoUnknownBorrowerFieldKey(Map<String, String> values) {
+  private void validateNoUnknownBorrowerLabel(Map<String, String> values) {
     Set<String> allowedKeys = new HashSet<>();
     for (ItemBorrowerField field : itemBorrowerFields) {
-      allowedKeys.add(field.getFieldKey());
+      allowedKeys.add(field.getLabel());
     }
 
-    for (String key : values.keySet()) {
-      if (!allowedKeys.contains(key)) {
+    for (String label : values.keySet()) {
+      if (!allowedKeys.contains(label)) {
         throw new DomainException(
-            ErrorCode.ILLEGAL_BORROWER_FIELD,
-            "Unknown borrower field key: " + key
+            ErrorCode.ILLEGAL_BORROWER_LABEL,
+            "Unknown borrower label : " + label
         );
       }
     }
@@ -256,23 +238,17 @@ public class Item extends BaseTimeEntity {
    * 필수값 여부와 타입을 검증한다.
    * optional 필드는 값이 비어 있으면 타입 검증을 생략한다.
    */
-  private void validateRequiredAndType(Map<String, String> values) {
-    for (ItemBorrowerField field : itemBorrowerFields) {
-      String key = field.getFieldKey();
-      String raw = values.get(key);
+  private void validateRequired(Map<String, String> values) {
+    for (ItemBorrowerField itemBorrowerField : itemBorrowerFields) {
+      String label = itemBorrowerField.getLabel();
+      String value = values.get(label);
 
-      if (field.isRequired() && isBlank(raw)) {
+      if (itemBorrowerField.isRequired() && isBlank(value)) {
         throw new DomainException(
-            ErrorCode.ILLEGAL_BORROWER_FIELD,
-            "Required borrower field missing: " + key
+            ErrorCode.ILLEGAL_BORROWER_LABEL,
+            "Required borrower label missing: " + label
         );
       }
-
-      if (isBlank(raw)) {
-        continue;
-      }
-
-      field.validateType(raw, key);
     }
   }
 
@@ -330,23 +306,18 @@ public class Item extends BaseTimeEntity {
     return value == null || value.isBlank();
   }
 
-  public void overwrite(String name, String description, Integer rentalDuration, Boolean isActive) {
-    this.name = name;
-    this.description = description;
-    this.rentalDuration = rentalDuration;
-    this.isActive = isActive;
-  }
 
   public void overwriteAdmin(String name, String description, Integer rentalDuration,
-      Boolean isActive, ItemManagementType itemManagementType, Integer totalQuantity,
-      Integer availableQuantity) {
+      Integer totalQuantity, ItemManagementType itemManagementType,
+      Boolean useMessageAlarmService, String guaranteedGoods, Boolean isActive) {
     this.name = name;
     this.description = description;
     this.rentalDuration = rentalDuration;
-    this.isActive = isActive;
-    this.itemManagementType = itemManagementType;
     this.totalQuantity = totalQuantity;
-    this.availableQuantity = availableQuantity;
+    this.itemManagementType = itemManagementType;
+    this.useMessageAlarmService = useMessageAlarmService;
+    this.guaranteedGoods = guaranteedGoods;
+    this.isActive = isActive;
   }
 
   public void addAvailableUnitQuantity() {
@@ -357,19 +328,6 @@ public class Item extends BaseTimeEntity {
     if (this.availableQuantity <= 0) {
       throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
-    this.availableQuantity--;
-  }
-
-  public void addUnitInventory() {
-    this.totalQuantity++;
-    this.availableQuantity++;
-  }
-
-  public void removeUnitInventory() {
-    if (this.totalQuantity <= 0 || this.availableQuantity <= 0) {
-      throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
-    }
-    this.totalQuantity--;
     this.availableQuantity--;
   }
 }

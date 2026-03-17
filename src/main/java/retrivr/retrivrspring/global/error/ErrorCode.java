@@ -46,7 +46,7 @@ public enum ErrorCode {
     ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4011, "Non Unit 타입 물건은 고유번호를 사용할 수 없습니다."),
 
     //5000: Rental Error
-    ILLEGAL_BORROWER_FIELD(HttpStatus.BAD_REQUEST, 5000, "대여자 정보 필드가 잘못되었습니다."),
+    ILLEGAL_BORROWER_LABEL(HttpStatus.BAD_REQUEST, 5000, "대여자 라벨이 잘못되었습니다."),
     NOT_FOUND_RENTAL(HttpStatus.NOT_FOUND, 5001, "존재하지 않는 대여 정보입니다."),
     RENTAL_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
     INVALID_RENTAL_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 5003, "대여 데이터가 잘못되었습니다."),
