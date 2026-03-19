@@ -74,8 +74,9 @@ public class AdminItemService {
 
         Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
+        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(savedItem.getId());
 
-        return AdminItemCreateResponse.from(savedItem, borrowerFields);
+        return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
 
     @Transactional
@@ -102,8 +103,9 @@ public class AdminItemService {
 
         itemBorrowerFieldRepository.deleteByItem(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
+        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(item.getId());
 
-        return AdminItemUpdateResponse.from(item, borrowerFields);
+        return AdminItemUpdateResponse.from(item, borrowerFields, itemUnits);
     }
 
 

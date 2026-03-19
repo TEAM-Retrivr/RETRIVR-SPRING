@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
+import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 
 @Schema(description = "관리자 물품 등록 응답")
@@ -26,11 +27,18 @@ public record AdminItemCreateResponse(
     @Schema(description = "물품 관리 방식", example = "NON_UNIT")
     ItemManagementType itemManagementType,
 
+    @Schema(description = "유닛 목록")
+    List<AdminItemUnitResponse> itemUnits,
+
     @Schema(description = "대여자 입력 요구 정보 목록")
     List<BorrowerRequirementResponse> borrowerRequirements
 ) {
 
-  public static AdminItemCreateResponse from(Item item, List<ItemBorrowerField> borrowerFields) {
+  public static AdminItemCreateResponse from(
+      Item item,
+      List<ItemBorrowerField> borrowerFields,
+      List<ItemUnit> itemUnits
+  ) {
     return new AdminItemCreateResponse(
         item.getId(),
         item.getName(),
@@ -38,6 +46,9 @@ public record AdminItemCreateResponse(
         item.getRentalDuration(),
         item.isActive(),
         item.getItemManagementType(),
+        itemUnits.stream()
+            .map(AdminItemUnitResponse::from)
+            .toList(),
         borrowerFields.stream()
             .map(BorrowerRequirementResponse::from)
             .toList()

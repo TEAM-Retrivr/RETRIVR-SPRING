@@ -83,6 +83,7 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
     });
+    when(itemUnitRepository.findAllByItemId(12L)).thenReturn(List.of());
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
         "unit item",
@@ -100,6 +101,7 @@ class AdminItemServiceTest {
 
     assertThat(response.itemId()).isEqualTo(12L);
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
+    assertThat(response.itemUnits()).isEmpty();
     assertThat(response.borrowerRequirements()).isEmpty();
   }
 
@@ -115,6 +117,7 @@ class AdminItemServiceTest {
       return saved;
     });
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(itemUnitRepository.findAllByItemId(12L)).thenReturn(List.of());
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
         "charger",
@@ -131,6 +134,7 @@ class AdminItemServiceTest {
     AdminItemCreateResponse response = adminItemService.createItem(organizationId, request);
 
     assertThat(response.borrowerRequirements()).hasSize(1);
+    assertThat(response.itemUnits()).isEmpty();
     assertThat(response.borrowerRequirements().get(0).label()).isEqualTo("name");
   }
 
@@ -146,6 +150,9 @@ class AdminItemServiceTest {
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(
+        createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE)
+    ));
 
     AdminItemUpdateRequest request = new AdminItemUpdateRequest(
         "new name",
@@ -165,6 +172,8 @@ class AdminItemServiceTest {
     assertThat(response.name()).isEqualTo("new name");
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
     assertThat(response.useMessageAlarmService()).isTrue();
+    assertThat(response.itemUnits()).hasSize(1);
+    assertThat(response.itemUnits().get(0).label()).isEqualTo("unit-a");
   }
 
   @Test

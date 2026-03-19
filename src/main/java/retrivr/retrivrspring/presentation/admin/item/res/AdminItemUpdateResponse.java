@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
+import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 
 import java.util.List;
@@ -46,11 +47,18 @@ public record AdminItemUpdateResponse(
     @Schema(description = "담보물품 여부 및 종류", example = "학생증")
     String guaranteedGoods,
 
+    @Schema(description = "유닛 목록")
+    List<AdminItemUnitResponse> itemUnits,
+
     @Schema(description = "대여자 입력 요구 정보 목록")
     List<BorrowerRequirementResponse> borrowerRequirements
 ) {
 
-  public static AdminItemUpdateResponse from(Item item, List<ItemBorrowerField> borrowerFields) {
+  public static AdminItemUpdateResponse from(
+      Item item,
+      List<ItemBorrowerField> borrowerFields,
+      List<ItemUnit> itemUnits
+  ) {
     return new AdminItemUpdateResponse(
         item.getId(),
         item.getName(),
@@ -60,6 +68,9 @@ public record AdminItemUpdateResponse(
         item.getItemManagementType(),
         item.isUseMessageAlarmService(),
         item.getGuaranteedGoods(),
+        itemUnits.stream()
+            .map(AdminItemUnitResponse::from)
+            .toList(),
         borrowerFields.stream()
             .map(BorrowerRequirementResponse::from)
             .toList()
