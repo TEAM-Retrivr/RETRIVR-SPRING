@@ -244,10 +244,10 @@ class AdminItemServiceTest {
     return item;
   }
 
-  private ItemUnit createItemUnit(Long id, Item item, String code, ItemUnitStatus status) {
+  private ItemUnit createItemUnit(Long id, Item item, String label, ItemUnitStatus status) {
     ItemUnit itemUnit = ItemUnit.builder()
         .item(item)
-        .code(code)
+        .label(label)
         .status(status)
         .build();
     ReflectionTestUtils.setField(itemUnit, "id", id);

@@ -74,6 +74,7 @@ class PublicItemLookupServiceTest {
   private ItemUnit mockItemUnit(long id) {
     ItemUnit unit = mock(ItemUnit.class);
     when(unit.getId()).thenReturn(id);
+    when(unit.getLabel()).thenReturn("UMB-" + id);
     when(unit.getCode()).thenReturn("UMB-" + id);
     when(unit.getStatus()).thenReturn(ItemUnitStatus.AVAILABLE);
 
