@@ -18,6 +18,7 @@ import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.service.item.ItemUnitCodeGenerator;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
@@ -51,6 +52,9 @@ class AdminItemServiceTest {
   @Mock
   private ItemUnitRepository itemUnitRepository;
 
+  @Mock
+  private ItemUnitCodeGenerator itemUnitCodeGenerator;
+
   @InjectMocks
   private AdminItemService adminItemService;
 
@@ -83,7 +87,12 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
     });
-    when(itemUnitRepository.findAllByItemId(12L)).thenReturn(List.of());
+    when(itemUnitCodeGenerator.generate(any(Item.class))).thenReturn("AB12CD");
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> savedUnits = invocation.getArgument(0);
+      ReflectionTestUtils.setField(savedUnits.get(0), "id", 101L);
+      return savedUnits;
+    });
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
         "unit item",
@@ -93,7 +102,7 @@ class AdminItemServiceTest {
         ItemManagementType.UNIT,
         false,
         null,
-        null,
+        List.of("기본 충전기"),
         null
     );
 
@@ -101,7 +110,9 @@ class AdminItemServiceTest {
 
     assertThat(response.itemId()).isEqualTo(12L);
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
-    assertThat(response.itemUnits()).isEmpty();
+    assertThat(response.itemUnits()).hasSize(1);
+    assertThat(response.itemUnits().get(0).label()).isEqualTo("기본 충전기");
+    assertThat(response.itemUnits().get(0).code()).isEqualTo("AB12CD");
     assertThat(response.borrowerRequirements()).isEmpty();
   }
 
@@ -117,7 +128,7 @@ class AdminItemServiceTest {
       return saved;
     });
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(12L)).thenReturn(List.of());
+    when(itemUnitRepository.saveAll(any())).thenReturn(List.of());
 
     AdminItemCreateRequest request = new AdminItemCreateRequest(
         "charger",

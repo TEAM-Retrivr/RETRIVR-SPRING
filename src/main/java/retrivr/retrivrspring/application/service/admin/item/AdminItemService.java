@@ -13,6 +13,7 @@ import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.service.item.ItemUnitCodeGenerator;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
@@ -33,6 +34,7 @@ public class AdminItemService {
     private final ItemRepository itemRepository;
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
+    private final ItemUnitCodeGenerator itemUnitCodeGenerator;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
         DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
@@ -74,7 +76,7 @@ public class AdminItemService {
 
         Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
-        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(savedItem.getId());
+        List<ItemUnit> itemUnits = createItemUnits(savedItem, request.unitLabels());
 
         return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
@@ -152,5 +154,19 @@ public class AdminItemService {
             ));
         }
         return itemBorrowerFieldRepository.saveAll(fields);
+    }
+
+    //이거 여기있는게 맞나... 여기서만 쓰긴 해
+    private List<ItemUnit> createItemUnits(Item item, List<String> unitLabels) {
+        if (!item.isUnitType() || unitLabels == null || unitLabels.isEmpty()) {
+            return List.of();
+        }
+
+        List<ItemUnit> itemUnits = new ArrayList<>();
+        for (String unitLabel : unitLabels) {
+            String code = itemUnitCodeGenerator.generate(item);
+            itemUnits.add(item.createUnit(unitLabel, code));
+        }
+        return itemUnitRepository.saveAll(itemUnits);
     }
 }

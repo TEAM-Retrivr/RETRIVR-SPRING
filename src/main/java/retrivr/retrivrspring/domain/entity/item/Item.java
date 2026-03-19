@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -329,5 +330,19 @@ public class Item extends BaseTimeEntity {
       throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
     this.availableQuantity--;
+  }
+
+  public ItemUnit createUnit(String label, String code) {
+    validateUnitTypeRequired();
+
+    ItemUnit itemUnit = ItemUnit.builder()
+        .item(this)
+        .label(label)
+        .code(code)
+        .status(ItemUnitStatus.AVAILABLE)
+        .build();
+
+    this.itemUnits.add(itemUnit);
+    return itemUnit;
   }
 }
