@@ -92,6 +92,7 @@ class AdminItemServiceTest {
         ItemManagementType.UNIT,
         false,
         null,
+        null,
         null
     );
 
@@ -123,6 +124,7 @@ class AdminItemServiceTest {
         ItemManagementType.NON_UNIT,
         false,
         null,
+        null,
         List.of(new BorrowerRequirementRequest("name", true))
     );
 
@@ -153,6 +155,7 @@ class AdminItemServiceTest {
         ItemManagementType.UNIT,
         true,
         "student id",
+        null,
         List.of(new BorrowerRequirementRequest("name", true)),
         true
     );
