@@ -19,7 +19,8 @@ public record AdminReturnItemUnitListPageResponse(
   public record ReturnItemUnitSummary(
       boolean isOverdue,
       Long unitId,
-      String unitCode,
+      String unitLabel,
+      String code,
       String borrowerName,
       String borrowerStudentNumber,
       String borrowerMajor,
@@ -32,6 +33,7 @@ public record AdminReturnItemUnitListPageResponse(
       return new ReturnItemUnitSummary(
           rental.isOverdue(),
           itemUnit.getId(),
+          itemUnit.getLabel(),
           itemUnit.getCode(),
           borrower.getName(),
           borrower.getStudentNumber(),

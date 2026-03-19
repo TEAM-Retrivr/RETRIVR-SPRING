@@ -46,7 +46,7 @@ public abstract class ItemTestFixture {
   protected ItemUnit createItemUnit(Long id, Item item, ItemUnitStatus status) {
     ItemUnit itemUnit = ItemUnit.builder()
         .item(item)
-        .code("UNIT-" + id)
+        .label("UNIT-" + id)
         .status(status)
         .build();
 

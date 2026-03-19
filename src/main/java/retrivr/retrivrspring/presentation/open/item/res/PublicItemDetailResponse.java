@@ -12,6 +12,7 @@ public record PublicItemDetailResponse(
 
   public record PublicItemUnitSummary(
       Long itemUnitId,
+      String label,
       String code,
       ItemUnitStatus status
   ) {
@@ -19,6 +20,7 @@ public record PublicItemDetailResponse(
     public static PublicItemUnitSummary from(ItemUnit itemUnit) {
       return new PublicItemUnitSummary(
           itemUnit.getId(),
+          itemUnit.getLabel(),
           itemUnit.getCode(),
           itemUnit.getStatus()
       );

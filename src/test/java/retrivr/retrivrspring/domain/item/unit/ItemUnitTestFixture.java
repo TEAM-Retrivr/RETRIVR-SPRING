@@ -42,7 +42,7 @@ public abstract class ItemUnitTestFixture {
   protected ItemUnit createItemUnit(Long id, Item item, ItemUnitStatus status) {
     ItemUnit itemUnit = ItemUnit.builder()
         .item(item)
-        .code("UNIT-" + id)
+        .label("UNIT-" + id)
         .status(status)
         .build();
 
@@ -53,7 +53,7 @@ public abstract class ItemUnitTestFixture {
   protected ItemUnit createItemUnitWithoutItem(Long id, ItemUnitStatus status) {
     ItemUnit itemUnit = ItemUnit.builder()
         .item(null)
-        .code("UNIT-" + id)
+        .label("UNIT-" + id)
         .status(status)
         .build();
 
@@ -64,7 +64,7 @@ public abstract class ItemUnitTestFixture {
   protected ItemUnit createItemUnitWithoutStatus(Long id, Item item) {
     ItemUnit itemUnit = ItemUnit.builder()
         .item(item)
-        .code("UNIT-" + id)
+        .label("UNIT-" + id)
         .status(null)
         .build();
 

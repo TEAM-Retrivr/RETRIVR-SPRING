@@ -42,6 +42,9 @@ public class ItemUnit extends BaseTimeEntity {
   private Item item;
 
   @Column(nullable = false, length = 255)
+  private String label;
+
+  @Column(length = 255)
   private String code;
 
   @Enumerated(EnumType.STRING)

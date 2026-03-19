@@ -11,6 +11,8 @@ public record AdminItemUnitMutationResponse(
     Long itemId,
     @Schema(description = "고유번호 ID", example = "101")
     Long itemUnitId,
+    @Schema(description = "고유번호 라벨", example = "검은색 충전기")
+    String label,
     @Schema(description = "고유번호 코드", example = "CHARGER-001")
     String code,
     @Schema(description = "변경 후 고유번호 상태", example = "INACTIVE")
@@ -25,6 +27,7 @@ public record AdminItemUnitMutationResponse(
     return new AdminItemUnitMutationResponse(
         item.getId(),
         itemUnit.getId(),
+        itemUnit.getLabel(),
         itemUnit.getCode(),
         itemUnit.getStatus(),
         item.getTotalQuantity(),
