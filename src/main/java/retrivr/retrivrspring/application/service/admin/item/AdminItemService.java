@@ -4,9 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
+import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
+import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
+import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.UnitRenameCommand;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
@@ -20,7 +24,11 @@ import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
-import retrivr.retrivrspring.presentation.admin.item.res.*;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +43,7 @@ public class AdminItemService {
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
     private final ItemUnitCodeGenerator itemUnitCodeGenerator;
+    private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
         DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
@@ -89,8 +98,25 @@ public class AdminItemService {
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
-        List<BorrowerRequirementRequest> requirements =
-                request.borrowerRequirements();
+        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId());
+        ItemManagementType previousItemManagementType = item.getItemManagementType();
+        Integer previousTotalQuantity = item.getTotalQuantity();
+        AdminItemUnitChangeSet unitChangeSet = adminItemUnitChangeClassifier.classify(
+                currentItemUnits,
+                request.unitChanges()
+        );
+        item.validateUnitChangesForTargetType(
+                request.itemManagementType(),
+                unitChangeSet.createLabels().size(),
+                unitChangeSet.renameCommands().size()
+        );
+        List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
+
+        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitCodes());
+        applyUnitRenames(unitChangeSet.renameCommands());
+        if (!deletedItemUnits.isEmpty()) {
+            itemUnitRepository.deleteAll(deletedItemUnits);
+        }
 
         item.overwriteAdmin(
                 request.name(),
@@ -102,6 +128,11 @@ public class AdminItemService {
                 request.guaranteedGoods(),
                 request.isActive()
         );
+
+        List<ItemUnit> createdItemUnits = createItemUnits(item, unitChangeSet.createLabels());
+
+        item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
+                currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
 
         itemBorrowerFieldRepository.deleteByItem(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
@@ -164,9 +195,24 @@ public class AdminItemService {
 
         List<ItemUnit> itemUnits = new ArrayList<>();
         for (String unitLabel : unitLabels) {
+            validateLabelPresent(unitLabel);
             String code = itemUnitCodeGenerator.generate(item);
             itemUnits.add(item.createUnit(unitLabel, code));
         }
         return itemUnitRepository.saveAll(itemUnits);
     }
+
+    private void applyUnitRenames(List<UnitRenameCommand> renameCommands) {
+        for (UnitRenameCommand renameCommand : renameCommands) {
+            renameCommand.itemUnit().rename(renameCommand.label());
+        }
+    }
+
+    private void validateLabelPresent(String label) {
+        if (label == null || label.isBlank()) {
+            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
+                    "Item unit label must not be blank.");
+        }
+    }
+
 }
