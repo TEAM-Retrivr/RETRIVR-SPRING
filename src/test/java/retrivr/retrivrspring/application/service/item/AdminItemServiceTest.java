@@ -26,6 +26,7 @@ import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitChangeRequ
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
@@ -82,6 +83,45 @@ class AdminItemServiceTest {
     assertThat(response.items()).hasSize(2);
     assertThat(response.items().get(0).itemManagementType()).isEqualTo(ItemManagementType.UNIT);
     assertThat(response.nextCursor()).isEqualTo(12L);
+  }
+
+  @Test
+  @DisplayName("getItem returns item detail for edit page")
+  void getItem_returnsDetail() {
+    Long organizationId = 1L;
+    Long itemId = 41L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "C타입 충전기", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    ReflectionTestUtils.setField(item, "rentalDuration", 3);
+    ReflectionTestUtils.setField(item, "totalQuantity", 2);
+    ReflectionTestUtils.setField(item, "useMessageAlarmService", true);
+    ReflectionTestUtils.setField(item, "guaranteedGoods", "학생증");
+    ReflectionTestUtils.setField(item, "isActive", true);
+    item.getItemBorrowerFields().add(
+        retrivr.retrivrspring.domain.entity.item.ItemBorrowerField.of(item, "학번", true, 1)
+    );
+
+    ItemUnit firstUnit = createItemUnit(1L, item, "검정 충전기", ItemUnitStatus.AVAILABLE);
+    ReflectionTestUtils.setField(firstUnit, "code", "JJ0WY7");
+    ItemUnit secondUnit = createItemUnit(2L, item, "파란 충전기", ItemUnitStatus.AVAILABLE);
+    ReflectionTestUtils.setField(secondUnit, "code", "FIYEVT");
+
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, secondUnit));
+
+    AdminItemDetailResponse response = adminItemService.getItem(organizationId, itemId);
+
+    assertThat(response.itemId()).isEqualTo(41L);
+    assertThat(response.name()).isEqualTo("C타입 충전기");
+    assertThat(response.totalQuantity()).isEqualTo(2);
+    assertThat(response.isActive()).isTrue();
+    assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.UNIT);
+    assertThat(response.itemUnits()).hasSize(2);
+    assertThat(response.itemUnits().get(0).code()).isEqualTo("JJ0WY7");
+    assertThat(response.borrowerRequirements()).hasSize(1);
+    assertThat(response.borrowerRequirements().get(0).label()).isEqualTo("학번");
   }
 
   @Test

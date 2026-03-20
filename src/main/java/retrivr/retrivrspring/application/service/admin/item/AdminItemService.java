@@ -25,6 +25,7 @@ import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabili
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
@@ -61,6 +62,15 @@ public class AdminItemService {
                 .toList();
 
         return new AdminItemPageResponse(rows, nextCursor);
+    }
+
+    public AdminItemDetailResponse getItem(Long organizationId, Long itemId) {
+        Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
+                        organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+
+        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(itemId);
+        return AdminItemDetailResponse.from(item, item.getItemBorrowerFields(), itemUnits);
     }
 
     @Transactional
