@@ -21,6 +21,7 @@ import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.error.ApplicationException;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -185,6 +186,35 @@ public class ItemUnit extends BaseTimeEntity {
       return false;
     }
     return this.item.getId().equals(targetItem.getId());
+  }
+
+  /**
+   * 수정 화면에서의 유닛 삭제 가능 여부를 판단한다.
+   * 이미 대여 중이거나 대여 요청 중인 유닛은 삭제할 수 없다.
+   */
+  public void validateDeletable() {
+    validateStatusExists();
+
+    if (this.status == ItemUnitStatus.RENTED || this.status == ItemUnitStatus.RENTAL_PENDING) {
+      throw new ApplicationException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "대여 중이거나 대여 요청 중인 유닛은 삭제할 수 없습니다."
+      );
+    }
+  }
+
+  public boolean hasCodeIn(java.util.Set<String> codes) {
+    return this.code != null && codes.contains(this.code);
+  }
+
+  public void rename(String label) {
+    if (label == null || label.isBlank()) {
+      throw new ApplicationException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Item unit label의 값이 빈 값일 수 없습니다."
+      );
+    }
+    this.label = label;
   }
 
   /**
