@@ -198,6 +198,48 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
         ));
   }
 
+  @Override
+  public List<Rental> findRentedByItemId(Long itemId, Long cursor, int limit) {
+    QRental rental = QRental.rental;
+    QBorrower borrower = QBorrower.borrower;
+    QRentalItem rentalItem = QRentalItem.rentalItem;
+    QItem item = QItem.item;
+
+    List<Long> rentalIds = jpaQueryFactory
+        .select(rental.id)
+        .from(rental)
+        .join(rental.rentalItems, rentalItem)
+        .where(
+            rentalItem.item.id.eq(itemId),
+            rental.status.eq(RentalStatus.RENTED),
+            cursorLt(rental, cursor)
+        )
+        .orderBy(rental.id.desc())
+        .limit(limit)
+        .fetch();
+
+    if (rentalIds.isEmpty()) {
+      return List.of();
+    }
+
+    List<Rental> rentals = jpaQueryFactory
+        .selectFrom(rental)
+        .distinct()
+        .join(rental.borrower, borrower).fetchJoin()
+        .where(rental.id.in(rentalIds))
+        .orderBy(rental.id.desc())
+        .fetch();
+
+    jpaQueryFactory
+        .selectFrom(rentalItem)
+        .join(rentalItem.rental, rental)
+        .join(rentalItem.item, item).fetchJoin()
+        .where(rental.id.in(rentalIds))
+        .fetch();
+
+    return rentals;
+  }
+
   private BooleanExpression cursorLt(QRental rental, Long cursor) {
     if (cursor == null) {
       return null;
