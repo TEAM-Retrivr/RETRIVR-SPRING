@@ -10,18 +10,23 @@ public record PublicRentalDetailResponse(
     Long rentalId,
     RentalStatus rentalStatus,
     String itemName,
-    String itemUnitCode,
+    String itemUnitLabel,
     Map<String, String> borrowerField,
     LocalDateTime decidedAt,
     LocalDate dueDate
 ) {
 
-  public static PublicRentalDetailResponse from(Rental rental, String itemName, String itemUnitCode, Map<String, String> borrowerField) {
+  public static PublicRentalDetailResponse from(
+      Rental rental,
+      String itemName,
+      String itemUnitLabel,
+      Map<String, String> borrowerField
+  ) {
     return new PublicRentalDetailResponse(
         rental.getId(),
         rental.getStatus(),
         itemName,
-        itemUnitCode,
+        itemUnitLabel,
         borrowerField,
         rental.getDecidedAt(),
         rental.getDueDate()

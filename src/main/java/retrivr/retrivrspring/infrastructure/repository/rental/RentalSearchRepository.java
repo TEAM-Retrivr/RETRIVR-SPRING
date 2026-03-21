@@ -17,4 +17,6 @@ public interface RentalSearchRepository {
       LocalDate today);
 
   Map<Long, Rental> findByItemUnitIn(List<ItemUnit> itemUnits);
+
+  List<Rental> findRentedByItemId(Long itemId, Long cursor, int limit);
 }

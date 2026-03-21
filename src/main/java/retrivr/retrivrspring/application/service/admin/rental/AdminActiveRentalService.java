@@ -28,7 +28,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalItemPageRe
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalItemPageResponse.RentalItemSummary;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse;
-import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse.ReturnItemUnitSummary;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse.BorrowedItemSummary;
 
 @Service
 @RequiredArgsConstructor
@@ -115,31 +115,44 @@ public class AdminActiveRentalService {
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
     validateItemOwner(item, organizationId);
 
-    if (!item.isUnitType()) {
-      //todo: UnitType 이 아닌 경우 처리
-    }
-
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
         size);
-    List<ItemUnit> units = itemUnitRepository.searchRentedUnitsByItemId(itemId, cursor,
-        normalizedSize.sizePlusOne());
-    Map<Long, Rental> rentalItems = rentalRepository.findByItemUnitIn(units);
-
-    boolean hasNext = units.size() > normalizedSize.size();
-    List<ItemUnit> page = hasNext ? units.subList(0, normalizedSize.size()) : units;
     Long nextCursor = null;
-    if (hasNext) {
-      nextCursor = page.getLast().getId();
-    }
+    List<BorrowedItemSummary> rows;
 
-    // N+1 방지하려면 repo에서 projection으로 unit+rental+borrower를 한번에 가져오는게 베스트.
-    List<ReturnItemUnitSummary> rows = page.stream()
-        .map(itemUnit -> ReturnItemUnitSummary.from(itemUnit, rentalItems.get(itemUnit.getId())))
-        .toList();
+    if (item.isUnitType()) {
+      List<ItemUnit> units = itemUnitRepository.searchRentedUnitsByItemId(itemId, cursor,
+          normalizedSize.sizePlusOne());
+      Map<Long, Rental> rentalItems = rentalRepository.findByItemUnitIn(units);
+
+      boolean hasNext = units.size() > normalizedSize.size();
+      List<ItemUnit> page = hasNext ? units.subList(0, normalizedSize.size()) : units;
+      if (hasNext) {
+        nextCursor = page.getLast().getId();
+      }
+
+      rows = page.stream()
+          .map(itemUnit -> BorrowedItemSummary.fromUnit(itemUnit, rentalItems.get(itemUnit.getId())))
+          .toList();
+    } else {
+      List<Rental> rentals = rentalRepository.findRentedByItemId(itemId, cursor,
+          normalizedSize.sizePlusOne());
+
+      boolean hasNext = rentals.size() > normalizedSize.size();
+      List<Rental> page = hasNext ? rentals.subList(0, normalizedSize.size()) : rentals;
+      if (hasNext) {
+        nextCursor = page.getLast().getId();
+      }
+
+      rows = page.stream()
+          .map(rental -> BorrowedItemSummary.fromNonUnit(item, rental))
+          .toList();
+    }
 
     return new AdminReturnItemUnitListPageResponse(
         item.getId(),
         item.getName(),
+        item.getGuaranteedGoods(),
         item.getAvailableQuantity(),
         item.getTotalQuantity(),
         item.getRentalDuration(),
