@@ -29,7 +29,7 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 @Builder
 @Entity
 @Table(name = "item_unit", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"label"})
+        @UniqueConstraint(columnNames = {"item_id", "label"})
 })
 public class ItemUnit extends BaseTimeEntity {
 
