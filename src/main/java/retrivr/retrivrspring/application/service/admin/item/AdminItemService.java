@@ -17,7 +17,6 @@ import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
-import retrivr.retrivrspring.domain.service.item.ItemUnitCodeGenerator;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
@@ -32,7 +31,9 @@ import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationRe
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,6 @@ public class AdminItemService {
     private final ItemRepository itemRepository;
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
-    private final ItemUnitCodeGenerator itemUnitCodeGenerator;
     private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
@@ -122,7 +122,7 @@ public class AdminItemService {
         );
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
-        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitCodes());
+        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitLabels());
         applyUnitRenames(unitChangeSet.renameCommands());
         if (!deletedItemUnits.isEmpty()) {
             itemUnitRepository.deleteAll(deletedItemUnits);
@@ -204,10 +204,14 @@ public class AdminItemService {
         }
 
         List<ItemUnit> itemUnits = new ArrayList<>();
+        Set<String> seenLabels = new HashSet<>();
         for (String unitLabel : unitLabels) {
             validateLabelPresent(unitLabel);
-            String code = itemUnitCodeGenerator.generate(item);
-            itemUnits.add(item.createUnit(unitLabel, code));
+            if (!seenLabels.add(unitLabel)) {
+                throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
+                        "Duplicated item unit label.");
+            }
+            itemUnits.add(item.createUnit(unitLabel));
         }
         return itemUnitRepository.saveAll(itemUnits);
     }

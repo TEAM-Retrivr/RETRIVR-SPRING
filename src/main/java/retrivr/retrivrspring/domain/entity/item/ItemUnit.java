@@ -29,7 +29,7 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 @Builder
 @Entity
 @Table(name = "item_unit", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"item_id", "code"})
+    @UniqueConstraint(columnNames = {"label"})
 })
 public class ItemUnit extends BaseTimeEntity {
 
@@ -44,9 +44,6 @@ public class ItemUnit extends BaseTimeEntity {
 
   @Column(nullable = false, length = 255)
   private String label;
-
-  @Column(length = 255)
-  private String code;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -203,8 +200,8 @@ public class ItemUnit extends BaseTimeEntity {
     }
   }
 
-  public boolean hasCodeIn(java.util.Set<String> codes) {
-    return this.code != null && codes.contains(this.code);
+  public boolean hasLabelIn(java.util.Set<String> labels) {
+    return this.label != null && labels.contains(this.label);
   }
 
   public void rename(String label) {

@@ -333,13 +333,12 @@ public class Item extends BaseTimeEntity {
     this.availableQuantity--;
   }
 
-  public ItemUnit createUnit(String label, String code) {
+  public ItemUnit createUnit(String label) {
     validateUnitTypeRequired();
 
     ItemUnit itemUnit = ItemUnit.builder()
         .item(this)
         .label(label)
-        .code(code)
         .status(ItemUnitStatus.AVAILABLE)
         .build();
 
@@ -368,24 +367,28 @@ public class Item extends BaseTimeEntity {
    * 수정 요청에서 삭제 가능한 기존 유닛 목록을 계산한다.
    * 정책:
    * - UNIT 타입에서만 유닛 삭제가 가능하다.
-   * - 삭제 요청은 항상 마지막 유닛부터만 가능하다.
+   * - 삭제 대상은 요청에 포함된 label 기준으로 결정한다.
    * - 대여 중/대여 요청 중 유닛은 삭제할 수 없다.
    */
-  public List<ItemUnit> getDeletableUnits(List<ItemUnit> currentItemUnits, List<String> deleteUnitCodes) {
-    if (!isUnitType() || deleteUnitCodes == null || deleteUnitCodes.isEmpty()) {
+  public List<ItemUnit> getDeletableUnits(List<ItemUnit> currentItemUnits, List<String> deleteUnitLabels) {
+    if (!isUnitType() || deleteUnitLabels == null || deleteUnitLabels.isEmpty()) {
       return List.of();
     }
 
-    List<ItemUnit> sortedItemUnits = currentItemUnits.stream()
-        .sorted(Comparator.comparing(ItemUnit::getId))
-        .toList();
+    Set<String> requestedDeleteLabels = new HashSet<>(deleteUnitLabels);
+    if (requestedDeleteLabels.size() != deleteUnitLabels.size()) {
+      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "중복된 삭제 유닛 label 은 허용되지 않습니다.");
+    }
+    if (requestedDeleteLabels.size() > currentItemUnits.size()) {
+      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
+    }
 
-    validateDeleteTargetsAreTailUnits(sortedItemUnits, deleteUnitCodes);
-
-    Set<String> requestedDeleteCodes = new HashSet<>(deleteUnitCodes);
-    List<ItemUnit> deletedItemUnits = sortedItemUnits.stream()
-        .filter(itemUnit -> itemUnit.hasCodeIn(requestedDeleteCodes))
+    List<ItemUnit> deletedItemUnits = currentItemUnits.stream()
+        .filter(itemUnit -> itemUnit.hasLabelIn(requestedDeleteLabels))
         .toList();
+    if (deletedItemUnits.size() != requestedDeleteLabels.size()) {
+      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제 대상 유닛 label 이 존재하지 않습니다.");
+    }
 
     for (ItemUnit deletedItemUnit : deletedItemUnits) {
       deletedItemUnit.validateDeletable();
@@ -486,31 +489,6 @@ public class Item extends BaseTimeEntity {
       );
     }
     this.availableQuantity = requestedTotalQuantity - unavailableQuantity;
-  }
-
-  /**
-   * 유닛 삭제는 항상 "마지막부터"만 허용한다.
-   * 여기서는 가장 나중에 생성된 유닛을 id가 큰 유닛으로 간주한다.
-   */
-  private void validateDeleteTargetsAreTailUnits(List<ItemUnit> sortedItemUnits,
-                                                 List<String> deleteUnitCodes) {
-    if (deleteUnitCodes.size() > sortedItemUnits.size()) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
-    }
-
-    List<ItemUnit> tailItemUnits = sortedItemUnits.subList(
-        sortedItemUnits.size() - deleteUnitCodes.size(),
-        sortedItemUnits.size()
-    );
-
-    Set<String> expectedDeleteCodes = tailItemUnits.stream()
-        .map(ItemUnit::getCode)
-        .collect(HashSet::new, HashSet::add, HashSet::addAll);
-    Set<String> requestedDeleteCodes = new HashSet<>(deleteUnitCodes);
-
-    if (!expectedDeleteCodes.equals(requestedDeleteCodes)) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "유닛 삭제는 마지막 유닛부터만 가능합니다.");
-    }
   }
 
   /**

@@ -26,48 +26,51 @@ public class AdminItemUnitChangeClassifier {
 
         Map<String, ItemUnit> currentUnitMap = new LinkedHashMap<>();
         for (ItemUnit currentItemUnit : currentItemUnits) {
-            currentUnitMap.put(currentItemUnit.getCode(), currentItemUnit);
+            currentUnitMap.put(currentItemUnit.getLabel(), currentItemUnit);
         }
 
-        Set<String> seenCodes = new LinkedHashSet<>();
-        List<String> deleteUnitCodes = new ArrayList<>();
+        Set<String> seenLabels = new LinkedHashSet<>();
+        List<String> deleteUnitLabels = new ArrayList<>();
         List<String> createLabels = new ArrayList<>();
         List<UnitRenameCommand> renameCommands = new ArrayList<>();
 
         for (AdminItemUnitChangeRequest unitChange : unitChanges) {
-            String code = normalize(unitChange.code());
+            String currentLabel = normalize(unitChange.currentLabel());
             String label = normalize(unitChange.label());
 
-            if (code == null && label == null) {
+            if (currentLabel == null && label == null) {
                 throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Item unit change must contain code or label.");
+                        "Item unit change must contain currentLabel or label.");
             }
 
-            if (code == null) {
-                createLabels.add(requireLabel(label));
+            if (currentLabel == null) {
+                String createLabel = requireLabel(label);
+                validateCreateLabel(currentUnitMap, createLabels, createLabel);
+                createLabels.add(createLabel);
                 continue;
             }
 
-            if (!seenCodes.add(code)) {
+            if (!seenLabels.add(currentLabel)) {
                 throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Duplicated item unit code in update request.");
+                        "Duplicated item unit label in update request.");
             }
 
-            ItemUnit targetItemUnit = currentUnitMap.get(code);
+            ItemUnit targetItemUnit = currentUnitMap.get(currentLabel);
             if (targetItemUnit == null) {
                 throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Item unit code does not exist.");
+                        "Item unit label does not exist.");
             }
 
             if (label == null) {
-                deleteUnitCodes.add(code);
+                deleteUnitLabels.add(currentLabel);
                 continue;
             }
 
+            validateRenameLabel(currentUnitMap, createLabels, renameCommands, targetItemUnit, label);
             renameCommands.add(new UnitRenameCommand(targetItemUnit, label));
         }
 
-        return new AdminItemUnitChangeSet(deleteUnitCodes, createLabels, renameCommands);
+        return new AdminItemUnitChangeSet(deleteUnitLabels, createLabels, renameCommands);
     }
 
     private String requireLabel(String label) {
@@ -86,11 +89,41 @@ public class AdminItemUnitChangeClassifier {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private void validateCreateLabel(
+            Map<String, ItemUnit> currentUnitMap,
+            List<String> createLabels,
+            String label
+    ) {
+        if (currentUnitMap.containsKey(label) || createLabels.contains(label)) {
+            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
+                    "Duplicated item unit label.");
+        }
+    }
+
+    private void validateRenameLabel(
+            Map<String, ItemUnit> currentUnitMap,
+            List<String> createLabels,
+            List<UnitRenameCommand> renameCommands,
+            ItemUnit targetItemUnit,
+            String newLabel
+    ) {
+        ItemUnit currentOwner = currentUnitMap.get(newLabel);
+        boolean ownedBySameUnit = currentOwner != null && currentOwner == targetItemUnit;
+        boolean duplicatedCreateLabel = createLabels.contains(newLabel);
+        boolean duplicatedRenameLabel = renameCommands.stream()
+                .anyMatch(command -> newLabel.equals(command.label()));
+
+        if (!ownedBySameUnit && (currentOwner != null || duplicatedCreateLabel || duplicatedRenameLabel)) {
+            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
+                    "Duplicated item unit label.");
+        }
+    }
+
     public record UnitRenameCommand(ItemUnit itemUnit, String label) {
     }
 
     public record AdminItemUnitChangeSet(
-            List<String> deleteUnitCodes,
+            List<String> deleteUnitLabels,
             List<String> createLabels,
             List<UnitRenameCommand> renameCommands
     ) {
