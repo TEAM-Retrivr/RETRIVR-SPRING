@@ -10,7 +10,7 @@ public record AdminHomeRequestSummary(
         @Schema(description = "대여 ID", example = "1001")
         Long rentalId,
 
-        @Schema(description = "물품명", example = "8핀 충전기")
+        @Schema(description = "물품명", example = "8구 충전기")
         String itemName,
 
         @Schema(description = "현재 대여 가능 수량", example = "2")
@@ -21,9 +21,6 @@ public record AdminHomeRequestSummary(
 
         @Schema(description = "대여자 이름", example = "홍길동")
         String borrowerName,
-
-        @Schema(description = "학과", example = "감귤포장학과")
-        String borrowerMajor,
 
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         @Schema(description = "요청 일시", example = "2026-01-21T17:00:00")

@@ -72,7 +72,6 @@ public class AdminHomeService {
                                     item.getAvailableQuantity(),
                                     item.getTotalQuantity(),
                                     borrower.getName(),
-                                    borrower.getMajor(),
                                     rental.getRequestedAt()
                             );
                         })
