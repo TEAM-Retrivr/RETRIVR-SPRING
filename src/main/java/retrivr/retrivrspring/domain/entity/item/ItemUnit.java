@@ -1,27 +1,11 @@
 package retrivr.retrivrspring.domain.entity.item;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.global.error.ApplicationException;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -193,7 +177,7 @@ public class ItemUnit extends BaseTimeEntity {
     validateStatusExists();
 
     if (this.status == ItemUnitStatus.RENTED || this.status == ItemUnitStatus.RENTAL_PENDING) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.BAD_REQUEST_EXCEPTION,
           "대여 중이거나 대여 요청 중인 유닛은 삭제할 수 없습니다."
       );
@@ -206,7 +190,7 @@ public class ItemUnit extends BaseTimeEntity {
 
   public void rename(String label) {
     if (label == null || label.isBlank()) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.BAD_REQUEST_EXCEPTION,
           "Item unit label의 값이 빈 값일 수 없습니다."
       );

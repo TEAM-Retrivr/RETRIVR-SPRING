@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Getter
@@ -25,12 +25,12 @@ public class AdminAuthCodeHash {
 
     public static AdminAuthCodeHash fromRawOrThrow(String rawAdminCode, PasswordEncoder passwordEncoder) {
         if (rawAdminCode == null) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+            throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
         String trimmed = rawAdminCode.trim();
         if (trimmed.isEmpty()) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+            throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
         return new AdminAuthCodeHash(passwordEncoder.encode(trimmed));
@@ -43,7 +43,7 @@ public class AdminAuthCodeHash {
 
         String trimmed = hashedAdminCode.trim();
         if (trimmed.isEmpty()) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+            throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
         return new AdminAuthCodeHash(trimmed);
