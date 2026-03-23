@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
+import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
+import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
@@ -19,7 +22,12 @@ import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
-import retrivr.retrivrspring.presentation.admin.item.res.*;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +41,7 @@ public class AdminItemService {
     private final ItemRepository itemRepository;
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
+    private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
         DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
@@ -50,6 +59,15 @@ public class AdminItemService {
                 .toList();
 
         return new AdminItemPageResponse(rows, nextCursor);
+    }
+
+    public AdminItemDetailResponse getItem(Long organizationId, Long itemId) {
+        Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
+                        organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+
+        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(itemId);
+        return AdminItemDetailResponse.from(item, item.getItemBorrowerFields(), itemUnits);
     }
 
     @Transactional
@@ -74,8 +92,9 @@ public class AdminItemService {
 
         Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
+        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(savedItem.createUnits(request.unitLabels()));
 
-        return AdminItemCreateResponse.from(savedItem, borrowerFields);
+        return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
 
     @Transactional
@@ -86,8 +105,28 @@ public class AdminItemService {
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
-        List<BorrowerRequirementRequest> requirements =
-                request.borrowerRequirements();
+        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId());
+        ItemManagementType previousItemManagementType = item.getItemManagementType();
+        Integer previousTotalQuantity = item.getTotalQuantity();
+        AdminItemUnitChangeSet unitChangeSet = adminItemUnitChangeClassifier.classify(
+                currentItemUnits,
+                request.unitChanges()
+        );
+        item.validateUnitChangesForTargetType(
+                request.itemManagementType(),
+                unitChangeSet.createLabels().size(),
+                unitChangeSet.renameCommands().size()
+        );
+        List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
+
+        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitLabels());
+        item.renameUnits(
+                unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
+                unitChangeSet.renameCommands().stream().map(command -> command.label()).toList()
+        );
+        if (!deletedItemUnits.isEmpty()) {
+            itemUnitRepository.deleteAll(deletedItemUnits);
+        }
 
         item.overwriteAdmin(
                 request.name(),
@@ -100,14 +139,19 @@ public class AdminItemService {
                 request.isActive()
         );
 
+        List<ItemUnit> createdItemUnits = itemUnitRepository.saveAll(item.createUnits(unitChangeSet.createLabels()));
+
+        item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
+                currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
+
         itemBorrowerFieldRepository.deleteByItem(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
+        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(item.getId());
 
-        return AdminItemUpdateResponse.from(item, borrowerFields);
+        return AdminItemUpdateResponse.from(item, borrowerFields, itemUnits);
     }
 
 
-    //이거는 추후 수정 예정
     @Transactional
     public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
                                                                 Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {

@@ -25,6 +25,7 @@ import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
@@ -53,6 +54,22 @@ public class AdminItemController {
   ) {
     Long organizationId = authUser.organizationId();
     return adminItemService.getItems(organizationId, cursor, size);
+  }
+
+  @GetMapping("/{itemId}")
+  @Operation(summary = "관리자 물품 상세 조회")
+  @ApiResponse(
+      responseCode = "200",
+      description = "물품 상세 조회 성공",
+      content = @Content(schema = @Schema(implementation = AdminItemDetailResponse.class))
+  )
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.NOT_FOUND_ITEM})
+  public AdminItemDetailResponse getItem(
+      @PathVariable Long itemId,
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser
+  ) {
+    Long organizationId = authUser.organizationId();
+    return adminItemService.getItem(organizationId, itemId);
   }
 
   @PostMapping

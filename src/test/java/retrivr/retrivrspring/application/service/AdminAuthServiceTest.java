@@ -18,6 +18,7 @@ import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
@@ -121,8 +122,8 @@ class AdminAuthServiceTest {
         given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
         given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
 
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
+        DomainException ex = assertThrows(
+                DomainException.class,
                 () -> adminAuthService.signup(
                         new AdminSignupRequest(email, rawPassword, "Org", "   ", "st_xxx")
                 )
@@ -144,8 +145,8 @@ class AdminAuthServiceTest {
         given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
         given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
 
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
+        DomainException ex = assertThrows(
+                DomainException.class,
                 () -> adminAuthService.signup(
                         new AdminSignupRequest(email, "alllowercase1", "Org", "DEV", "st_xxx")
                 )
@@ -200,8 +201,8 @@ class AdminAuthServiceTest {
 
     @Test
     void resetPassword_policyViolation_throwsPolicyViolation() {
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
+        DomainException ex = assertThrows(
+                DomainException.class,
                 () -> adminAuthService.resetPassword(
                         new PasswordResetRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "token", "NewPassword123", "NewPassword123")
                 )

@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.util.regex.Pattern;
@@ -31,7 +31,7 @@ public class PasswordHash {
 
     public static PasswordHash fromRawOrThrow(String rawPassword, PasswordEncoder passwordEncoder, ErrorCode errorCode) {
         if (rawPassword == null || !PASSWORD_POLICY_PATTERN.matcher(rawPassword).matches()) {
-            throw new ApplicationException(errorCode);
+            throw new DomainException(errorCode);
         }
 
         return new PasswordHash(passwordEncoder.encode(rawPassword));
@@ -44,7 +44,7 @@ public class PasswordHash {
 
         String trimmed = hashedPassword.trim();
         if (trimmed.isEmpty()) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+            throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
 
         return new PasswordHash(trimmed);

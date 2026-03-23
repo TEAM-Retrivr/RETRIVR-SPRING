@@ -1,21 +1,22 @@
 package retrivr.retrivrspring.application.service.open;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
-import retrivr.retrivrspring.global.error.ApplicationException;
-import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse.PublicItemUnitSummary;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemListPageResponse;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemSummary;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +51,7 @@ public class PublicItemLookupService {
         .map(PublicItemSummary::from)
         .toList();
 
-    return new PublicItemListPageResponse(content, nextCursor);
+    return new PublicItemListPageResponse(organizationId, content, nextCursor);
   }
 
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {

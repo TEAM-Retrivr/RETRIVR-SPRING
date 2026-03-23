@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -329,5 +330,209 @@ public class Item extends BaseTimeEntity {
       throw new DomainException(ErrorCode.AVAILABLE_QUANTITY_UNDERFLOW_EXCEPTION);
     }
     this.availableQuantity--;
+  }
+
+  public ItemUnit createUnit(String label) {
+    validateUnitTypeRequired();
+
+    ItemUnit itemUnit = ItemUnit.create(this, label);
+    this.itemUnits.add(itemUnit);
+    return itemUnit;
+  }
+
+  public List<ItemUnit> createUnits(List<String> unitLabels) {
+    if (!isUnitType() || unitLabels == null || unitLabels.isEmpty()) {
+      return List.of();
+    }
+
+    List<ItemUnit> createdItemUnits = new ArrayList<>();
+    Set<String> seenLabels = new HashSet<>();
+    for (String unitLabel : unitLabels) {
+      if (!seenLabels.add(unitLabel)) {
+        throw new DomainException(
+            ErrorCode.BAD_REQUEST_EXCEPTION,
+            "Duplicated item unit label."
+        );
+      }
+      createdItemUnits.add(createUnit(unitLabel));
+    }
+    return createdItemUnits;
+  }
+
+  public void renameUnits(List<ItemUnit> itemUnits, List<String> labels) {
+    if (itemUnits.size() != labels.size()) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Item unit rename inputs must have the same size."
+      );
+    }
+
+    for (int i = 0; i < itemUnits.size(); i++) {
+      ItemUnit itemUnit = itemUnits.get(i);
+      validateItemUnitBelongsToThisItem(itemUnit);
+      itemUnit.rename(labels.get(i));
+    }
+  }
+
+  public void validateUnitChangesForTargetType(
+      ItemManagementType targetItemManagementType,
+      int createCount,
+      int renameCount
+  ) {
+    if (targetItemManagementType == ItemManagementType.UNIT) {
+      return;
+    }
+
+    if (createCount > 0 || renameCount > 0) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Non-unit item 의 경우 유닛을 편집할 수 없습니다."
+      );
+    }
+  }
+
+  /**
+   * 수정 요청에서 삭제 가능한 기존 유닛 목록을 계산한다.
+   * 정책:
+   * - UNIT 타입에서만 유닛 삭제가 가능하다.
+   * - 삭제 대상은 요청에 포함된 label 기준으로 결정한다.
+   * - 대여 중/대여 요청 중 유닛은 삭제할 수 없다.
+   */
+  public List<ItemUnit> getDeletableUnits(List<ItemUnit> currentItemUnits, List<String> deleteUnitLabels) {
+    if (!isUnitType() || deleteUnitLabels == null || deleteUnitLabels.isEmpty()) {
+      return List.of();
+    }
+
+    Set<String> requestedDeleteLabels = new HashSet<>(deleteUnitLabels);
+    if (requestedDeleteLabels.size() != deleteUnitLabels.size()) {
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "중복된 삭제 유닛 label 은 허용되지 않습니다.");
+    }
+    if (requestedDeleteLabels.size() > currentItemUnits.size()) {
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
+    }
+
+    List<ItemUnit> deletedItemUnits = currentItemUnits.stream()
+        .filter(itemUnit -> itemUnit.hasLabelIn(requestedDeleteLabels))
+        .toList();
+    if (deletedItemUnits.size() != requestedDeleteLabels.size()) {
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제 대상 유닛 label 이 존재하지 않습니다.");
+    }
+
+    for (ItemUnit deletedItemUnit : deletedItemUnits) {
+      deletedItemUnit.validateDeletable();
+    }
+    return deletedItemUnits;
+  }
+
+  /**
+   * 기존 유닛 삭제와 새 유닛 추가가 반영된 뒤,
+   * 최종 수량과 대여 가능 수량을 한 번에 정리한다.
+   */
+  public void applyUnitChange(
+      ItemManagementType previousItemManagementType,
+      Integer previousTotalQuantity,
+      List<ItemUnit> currentItemUnits,
+      List<ItemUnit> deletedItemUnits,
+      List<ItemUnit> createdItemUnits,
+      Integer requestedTotalQuantity
+  ) {
+    int unavailableQuantity = previousTotalQuantity - this.availableQuantity;
+
+    if (previousItemManagementType == this.itemManagementType) {
+      if (isUnitType()) {
+        validateUnitQuantityMatches(
+            requestedTotalQuantity,
+            currentItemUnits,
+            deletedItemUnits,
+            createdItemUnits
+        );
+        applyAvailableQuantityDelta(deletedItemUnits, createdItemUnits);
+        return;
+      }
+
+      validateNonUnitHasNoRemainingUnits(currentItemUnits, deletedItemUnits, createdItemUnits);
+      syncNonUnitAvailableQuantity(unavailableQuantity, requestedTotalQuantity);
+      return;
+    }
+
+    if (previousItemManagementType == ItemManagementType.NON_UNIT) {
+      validateNonUnitToUnitChange(unavailableQuantity);
+      validateUnitQuantityMatches(
+          requestedTotalQuantity,
+          currentItemUnits,
+          deletedItemUnits,
+          createdItemUnits
+      );
+      this.availableQuantity = createdItemUnits.size();
+      return;
+    }
+
+    validateNonUnitHasNoRemainingUnits(currentItemUnits, deletedItemUnits, createdItemUnits);
+    syncNonUnitAvailableQuantity(unavailableQuantity, requestedTotalQuantity);
+  }
+
+  private void applyAvailableQuantityDelta(
+      List<ItemUnit> deletedItemUnits,
+      List<ItemUnit> createdItemUnits
+  ) {
+    for (ItemUnit deletedItemUnit : deletedItemUnits) {
+      if (deletedItemUnit.getStatus() == ItemUnitStatus.AVAILABLE) {
+        removeAvailableUnitQuantity();
+      }
+    }
+
+    for (int i = 0; i < createdItemUnits.size(); i++) {
+      addAvailableUnitQuantity();
+    }
+  }
+
+  private void validateNonUnitToUnitChange(int unavailableQuantity) {
+    if (unavailableQuantity > 0) {
+      throw new DomainException(
+          ErrorCode.CANNOT_CONVERT_NON_UNIT_ITEM_WITH_UNAVAILABLE_QUANTITY_TO_UNIT
+      );
+    }
+  }
+
+  private void validateNonUnitHasNoRemainingUnits(
+      List<ItemUnit> currentItemUnits,
+      List<ItemUnit> deletedItemUnits,
+      List<ItemUnit> createdItemUnits
+  ) {
+    int finalUnitCount =
+        currentItemUnits.size() - deletedItemUnits.size() + createdItemUnits.size();
+    if (finalUnitCount != 0) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Non-unit items cannot keep item units after update."
+      );
+    }
+  }
+
+  private void syncNonUnitAvailableQuantity(int unavailableQuantity, Integer requestedTotalQuantity) {
+    if (requestedTotalQuantity < unavailableQuantity) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Total quantity cannot be smaller than unavailable quantity."
+      );
+    }
+    this.availableQuantity = requestedTotalQuantity - unavailableQuantity;
+  }
+
+  /**
+   * 최종 유닛 개수와 요청 totalQuantity 가 다르면
+   * 프론트가 보낸 삭제/추가 목록이 현재 수량 정책과 맞지 않는 것이다.
+   */
+  private void validateUnitQuantityMatches(
+      Integer requestedTotalQuantity,
+      List<ItemUnit> currentItemUnits,
+      List<ItemUnit> deletedItemUnits,
+      List<ItemUnit> createdItemUnits
+  ) {
+    int finalUnitCount =
+        currentItemUnits.size() - deletedItemUnits.size() + createdItemUnits.size();
+    if (!requestedTotalQuantity.equals(finalUnitCount)) {
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "총 개수와 유닛 삭제/추가 요청이 일치하지 않습니다.");
+    }
   }
 }

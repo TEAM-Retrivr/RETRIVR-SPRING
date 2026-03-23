@@ -42,6 +42,10 @@ public record AdminItemUpdateRequest(
     @Schema(description = "담보물품 여부 및 종류", example = "학생증")
     String guaranteedGoods,
 
+    @Schema(description = "변경 유닛 목록")
+    @Valid
+    List<AdminItemUnitChangeRequest> unitChanges,
+
     @Schema(description = "대여자 입력 요구 정보 목록")
     @Valid
     List<BorrowerRequirementRequest> borrowerRequirements,
