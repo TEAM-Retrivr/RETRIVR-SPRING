@@ -335,14 +335,43 @@ public class Item extends BaseTimeEntity {
   public ItemUnit createUnit(String label) {
     validateUnitTypeRequired();
 
-    ItemUnit itemUnit = ItemUnit.builder()
-        .item(this)
-        .label(label)
-        .status(ItemUnitStatus.AVAILABLE)
-        .build();
-
+    ItemUnit itemUnit = ItemUnit.create(this, label);
     this.itemUnits.add(itemUnit);
     return itemUnit;
+  }
+
+  public List<ItemUnit> createUnits(List<String> unitLabels) {
+    if (!isUnitType() || unitLabels == null || unitLabels.isEmpty()) {
+      return List.of();
+    }
+
+    List<ItemUnit> createdItemUnits = new ArrayList<>();
+    Set<String> seenLabels = new HashSet<>();
+    for (String unitLabel : unitLabels) {
+      if (!seenLabels.add(unitLabel)) {
+        throw new DomainException(
+            ErrorCode.BAD_REQUEST_EXCEPTION,
+            "Duplicated item unit label."
+        );
+      }
+      createdItemUnits.add(createUnit(unitLabel));
+    }
+    return createdItemUnits;
+  }
+
+  public void renameUnits(List<ItemUnit> itemUnits, List<String> labels) {
+    if (itemUnits.size() != labels.size()) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Item unit rename inputs must have the same size."
+      );
+    }
+
+    for (int i = 0; i < itemUnits.size(); i++) {
+      ItemUnit itemUnit = itemUnits.get(i);
+      validateItemUnitBelongsToThisItem(itemUnit);
+      itemUnit.rename(labels.get(i));
+    }
   }
 
   public void validateUnitChangesForTargetType(

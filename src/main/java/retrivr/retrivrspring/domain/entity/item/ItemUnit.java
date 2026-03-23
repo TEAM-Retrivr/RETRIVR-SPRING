@@ -188,6 +188,27 @@ public class ItemUnit extends BaseTimeEntity {
     return this.label != null && labels.contains(this.label);
   }
 
+  public static ItemUnit create(Item item, String label) {
+    if (item == null) {
+      throw new DomainException(
+          ErrorCode.INVALID_ITEM_UNIT,
+          "Item must not be null."
+      );
+    }
+    if (label == null || label.isBlank()) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Item unit label must not be blank."
+      );
+    }
+
+    return ItemUnit.builder()
+        .item(item)
+        .label(label)
+        .status(ItemUnitStatus.AVAILABLE)
+        .build();
+  }
+
   public void rename(String label) {
     if (label == null || label.isBlank()) {
       throw new DomainException(
