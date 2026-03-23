@@ -44,6 +44,11 @@ public enum ErrorCode {
     INVALID_ITEM_UNIT(HttpStatus.INTERNAL_SERVER_ERROR, 4009, "아이템 유닛 데이터 잘못되었습니다."),
     ITEM_UNIT_REQUIRED_FOR_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4010, "UNIT 타입 물건은 고유번호(ItemUnit)가 반드시 필요합니다."),
     ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4011, "Non Unit 타입 물건은 고유번호를 사용할 수 없습니다."),
+    CANNOT_CONVERT_NON_UNIT_ITEM_WITH_UNAVAILABLE_QUANTITY_TO_UNIT(
+        HttpStatus.BAD_REQUEST,
+        4012,
+        "대여 불가능 수량이 있는 비유닛 물품은 유닛 물품으로 변경할 수 없습니다."
+    ),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_LABEL(HttpStatus.BAD_REQUEST, 5000, "대여자 라벨이 잘못되었습니다."),

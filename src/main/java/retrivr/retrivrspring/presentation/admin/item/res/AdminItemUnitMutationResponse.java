@@ -5,15 +5,15 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 
-@Schema(description = "UNIT 물품 고유번호 상태 변경 응답")
+@Schema(description = "UNIT 물품 유닛 상태 변경 응답")
 public record AdminItemUnitMutationResponse(
     @Schema(description = "물품 ID", example = "12")
     Long itemId,
-    @Schema(description = "고유번호 ID", example = "101")
+    @Schema(description = "유닛 ID", example = "101")
     Long itemUnitId,
-    @Schema(description = "고유번호 코드", example = "CHARGER-001")
-    String code,
-    @Schema(description = "변경 후 고유번호 상태", example = "INACTIVE")
+    @Schema(description = "유닛 라벨", example = "기본 충전기")
+    String label,
+    @Schema(description = "변경 후 유닛 상태", example = "INACTIVE")
     ItemUnitStatus status,
     @Schema(description = "변경 후 총 수량", example = "5")
     Integer totalQuantity,
@@ -25,7 +25,7 @@ public record AdminItemUnitMutationResponse(
     return new AdminItemUnitMutationResponse(
         item.getId(),
         itemUnit.getId(),
-        itemUnit.getCode(),
+        itemUnit.getLabel(),
         itemUnit.getStatus(),
         item.getTotalQuantity(),
         item.getAvailableQuantity()

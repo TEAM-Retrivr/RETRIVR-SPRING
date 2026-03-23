@@ -13,8 +13,6 @@ public interface ItemUnitRepository extends JpaRepository<ItemUnit, Long>,
 
   void deleteByItem(Item item);
 
-  boolean existsByItemIdAndCode(Long itemId, String code);
-
   java.util.Optional<ItemUnit> findByIdAndItemIdAndItemOrganizationId(Long itemUnitId, Long itemId,
       Long organizationId);
 }
