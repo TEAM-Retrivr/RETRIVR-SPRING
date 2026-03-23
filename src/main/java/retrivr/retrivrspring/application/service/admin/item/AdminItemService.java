@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
-import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.UnitRenameCommand;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -31,9 +30,7 @@ import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationRe
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -95,7 +92,7 @@ public class AdminItemService {
 
         Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
-        List<ItemUnit> itemUnits = createItemUnits(savedItem, request.unitLabels());
+        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(savedItem.createUnits(request.unitLabels()));
 
         return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
@@ -123,7 +120,10 @@ public class AdminItemService {
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
         List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitLabels());
-        applyUnitRenames(unitChangeSet.renameCommands());
+        item.renameUnits(
+                unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
+                unitChangeSet.renameCommands().stream().map(command -> command.label()).toList()
+        );
         if (!deletedItemUnits.isEmpty()) {
             itemUnitRepository.deleteAll(deletedItemUnits);
         }
@@ -139,7 +139,7 @@ public class AdminItemService {
                 request.isActive()
         );
 
-        List<ItemUnit> createdItemUnits = createItemUnits(item, unitChangeSet.createLabels());
+        List<ItemUnit> createdItemUnits = itemUnitRepository.saveAll(item.createUnits(unitChangeSet.createLabels()));
 
         item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
                 currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
@@ -152,7 +152,6 @@ public class AdminItemService {
     }
 
 
-    //이거는 추후 수정 예정
     @Transactional
     public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
                                                                 Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {
@@ -196,37 +195,4 @@ public class AdminItemService {
         }
         return itemBorrowerFieldRepository.saveAll(fields);
     }
-
-    //이거 여기있는게 맞나... 여기서만 쓰긴 해
-    private List<ItemUnit> createItemUnits(Item item, List<String> unitLabels) {
-        if (!item.isUnitType() || unitLabels == null || unitLabels.isEmpty()) {
-            return List.of();
-        }
-
-        List<ItemUnit> itemUnits = new ArrayList<>();
-        Set<String> seenLabels = new HashSet<>();
-        for (String unitLabel : unitLabels) {
-            validateLabelPresent(unitLabel);
-            if (!seenLabels.add(unitLabel)) {
-                throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Duplicated item unit label.");
-            }
-            itemUnits.add(item.createUnit(unitLabel));
-        }
-        return itemUnitRepository.saveAll(itemUnits);
-    }
-
-    private void applyUnitRenames(List<UnitRenameCommand> renameCommands) {
-        for (UnitRenameCommand renameCommand : renameCommands) {
-            renameCommand.itemUnit().rename(renameCommand.label());
-        }
-    }
-
-    private void validateLabelPresent(String label) {
-        if (label == null || label.isBlank()) {
-            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                    "Item unit label must not be blank.");
-        }
-    }
-
 }

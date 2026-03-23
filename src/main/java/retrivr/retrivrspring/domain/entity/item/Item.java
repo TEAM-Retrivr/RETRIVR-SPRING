@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.lang.Nullable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
-import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -336,14 +335,43 @@ public class Item extends BaseTimeEntity {
   public ItemUnit createUnit(String label) {
     validateUnitTypeRequired();
 
-    ItemUnit itemUnit = ItemUnit.builder()
-        .item(this)
-        .label(label)
-        .status(ItemUnitStatus.AVAILABLE)
-        .build();
-
+    ItemUnit itemUnit = ItemUnit.create(this, label);
     this.itemUnits.add(itemUnit);
     return itemUnit;
+  }
+
+  public List<ItemUnit> createUnits(List<String> unitLabels) {
+    if (!isUnitType() || unitLabels == null || unitLabels.isEmpty()) {
+      return List.of();
+    }
+
+    List<ItemUnit> createdItemUnits = new ArrayList<>();
+    Set<String> seenLabels = new HashSet<>();
+    for (String unitLabel : unitLabels) {
+      if (!seenLabels.add(unitLabel)) {
+        throw new DomainException(
+            ErrorCode.BAD_REQUEST_EXCEPTION,
+            "Duplicated item unit label."
+        );
+      }
+      createdItemUnits.add(createUnit(unitLabel));
+    }
+    return createdItemUnits;
+  }
+
+  public void renameUnits(List<ItemUnit> itemUnits, List<String> labels) {
+    if (itemUnits.size() != labels.size()) {
+      throw new DomainException(
+          ErrorCode.BAD_REQUEST_EXCEPTION,
+          "Item unit rename inputs must have the same size."
+      );
+    }
+
+    for (int i = 0; i < itemUnits.size(); i++) {
+      ItemUnit itemUnit = itemUnits.get(i);
+      validateItemUnitBelongsToThisItem(itemUnit);
+      itemUnit.rename(labels.get(i));
+    }
   }
 
   public void validateUnitChangesForTargetType(
@@ -356,7 +384,7 @@ public class Item extends BaseTimeEntity {
     }
 
     if (createCount > 0 || renameCount > 0) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.BAD_REQUEST_EXCEPTION,
           "Non-unit item 의 경우 유닛을 편집할 수 없습니다."
       );
@@ -377,17 +405,17 @@ public class Item extends BaseTimeEntity {
 
     Set<String> requestedDeleteLabels = new HashSet<>(deleteUnitLabels);
     if (requestedDeleteLabels.size() != deleteUnitLabels.size()) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "중복된 삭제 유닛 label 은 허용되지 않습니다.");
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "중복된 삭제 유닛 label 은 허용되지 않습니다.");
     }
     if (requestedDeleteLabels.size() > currentItemUnits.size()) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
     }
 
     List<ItemUnit> deletedItemUnits = currentItemUnits.stream()
         .filter(itemUnit -> itemUnit.hasLabelIn(requestedDeleteLabels))
         .toList();
     if (deletedItemUnits.size() != requestedDeleteLabels.size()) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제 대상 유닛 label 이 존재하지 않습니다.");
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제 대상 유닛 label 이 존재하지 않습니다.");
     }
 
     for (ItemUnit deletedItemUnit : deletedItemUnits) {
@@ -460,7 +488,7 @@ public class Item extends BaseTimeEntity {
 
   private void validateNonUnitToUnitChange(int unavailableQuantity) {
     if (unavailableQuantity > 0) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.CANNOT_CONVERT_NON_UNIT_ITEM_WITH_UNAVAILABLE_QUANTITY_TO_UNIT
       );
     }
@@ -474,7 +502,7 @@ public class Item extends BaseTimeEntity {
     int finalUnitCount =
         currentItemUnits.size() - deletedItemUnits.size() + createdItemUnits.size();
     if (finalUnitCount != 0) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.BAD_REQUEST_EXCEPTION,
           "Non-unit items cannot keep item units after update."
       );
@@ -483,7 +511,7 @@ public class Item extends BaseTimeEntity {
 
   private void syncNonUnitAvailableQuantity(int unavailableQuantity, Integer requestedTotalQuantity) {
     if (requestedTotalQuantity < unavailableQuantity) {
-      throw new ApplicationException(
+      throw new DomainException(
           ErrorCode.BAD_REQUEST_EXCEPTION,
           "Total quantity cannot be smaller than unavailable quantity."
       );
@@ -504,7 +532,7 @@ public class Item extends BaseTimeEntity {
     int finalUnitCount =
         currentItemUnits.size() - deletedItemUnits.size() + createdItemUnits.size();
     if (!requestedTotalQuantity.equals(finalUnitCount)) {
-      throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION, "총 개수와 유닛 삭제/추가 요청이 일치하지 않습니다.");
+      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "총 개수와 유닛 삭제/추가 요청이 일치하지 않습니다.");
     }
   }
 }

@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
-import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.time.LocalDateTime;
@@ -101,11 +101,11 @@ public class Organization extends BaseTimeEntity {
 
   public void assertLoginAllowed() {
     if (this.status == OrganizationStatus.SUSPENDED) {
-      throw new ApplicationException(ErrorCode.ACCOUNT_SUSPENDED);
+      throw new DomainException(ErrorCode.ACCOUNT_SUSPENDED);
     }
 
     if (this.status != OrganizationStatus.ACTIVE) {
-      throw new ApplicationException(ErrorCode.ACCOUNT_NOT_APPROVED);
+      throw new DomainException(ErrorCode.ACCOUNT_NOT_APPROVED);
     }
   }
 
@@ -113,14 +113,14 @@ public class Organization extends BaseTimeEntity {
 
   private String requireHashedValue(String value, String fieldName) {
     if (value == null) {
-      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
     return value;
   }
 
   private String requireNonBlankEmail(String email) {
     if (email == null || email.trim().isEmpty()) {
-      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION, "email must not be blank");
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "email must not be blank");
     }
     return email;
   }
