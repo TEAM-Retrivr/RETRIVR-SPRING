@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
@@ -31,6 +32,7 @@ public class PublicRentalService {
   private final RentalRepository rentalRepository;
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
+  private final SendMessageService sendMessageService;
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
@@ -58,6 +60,7 @@ public class PublicRentalService {
     // 5. Rental 생성 및 저장
     Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower);
     rentalRepository.save(requestedRental);
+    sendMessageService.sendRequestCompleted(requestedRental);
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),
         request.itemUnitId(), requestedRental.getRequestedAt());

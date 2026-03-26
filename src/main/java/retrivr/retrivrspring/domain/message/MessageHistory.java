@@ -1,20 +1,13 @@
 package retrivr.retrivrspring.domain.message;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import java.time.LocalDate;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
+
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -49,6 +42,17 @@ public class MessageHistory extends BaseTimeEntity {
       LocalDate sentDate
   ) {
     return new MessageHistory(rental, phone, MessageType.OVERDUE_REMINDER, status, content, sentDate);
+  }
+
+  public static MessageHistory createRequestCompletedHistory(
+      Rental rental,
+      String recipient,
+      MessageSendStatus status,
+      String content,
+      LocalDate sentDate
+  ) {
+    return new MessageHistory(rental, recipient, MessageType.REQUEST_COMPLETED, status, content,
+        sentDate);
   }
 
   private MessageHistory(
