@@ -15,4 +15,6 @@ public interface RentalState {
   void markReturned(Rental rental, String adminName, Organization org);
 
   int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt);
+
+  boolean canSendOverdueMessage(Rental rental);
 }

@@ -134,6 +134,10 @@ public class Rental extends BaseTimeEntity {
     return state().getOverdueDays(this.dueDate, this.returnedAt);
   }
 
+  public boolean canSendOverdueMessage() {
+    return state().canSendOverdueMessage(this);
+  }
+
   /**
    *
    * 외부 사용 금지 메소드
@@ -198,10 +202,6 @@ public class Rental extends BaseTimeEntity {
     if (!this.organization.getId().equals(organization.getId())) {
       throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
     }
-  }
-
-  public boolean canSendOverdueSms() {
-    return this.borrower.isValidPhoneFormat();
   }
 
   public boolean isOverdue() {
