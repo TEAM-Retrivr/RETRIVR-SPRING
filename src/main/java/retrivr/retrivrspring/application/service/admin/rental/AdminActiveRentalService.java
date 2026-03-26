@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -40,6 +41,7 @@ public class AdminActiveRentalService {
   private final OrganizationRepository organizationRepository;
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
+  private final SendMessageService sendMessageService;
 
   /**
    * 연체된 물품 리스트 조회 (status 기반)
@@ -181,6 +183,7 @@ public class AdminActiveRentalService {
 
     // 3. 반납 처리
     rental.markReturned(request.adminNameToConfirm(), loginOrganization);
+    sendMessageService.sendReturnConfirmed(rental);
 
     return new AdminRentalReturnResponse(rentalId, RentalStatus.RETURNED,
         request.adminNameToConfirm());

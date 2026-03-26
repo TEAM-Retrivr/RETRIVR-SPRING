@@ -15,6 +15,7 @@ import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
 import retrivr.retrivrspring.domain.message.OverdueReminderContent;
 import retrivr.retrivrspring.domain.message.RequestCompletedContent;
+import retrivr.retrivrspring.domain.message.ReturnConfirmedContent;
 import retrivr.retrivrspring.domain.message.RentalApprovedContent;
 import retrivr.retrivrspring.domain.message.SendAllOverdueReminderPolicy;
 import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
@@ -172,6 +173,53 @@ public class SendMessageService {
           )
       );
       log.error("Rental approved email send failed. rentalId={}", rental.getId(), e);
+    }
+  }
+
+  @Transactional
+  public void sendReturnConfirmed(Rental rental) {
+    LocalDate today = LocalDate.now();
+    String recipientEmail = rental.getBorrower().getEmail();
+    if (recipientEmail == null) {
+      log.info("Skip return confirmed email. rentalId={}, reason=no recipient email",
+          rental.getId());
+      return;
+    }
+
+    ReturnConfirmedContent content = new ReturnConfirmedContent(
+        rental.getOrganization().getName(),
+        rental.getItem().getName()
+    );
+
+    OutboundMessage message = new OutboundMessage(
+        recipientEmail,
+        content.getSubject(),
+        content
+    );
+
+    try {
+      messageSender.send(message);
+
+      messageHistoryRepository.save(
+          MessageHistory.createReturnConfirmedHistory(
+              rental,
+              message.recipient(),
+              MessageSendStatus.SUCCESS,
+              message.content().getMessage(),
+              today
+          )
+      );
+    } catch (Exception e) {
+      messageHistoryRepository.save(
+          MessageHistory.createReturnConfirmedHistory(
+              rental,
+              message.recipient(),
+              MessageSendStatus.FAIL,
+              message.content().getMessage(),
+              today
+          )
+      );
+      log.error("Return confirmed email send failed. rentalId={}", rental.getId(), e);
     }
   }
 

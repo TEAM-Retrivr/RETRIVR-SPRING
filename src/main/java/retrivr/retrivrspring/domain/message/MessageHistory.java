@@ -66,6 +66,17 @@ public class MessageHistory extends BaseTimeEntity {
         sentDate);
   }
 
+  public static MessageHistory createReturnConfirmedHistory(
+      Rental rental,
+      String recipient,
+      MessageSendStatus status,
+      String content,
+      LocalDate sentDate
+  ) {
+    return new MessageHistory(rental, recipient, MessageType.RETURN_CONFIRMED, status, content,
+        sentDate);
+  }
+
   private MessageHistory(
       Rental rental,
       String phone,
