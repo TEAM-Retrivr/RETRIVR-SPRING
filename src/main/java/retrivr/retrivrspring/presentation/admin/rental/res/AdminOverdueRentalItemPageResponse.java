@@ -45,7 +45,7 @@ public record AdminOverdueRentalItemPageResponse(
           rental.getDueDate(),
           rental.getOverdueDays(),
           List.of(),
-          rental.canSendOverdueSms()
+          rental.canSendOverdueMessage()
       );
     }
   }
