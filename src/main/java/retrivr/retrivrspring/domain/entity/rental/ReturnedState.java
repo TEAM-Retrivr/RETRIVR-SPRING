@@ -43,4 +43,9 @@ public final class ReturnedState implements RentalState {
     long days = ChronoUnit.DAYS.between(dueDate, returnedAt.toLocalDate());
     return (int) Math.max(days, 0);
   }
+
+  @Override
+  public boolean canSendOverdueMessage(Rental rental) {
+    return false;
+  }
 }
