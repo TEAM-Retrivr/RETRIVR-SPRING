@@ -15,6 +15,7 @@ import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
 import retrivr.retrivrspring.domain.message.OverdueReminderContent;
 import retrivr.retrivrspring.domain.message.RequestCompletedContent;
+import retrivr.retrivrspring.domain.message.RentalApprovedContent;
 import retrivr.retrivrspring.domain.message.SendAllOverdueReminderPolicy;
 import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
@@ -123,6 +124,54 @@ public class SendMessageService {
           )
       );
       log.error("Request completed email send failed. rentalId={}", rental.getId(), e);
+    }
+  }
+
+  @Transactional
+  public void sendRentalApproved(Rental rental) {
+    LocalDate today = LocalDate.now();
+    String recipientEmail = rental.getBorrower().getEmail();
+    if (recipientEmail == null) {
+      log.info("Skip rental approved email. rentalId={}, reason=no recipient email",
+          rental.getId());
+      return;
+    }
+
+    RentalApprovedContent content = new RentalApprovedContent(
+        rental.getOrganization().getName(),
+        rental.getItem().getName(),
+        rental.getDueDate()
+    );
+
+    OutboundMessage message = new OutboundMessage(
+        recipientEmail,
+        content.getSubject(),
+        content
+    );
+
+    try {
+      messageSender.send(message);
+
+      messageHistoryRepository.save(
+          MessageHistory.createRentalApprovedHistory(
+              rental,
+              message.recipient(),
+              MessageSendStatus.SUCCESS,
+              message.content().getMessage(),
+              today
+          )
+      );
+    } catch (Exception e) {
+      messageHistoryRepository.save(
+          MessageHistory.createRentalApprovedHistory(
+              rental,
+              message.recipient(),
+              MessageSendStatus.FAIL,
+              message.content().getMessage(),
+              today
+          )
+      );
+      log.error("Rental approved email send failed. rentalId={}", rental.getId(), e);
     }
   }
 
