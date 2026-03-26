@@ -18,7 +18,7 @@ public class ReturnConfirmedContent extends MessageContent {
   @Override
   protected String buildBody() {
     return String.format(
-        "%s의 %s 반납이 정상적으로 확인되었습니다.%n이용해주셔서 감사합니다.",
+        "대여지명: %s%n대여 물품명: %s%n반납이 정상적으로 확인되었습니다.%n이용해주셔서 감사합니다.",
         organizationName,
         itemName
     );

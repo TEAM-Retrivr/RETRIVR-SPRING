@@ -18,7 +18,7 @@ public class RequestCompletedContent extends MessageContent {
   @Override
   protected String buildBody() {
     return String.format(
-        "%s에 %s 대여 요청이 정상적으로 접수되었습니다.\n승인 결과는 등록한 이메일로 다시 안내드리겠습니다.",
+        "대여지명: %s%n대여 물품명: %s%n대여 요청이 정상적으로 접수되었습니다.%n승인 결과는 등록한 이메일로 다시 안내드리겠습니다.",
         organizationName,
         itemName
     );

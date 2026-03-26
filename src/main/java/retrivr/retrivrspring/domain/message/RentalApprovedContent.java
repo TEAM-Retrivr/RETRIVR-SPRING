@@ -25,7 +25,7 @@ public class RentalApprovedContent extends MessageContent {
   @Override
   protected String buildBody() {
     return String.format(
-        "%s의 %s 대여 요청이 승인되었습니다.%n반납 예정일은 %s 입니다.",
+        "대여지명: %s%n대여 물품명: %s%n반납 예정일: %s%n대여 요청이 승인되었습니다.",
         organizationName,
         itemName,
         dueDate.format(DATE_FORMATTER)
