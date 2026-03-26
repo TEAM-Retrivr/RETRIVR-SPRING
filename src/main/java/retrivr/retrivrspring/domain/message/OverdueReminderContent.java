@@ -17,6 +17,11 @@ public class OverdueReminderContent extends MessageContent {
   }
 
   @Override
+  protected String buildSubject() {
+    return "[Retrivr] " + itemName + " 연체 안내";
+  }
+
+  @Override
   protected String buildBody() {
     return String.format(
         "%s입니다.\n %s %s일 연체되었습니다. 빠른 시일 내에 반납부탁드립니다.",

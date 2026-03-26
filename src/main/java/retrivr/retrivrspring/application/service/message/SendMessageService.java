@@ -79,13 +79,21 @@ public class SendMessageService {
   }
 
   private boolean sendMessage(LocalDate today, Rental rental) {
+    String recipientEmail = rental.getBorrower().getEmail();
+    if (recipientEmail == null) {
+      throw new ApplicationException(ErrorCode.EMAIL_NOT_FOUND);
+    }
+
+    OverdueReminderContent content = new OverdueReminderContent(
+        rental.getOrganization().getName(),
+        rental.getItem().getName(),
+        rental.getOverdueDays()
+    );
+
     OutboundMessage message = new OutboundMessage(
-        rental.getBorrower().getPhone().getPhone(),
-        new OverdueReminderContent(
-            rental.getOrganization().getName(),
-            rental.getItem().getName(),
-            rental.getOverdueDays()
-        )
+        recipientEmail,
+        content.getSubject(),
+        content
     );
 
     try {
@@ -94,7 +102,7 @@ public class SendMessageService {
       messageHistoryRepository.save(
           MessageHistory.createOverdueReminderHistory(
               rental,
-              message.phone(),
+              message.recipient(),
               MessageSendStatus.SUCCESS,
               message.content().getMessage(),
               today
@@ -105,7 +113,7 @@ public class SendMessageService {
       messageHistoryRepository.save(
           MessageHistory.createOverdueReminderHistory(
               rental,
-              message.phone(),
+              message.recipient(),
               MessageSendStatus.FAIL,
               message.content().getMessage(),
               today

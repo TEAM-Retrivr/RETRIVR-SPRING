@@ -57,4 +57,23 @@ public class Borrower extends BaseTimeEntity {
   public boolean isValidPhoneFormat() {
     return phone.isValid();
   }
+
+  public String getEmail() {
+    if (additionalBorrowerInfo == null || additionalBorrowerInfo.isNull()) {
+      return null;
+    }
+
+    JsonNode emailNode = additionalBorrowerInfo.get("email");
+    if (emailNode == null || emailNode.isNull()) {
+      return null;
+    }
+
+    String email = emailNode.asText(null);
+    if (email == null) {
+      return null;
+    }
+
+    String trimmed = email.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+  }
 }
