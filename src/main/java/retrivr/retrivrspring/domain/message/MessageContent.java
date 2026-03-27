@@ -1,5 +1,7 @@
 package retrivr.retrivrspring.domain.message;
 
+import java.util.Map;
+
 public abstract class MessageContent {
 
   public final String getSubject() {
@@ -10,12 +12,28 @@ public abstract class MessageContent {
     return prefix() + "\n" + buildBody();
   }
 
+  public final String getTemplateCode() {
+    return buildTemplateCode();
+  }
+
+  public final Map<String, String> getTemplateVariables() {
+    return buildTemplateVariables();
+  }
+
   protected String buildSubject() {
     return "[Retrivr] Notification";
   }
 
   protected String prefix() {
     return "[Retrivr]";
+  }
+
+  protected String buildTemplateCode() {
+    return null;
+  }
+
+  protected Map<String, String> buildTemplateVariables() {
+    return Map.of();
   }
 
   protected abstract String buildBody();

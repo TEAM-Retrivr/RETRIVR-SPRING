@@ -21,7 +21,7 @@ public class MessageHistory extends BaseTimeEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   private Rental rental;
 
-  private String phone;
+    private String recipient;
 
   @Enumerated(EnumType.STRING)
   private MessageType messageType;
@@ -34,59 +34,27 @@ public class MessageHistory extends BaseTimeEntity {
 
   private LocalDate sentDate;
 
-  public static MessageHistory createOverdueReminderHistory(
-      Rental rental,
-      String phone,
-      MessageSendStatus status,
-      String content,
-      LocalDate sentDate
-  ) {
-    return new MessageHistory(rental, phone, MessageType.OVERDUE_REMINDER, status, content, sentDate);
-  }
-
-  public static MessageHistory createRequestCompletedHistory(
+  public static MessageHistory create(
       Rental rental,
       String recipient,
+      MessageType messageType,
       MessageSendStatus status,
       String content,
       LocalDate sentDate
   ) {
-    return new MessageHistory(rental, recipient, MessageType.REQUEST_COMPLETED, status, content,
-        sentDate);
-  }
-
-  public static MessageHistory createRentalApprovedHistory(
-      Rental rental,
-      String recipient,
-      MessageSendStatus status,
-      String content,
-      LocalDate sentDate
-  ) {
-    return new MessageHistory(rental, recipient, MessageType.RENTAL_APPROVED, status, content,
-        sentDate);
-  }
-
-  public static MessageHistory createReturnConfirmedHistory(
-      Rental rental,
-      String recipient,
-      MessageSendStatus status,
-      String content,
-      LocalDate sentDate
-  ) {
-    return new MessageHistory(rental, recipient, MessageType.RETURN_CONFIRMED, status, content,
-        sentDate);
+    return new MessageHistory(rental, recipient, messageType, status, content, sentDate);
   }
 
   private MessageHistory(
       Rental rental,
-      String phone,
+      String recipient,
       MessageType messageType,
       MessageSendStatus status,
       String content,
       LocalDate sentDate
   ) {
     this.rental = rental;
-    this.phone = phone;
+    this.recipient = recipient;
     this.messageType = messageType;
     this.status = status;
     this.content = content;

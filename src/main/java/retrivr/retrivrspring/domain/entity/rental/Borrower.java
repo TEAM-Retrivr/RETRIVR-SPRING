@@ -76,4 +76,8 @@ public class Borrower extends BaseTimeEntity {
     String trimmed = email.trim();
     return trimmed.isEmpty() ? null : trimmed;
   }
+
+  public String getPhoneNumber() {
+    return phone == null ? null : phone.getPhone();
+  }
 }

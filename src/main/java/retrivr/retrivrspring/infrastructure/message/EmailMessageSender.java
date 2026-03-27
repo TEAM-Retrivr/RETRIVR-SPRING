@@ -3,7 +3,8 @@ package retrivr.retrivrspring.infrastructure.message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import retrivr.retrivrspring.application.port.message.MessageSender;
-import retrivr.retrivrspring.application.port.message.OutboundMessage;
+import retrivr.retrivrspring.application.port.message.NotificationChannel;
+import retrivr.retrivrspring.application.port.message.NotificationRequest;
 import retrivr.retrivrspring.application.service.email.EmailService;
 
 @Component
@@ -13,11 +14,16 @@ public class EmailMessageSender implements MessageSender {
   private final EmailService emailService;
 
   @Override
-  public void send(OutboundMessage message) throws Exception {
+  public NotificationChannel channel() {
+    return NotificationChannel.EMAIL;
+  }
+
+  @Override
+  public void send(NotificationRequest request) throws Exception {
     emailService.sendHtmlEmail(
-        message.recipient(),
-        message.subject(),
-        toHtml(message.content().getMessage())
+        request.resolveRecipient(NotificationChannel.EMAIL),
+        request.content().getSubject(),
+        toHtml(request.content().getMessage())
     );
   }
 
