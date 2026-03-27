@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import retrivr.retrivrspring.application.service.admin.rental.AdminRequestedRentalService;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
@@ -35,6 +36,8 @@ class AdminRequestedRentalServiceTest {
   RentalRepository rentalRepository;
   @Mock
   OrganizationRepository organizationRepository;
+  @Mock
+  SendMessageService sendMessageService;
 
   @InjectMocks
   AdminRequestedRentalService service;
@@ -176,6 +179,7 @@ class AdminRequestedRentalServiceTest {
 
     // then
     verify(rental).approve("adminA", org);
+    verify(sendMessageService).sendRentalApproved(rental);
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("APPROVE");
     assertThat(res.adminNameToDecide()).isEqualTo("adminA");

@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -54,11 +55,18 @@ class PublicRentalServiceTest {
   @Mock private RentalRepository rentalRepository;
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
+  @Mock private SendMessageService sendMessageService;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private PublicRentalService service() {
-    return new PublicRentalService(objectMapper, rentalRepository, itemRepository, itemUnitRepository);
+    return new PublicRentalService(
+        objectMapper,
+        rentalRepository,
+        itemRepository,
+        itemUnitRepository,
+        sendMessageService
+    );
   }
 
   private Item mockItem(Long itemId, boolean rentalAble, Organization org) {
@@ -140,6 +148,7 @@ class PublicRentalServiceTest {
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
     verify(rentalRepository, times(1)).save(rentalCaptor.capture());
+    verify(sendMessageService).sendRequestCompleted(any(Rental.class));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isNull();
     assertThat(res.requestedAt()).isNotNull();
@@ -166,6 +175,7 @@ class PublicRentalServiceTest {
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
     verify(rentalRepository, times(1)).save(any(Rental.class));
+    verify(sendMessageService).sendRequestCompleted(any(Rental.class));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isEqualTo(99L);
   }
