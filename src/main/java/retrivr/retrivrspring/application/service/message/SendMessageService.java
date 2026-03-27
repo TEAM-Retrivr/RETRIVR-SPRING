@@ -1,22 +1,12 @@
 package retrivr.retrivrspring.application.service.message;
 
-import java.time.LocalDate;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.application.port.message.MessageSender;
-import retrivr.retrivrspring.application.port.message.OutboundMessage;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
-import retrivr.retrivrspring.domain.message.MessageHistory;
-import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
-import retrivr.retrivrspring.domain.message.OverdueReminderContent;
-import retrivr.retrivrspring.domain.message.RequestCompletedContent;
-import retrivr.retrivrspring.domain.message.ReturnConfirmedContent;
-import retrivr.retrivrspring.domain.message.RentalApprovedContent;
 import retrivr.retrivrspring.domain.message.SendAllOverdueReminderPolicy;
 import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
@@ -25,13 +15,18 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminMessageSendResponse;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SendMessageService {
 
-  private final MessageSender messageSender;
+  private final NotificationFactory notificationFactory;
+  private final NotificationDispatcher notificationDispatcher;
+  private final NotificationHistoryRecorder notificationHistoryRecorder;
   private final MessageHistoryRepository messageHistoryRepository;
   private final RentalRepository rentalRepository;
   private final OrganizationRepository organizationRepository;
@@ -46,15 +41,14 @@ public class SendMessageService {
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     rental.validateRentalOwner(organization);
-    //todo: 하루에 몇번 전송 허용할건지 로직 필요
-    
+
     if (!rental.canSendOverdueMessage()) {
       throw new ApplicationException(ErrorCode.DO_NOT_SEND_OVERDUE_MESSAGE);
     }
 
     return new AdminMessageSendResponse(
         rentalId,
-        sendMessage(today, rental)
+        dispatch(MessageType.OVERDUE_REMINDER, rental, today)
     );
   }
 
@@ -77,195 +71,34 @@ public class SendMessageService {
         continue;
       }
 
-      sendMessage(today, rental);
+      dispatch(MessageType.OVERDUE_REMINDER, rental, today);
     }
   }
 
   @Transactional
   public void sendRequestCompleted(Rental rental) {
-    LocalDate today = LocalDate.now();
-    String recipientEmail = rental.getBorrower().getEmail();
-    if (recipientEmail == null) {
-      log.info("Skip request completed email. rentalId={}, reason=no recipient email",
-          rental.getId());
-      return;
-    }
-
-    RequestCompletedContent content = new RequestCompletedContent(
-        rental.getOrganization().getName(),
-        rental.getItem().getName()
-    );
-
-    OutboundMessage message = new OutboundMessage(
-        recipientEmail,
-        content.getSubject(),
-        content
-    );
-
-    try {
-      messageSender.send(message);
-
-      messageHistoryRepository.save(
-          MessageHistory.createRequestCompletedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.SUCCESS,
-              message.content().getMessage(),
-              today
-          )
-      );
-    } catch (Exception e) {
-      messageHistoryRepository.save(
-          MessageHistory.createRequestCompletedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.FAIL,
-              message.content().getMessage(),
-              today
-          )
-      );
-      log.error("Request completed email send failed. rentalId={}", rental.getId(), e);
-    }
+    dispatch(MessageType.REQUEST_COMPLETED, rental);
   }
 
   @Transactional
   public void sendRentalApproved(Rental rental) {
-    LocalDate today = LocalDate.now();
-    String recipientEmail = rental.getBorrower().getEmail();
-    if (recipientEmail == null) {
-      log.info("Skip rental approved email. rentalId={}, reason=no recipient email",
-          rental.getId());
-      return;
-    }
-
-    RentalApprovedContent content = new RentalApprovedContent(
-        rental.getOrganization().getName(),
-        rental.getItem().getName(),
-        rental.getDueDate()
-    );
-
-    OutboundMessage message = new OutboundMessage(
-        recipientEmail,
-        content.getSubject(),
-        content
-    );
-
-    try {
-      messageSender.send(message);
-
-      messageHistoryRepository.save(
-          MessageHistory.createRentalApprovedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.SUCCESS,
-              message.content().getMessage(),
-              today
-          )
-      );
-    } catch (Exception e) {
-      messageHistoryRepository.save(
-          MessageHistory.createRentalApprovedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.FAIL,
-              message.content().getMessage(),
-              today
-          )
-      );
-      log.error("Rental approved email send failed. rentalId={}", rental.getId(), e);
-    }
+    dispatch(MessageType.RENTAL_APPROVED, rental);
   }
 
   @Transactional
   public void sendReturnConfirmed(Rental rental) {
-    LocalDate today = LocalDate.now();
-    String recipientEmail = rental.getBorrower().getEmail();
-    if (recipientEmail == null) {
-      log.info("Skip return confirmed email. rentalId={}, reason=no recipient email",
-          rental.getId());
-      return;
-    }
-
-    ReturnConfirmedContent content = new ReturnConfirmedContent(
-        rental.getOrganization().getName(),
-        rental.getItem().getName()
-    );
-
-    OutboundMessage message = new OutboundMessage(
-        recipientEmail,
-        content.getSubject(),
-        content
-    );
-
-    try {
-      messageSender.send(message);
-
-      messageHistoryRepository.save(
-          MessageHistory.createReturnConfirmedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.SUCCESS,
-              message.content().getMessage(),
-              today
-          )
-      );
-    } catch (Exception e) {
-      messageHistoryRepository.save(
-          MessageHistory.createReturnConfirmedHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.FAIL,
-              message.content().getMessage(),
-              today
-          )
-      );
-      log.error("Return confirmed email send failed. rentalId={}", rental.getId(), e);
-    }
+    dispatch(MessageType.RETURN_CONFIRMED, rental);
   }
 
-  private boolean sendMessage(LocalDate today, Rental rental) {
-    String recipientEmail = rental.getBorrower().getEmail();
-    if (recipientEmail == null) {
-      throw new ApplicationException(ErrorCode.EMAIL_NOT_FOUND);
-    }
+  @Transactional
+  public boolean dispatch(MessageType messageType, Rental rental) {
+    return dispatch(messageType, rental, LocalDate.now());
+  }
 
-    OverdueReminderContent content = new OverdueReminderContent(
-        rental.getOrganization().getName(),
-        rental.getItem().getName(),
-        rental.getOverdueDays()
-    );
-
-    OutboundMessage message = new OutboundMessage(
-        recipientEmail,
-        content.getSubject(),
-        content
-    );
-
-    try {
-      messageSender.send(message);
-
-      messageHistoryRepository.save(
-          MessageHistory.createOverdueReminderHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.SUCCESS,
-              message.content().getMessage(),
-              today
-          )
-      );
-      return true;
-    } catch (Exception e) {
-      messageHistoryRepository.save(
-          MessageHistory.createOverdueReminderHistory(
-              rental,
-              message.recipient(),
-              MessageSendStatus.FAIL,
-              message.content().getMessage(),
-              today
-          )
-      );
-      log.error("연체 알림 메시지 발송 실패. rentalId={}", rental.getId(), e);
-      return false;
-    }
+  private boolean dispatch(MessageType messageType, Rental rental, LocalDate sentDate) {
+    var notification = notificationFactory.create(messageType, rental);
+    NotificationDispatchResult result = notificationDispatcher.dispatch(notification, rental);
+    notificationHistoryRecorder.record(rental, notification, result, sentDate);
+    return result.hasSuccess();
   }
 }
