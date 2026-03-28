@@ -19,7 +19,7 @@ public class EmailMessageSender implements MessageSender {
   }
 
   @Override
-  public void send(NotificationRequest request) throws Exception {
+  public void send(NotificationRequest request) {
     emailService.sendHtmlEmail(
         request.resolveRecipient(NotificationChannel.EMAIL),
         request.content().getSubject(),

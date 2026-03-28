@@ -43,7 +43,7 @@ public class NotificationDispatcher {
               MessageSendStatus.SUCCESS
           )
       ));
-    } catch (Exception e) {
+    } catch (ApplicationException e) {
       log.error("Notification send failed. rentalId={}, messageType={}, channel={}",
           rental.getId(), request.messageType(), DEFAULT_CHANNEL, e);
       return new NotificationDispatchResult(List.of(
