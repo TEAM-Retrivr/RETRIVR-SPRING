@@ -4,12 +4,12 @@ public class OverdueReminderContent extends MessageContent {
 
   private final String organizationName;
   private final String itemName;
-  private final Integer overdueDays;
+  private final int overdueDays;
 
   public OverdueReminderContent(
       String organizationName,
       String itemName,
-      Integer overdueDays
+      int overdueDays
   ) {
     this.organizationName = organizationName;
     this.itemName = itemName;
