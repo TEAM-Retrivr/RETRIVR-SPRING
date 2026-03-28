@@ -69,9 +69,9 @@ public class PublicRentalService {
 
     //todo: 장바구니? 기능 이후 name List 를 넘기도록 수정
     String itemName = rental.getRentalItems().getFirst().getItem().getName();
-    String itemUnitCode = null;
+    String itemUnitLabel = null;
     if (!rental.getRentalItemUnits().isEmpty()) {
-      itemUnitCode = rental.getRentalItemUnits().getFirst().getItemUnit().getCode();
+      itemUnitLabel = rental.getRentalItemUnits().getFirst().getItemUnit().getLabel();
     }
 
     Map<String, String> borrowerField = new HashMap<>();
@@ -82,6 +82,6 @@ public class PublicRentalService {
       );
     }
 
-    return PublicRentalDetailResponse.from(rental, itemName, itemUnitCode, borrowerField);
+    return PublicRentalDetailResponse.from(rental, itemName, itemUnitLabel, borrowerField);
   }
 }

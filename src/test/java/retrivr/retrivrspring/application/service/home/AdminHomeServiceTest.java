@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -40,7 +41,7 @@ class AdminHomeServiceTest {
     private AdminHomeService adminHomeService;
 
     @Test
-    @DisplayName("TC-01: 정상 홈 조회 - requestCount + 최신 2건 + major 포함")
+    @DisplayName("TC-01: 정상 홈 조회 - requestCount + 최신 2건")
     void getHome_success() {
 
         // given
@@ -67,7 +68,6 @@ class AdminHomeServiceTest {
         // mock borrower
         Borrower borrower = mock(Borrower.class);
         when(borrower.getName()).thenReturn("조윤아");
-        when(borrower.getMajor()).thenReturn("동물자원과학과");
 
         // mock rentalItem
         RentalItem rentalItem = mock(RentalItem.class);
@@ -110,7 +110,6 @@ class AdminHomeServiceTest {
         assertThat(summary.availableQuantity()).isEqualTo(2);
         assertThat(summary.totalQuantity()).isEqualTo(5);
         assertThat(summary.borrowerName()).isEqualTo("조윤아");
-        assertThat(summary.borrowerMajor()).isEqualTo("동물자원과학과");
         assertThat(summary.requestedAt()).isEqualTo(LocalDateTime.of(2026, 1, 21, 17, 0));
 
         verify(rentalRepository, times(1))
@@ -120,53 +119,5 @@ class AdminHomeServiceTest {
                 .findRecentHomeRentalIds(eq(orgId), eq(RentalStatus.REQUESTED), any());
         verify(rentalRepository, times(1))
                 .findRecentHomeRentalsByIds(eq(List.of(1001L)));
-    }
-
-    @Test
-    @DisplayName("TC-02: major가 null이면 null 반환")
-    void getHome_major_null() {
-
-        Long orgId = 1L;
-
-        Organization org = mock(Organization.class);
-        when(org.getName()).thenReturn("단체");
-        when(org.getProfileImageKey()).thenReturn(null);
-        when(organizationRepository.findById(orgId))
-                .thenReturn(java.util.Optional.of(org));
-
-        when(rentalRepository.countByOrganization_IdAndStatus(orgId, RentalStatus.REQUESTED))
-                .thenReturn(1);
-
-        Item item = mock(Item.class);
-        when(item.getName()).thenReturn("멀티탭");
-        when(item.getAvailableQuantity()).thenReturn(1);
-        when(item.getTotalQuantity()).thenReturn(3);
-
-        Borrower borrower = mock(Borrower.class);
-        when(borrower.getName()).thenReturn("홍길동");
-        when(borrower.getMajor()).thenReturn(null); // null 케이스
-
-        RentalItem rentalItem = mock(RentalItem.class);
-        when(rentalItem.getItem()).thenReturn(item);
-
-        Rental rental = mock(Rental.class);
-        when(rental.getId()).thenReturn(200L);
-        when(rental.getBorrower()).thenReturn(borrower);
-        when(rental.getRequestedAt()).thenReturn(LocalDateTime.now());
-        when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
-
-        when(rentalRepository.findRecentHomeRentalIds(
-                eq(orgId),
-                eq(RentalStatus.REQUESTED),
-                any()
-        )).thenReturn(List.of(200L));
-        when(rentalRepository.findRecentHomeRentalsByIds(eq(List.of(200L))))
-                .thenReturn(List.of(rental));
-
-        AdminHomeResponse result = adminHomeService.getHome(orgId);
-
-        assertThat(result.profileImageUrl()).isNull();
-        assertThat(result.recentRequests().get(0).borrowerMajor()).isNull();
-        assertThat(result.recentRequests().get(0).requestedAt()).isNotNull();
     }
 }

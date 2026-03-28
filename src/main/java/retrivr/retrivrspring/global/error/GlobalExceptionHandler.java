@@ -45,6 +45,7 @@ public class GlobalExceptionHandler {
             .map(FieldError::getDefaultMessage)
             .orElse("잘못된 요청입니다.");
 
+        log.error("[MethodArgumentNotValidException] message={}", message, e);
         return ResponseEntity.badRequest()
             .body(ErrorResponse.of(ErrorCode.BAD_REQUEST_EXCEPTION, message));
     }

@@ -49,7 +49,7 @@ public class RentalScenarioNonUnitTest {
     return ItemUnit.builder()
         .id(id)
         .item(item)
-        .code("UNIT-" + id)
+        .label("UNIT-" + id)
         .status(status)
         .build();
   }

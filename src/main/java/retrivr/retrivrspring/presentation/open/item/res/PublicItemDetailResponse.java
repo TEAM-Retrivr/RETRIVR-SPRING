@@ -2,8 +2,8 @@ package retrivr.retrivrspring.presentation.open.item.res;
 
 import java.util.List;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
-import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 
 public record PublicItemDetailResponse(
     List<PublicItemUnitSummary> itemUnits,
@@ -12,14 +12,14 @@ public record PublicItemDetailResponse(
 
   public record PublicItemUnitSummary(
       Long itemUnitId,
-      String code,
+      String label,
       ItemUnitStatus status
   ) {
 
     public static PublicItemUnitSummary from(ItemUnit itemUnit) {
       return new PublicItemUnitSummary(
           itemUnit.getId(),
-          itemUnit.getCode(),
+          itemUnit.getLabel(),
           itemUnit.getStatus()
       );
     }

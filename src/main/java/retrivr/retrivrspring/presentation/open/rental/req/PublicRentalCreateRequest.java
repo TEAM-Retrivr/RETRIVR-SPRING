@@ -37,7 +37,7 @@ public record PublicRentalCreateRequest(
     String phone,
 
     @Schema(
-        description = "물품별 추가 대여자 정보. key는 필드명, value는 입력값입니다.",
+        description = "물품별 추가 대여자 정보. key는 라벨명, value는 입력값입니다.",
         example = """
             {
               "학과": "컴퓨터공학부",
