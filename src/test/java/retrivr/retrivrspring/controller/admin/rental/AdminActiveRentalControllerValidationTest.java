@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.presentation.admin.rental.AdminActiveRentalController;
 
 @WebMvcTest(AdminActiveRentalController.class)
@@ -34,6 +35,9 @@ public class AdminActiveRentalControllerValidationTest {
 
   @MockitoBean
   private AdminActiveRentalService adminRentalService;
+
+  @MockitoBean
+  private SendMessageService sendMessageService;
 
   @Nested
   @DisplayName("반납 확인 요청 검증")

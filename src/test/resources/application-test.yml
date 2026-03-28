@@ -1,0 +1,20 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+
+jwt:
+  secret: test-secret-key-test-secret-key-test-secret-key
+
+cors:
+  allowed-origins: http://localhost:3000
+  allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
