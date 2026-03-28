@@ -20,9 +20,7 @@ public abstract class MessageContent {
     return buildTemplateVariables();
   }
 
-  protected String buildSubject() {
-    return "[Retrivr] Notification";
-  }
+  protected abstract String buildSubject();
 
   protected String prefix() {
     return "[Retrivr]";
