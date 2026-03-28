@@ -42,4 +42,9 @@ public final class RejectedState implements RentalState {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot getOverdueDays when REJECTED");
   }
+
+  @Override
+  public boolean canSendOverdueMessage(Rental rental) {
+    return false;
+  }
 }

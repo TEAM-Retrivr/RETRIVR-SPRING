@@ -7,6 +7,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import retrivr.retrivrspring.application.event.RentalApprovedEvent;
+import retrivr.retrivrspring.application.event.RentalRejectedEvent;
 import retrivr.retrivrspring.application.service.admin.rental.AdminRequestedRentalService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -35,6 +38,8 @@ class AdminRequestedRentalServiceTest {
   RentalRepository rentalRepository;
   @Mock
   OrganizationRepository organizationRepository;
+  @Mock
+  ApplicationEventPublisher applicationEventPublisher;
 
   @InjectMocks
   AdminRequestedRentalService service;
@@ -167,6 +172,7 @@ class AdminRequestedRentalServiceTest {
 
     when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+    when(rental.getId()).thenReturn(rentalId);
 
     AdminRentalApproveRequest req = mock(AdminRentalApproveRequest.class);
     when(req.adminNameToApprove()).thenReturn("adminA");
@@ -176,6 +182,7 @@ class AdminRequestedRentalServiceTest {
 
     // then
     verify(rental).approve("adminA", org);
+    verify(applicationEventPublisher).publishEvent(new RentalApprovedEvent(rentalId));
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("APPROVE");
     assertThat(res.adminNameToDecide()).isEqualTo("adminA");
@@ -195,6 +202,7 @@ class AdminRequestedRentalServiceTest {
 
     when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+    when(rental.getId()).thenReturn(rentalId);
 
     AdminRentalRejectRequest req = mock(AdminRentalRejectRequest.class);
     when(req.adminNameToReject()).thenReturn("adminB");
@@ -204,6 +212,7 @@ class AdminRequestedRentalServiceTest {
 
     // then
     verify(rental).reject("adminB", org);
+    verify(applicationEventPublisher).publishEvent(new RentalRejectedEvent(rentalId));
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("REJECT");
     assertThat(res.adminNameToDecide()).isEqualTo("adminB");

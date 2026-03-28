@@ -12,6 +12,6 @@ public record EmailVerificationResponse(
         @Schema(example = "true")
         boolean verified,
 
-        @Schema(example = "2026-02-15T12:00:00")
+        @Schema(example = "2026-02-15 12:00")
         LocalDateTime verifiedAt
 ) {}

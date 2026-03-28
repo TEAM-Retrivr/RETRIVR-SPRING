@@ -19,4 +19,6 @@ public interface RentalSearchRepository {
   Map<Long, Rental> findByItemUnitIn(List<ItemUnit> itemUnits);
 
   List<Rental> findRentedByItemId(Long itemId, Long cursor, int limit);
+
+  List<Rental> findOverdueReminderTargets(LocalDate today);
 }

@@ -56,6 +56,7 @@ public enum ErrorCode {
     RENTAL_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 5002, "대여 상태를 요청된 상태로 변경할 수 없습니다."),
     INVALID_RENTAL_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 5003, "대여 데이터가 잘못되었습니다."),
     RENTAL_DUE_DATE_UPDATE_EXCEPTION(HttpStatus.BAD_REQUEST, 5004, "반납 일자를 수정할 수 없는 상태입니다."),
+    DO_NOT_SEND_OVERDUE_MESSAGE(HttpStatus.CONFLICT, 5005, "연체 문자를 보낼 수 없는 대여 상태입니다."),
 
     // 6000: Authentication Error
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),

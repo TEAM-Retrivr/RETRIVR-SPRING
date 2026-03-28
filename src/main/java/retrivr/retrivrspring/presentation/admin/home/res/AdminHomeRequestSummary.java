@@ -1,6 +1,5 @@
 package retrivr.retrivrspring.presentation.admin.home.res;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
@@ -22,7 +21,7 @@ public record AdminHomeRequestSummary(
         @Schema(description = "대여자 이름", example = "홍길동")
         String borrowerName,
 
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        @Schema(description = "요청 일시", example = "2026-01-21T17:00:00")
-        LocalDateTime requestedAt
-) {}
+    @Schema(description = "요청 일시", example = "2026-01-21 17:00")
+    LocalDateTime requestedAt
+) {
+}

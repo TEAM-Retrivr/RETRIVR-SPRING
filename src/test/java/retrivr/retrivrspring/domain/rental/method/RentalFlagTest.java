@@ -65,22 +65,4 @@ class RentalFlagTest {
 
     assertThat(rental.isOverdue()).isFalse();
   }
-
-
-  @Test
-  @DisplayName("canSendOverdueSms(): borrower.isValidPhoneFormat() 위임 결과 반환")
-  void canSendOverdueSms_delegates() {
-    Borrower borrower = mock(Borrower.class);
-    when(borrower.isValidPhoneFormat()).thenReturn(true);
-
-    Rental rental = Rental.builder()
-        .organization(mock(Organization.class))
-        .borrower(borrower)
-        .status(RentalStatus.RENTED)
-        .requestedAt(LocalDateTime.now())
-        .build();
-
-    assertThat(rental.canSendOverdueSms()).isTrue();
-    verify(borrower, times(1)).isValidPhoneFormat();
-  }
 }
