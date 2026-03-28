@@ -208,6 +208,7 @@ class AdminRequestedRentalServiceTest {
 
     // then
     verify(rental).reject("adminB", org);
+    verify(sendMessageService).sendRentalRejected(rental);
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("REJECT");
     assertThat(res.adminNameToDecide()).isEqualTo("adminB");

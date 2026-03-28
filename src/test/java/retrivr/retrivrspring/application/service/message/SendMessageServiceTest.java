@@ -94,6 +94,29 @@ class SendMessageServiceTest {
   }
 
   @Test
+  @DisplayName("sendRentalRejected: dispatches rejected notification")
+  void sendRentalRejected_dispatch() {
+    Rental rental = mock(Rental.class);
+    NotificationRequest request = mock(NotificationRequest.class);
+    NotificationDispatchResult result = new NotificationDispatchResult(
+        java.util.List.of(new NotificationDispatchAttempt(
+            NotificationChannel.EMAIL,
+            "user@test.com",
+            MessageSendStatus.SUCCESS
+        ))
+    );
+
+    when(notificationFactory.create(MessageType.RENTAL_REJECTED, rental)).thenReturn(request);
+    when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
+
+    service().sendRentalRejected(rental);
+
+    verify(notificationFactory).create(MessageType.RENTAL_REJECTED, rental);
+    verify(notificationDispatcher).dispatch(request, rental);
+    verify(notificationHistoryRecorder).record(rental, request, result, LocalDate.now());
+  }
+
+  @Test
   @DisplayName("dispatch: overdue reminder throws when email is missing")
   void dispatch_overdueReminder_throwWhenEmailMissing() {
     Rental rental = mockRental(null, "01012345678");

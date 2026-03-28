@@ -8,6 +8,7 @@ import retrivr.retrivrspring.domain.message.MessageContent;
 import retrivr.retrivrspring.domain.message.MessageType;
 import retrivr.retrivrspring.domain.message.OverdueReminderContent;
 import retrivr.retrivrspring.domain.message.RentalApprovedContent;
+import retrivr.retrivrspring.domain.message.RentalRejectedContent;
 import retrivr.retrivrspring.domain.message.RequestCompletedContent;
 import retrivr.retrivrspring.domain.message.ReturnConfirmedContent;
 
@@ -36,6 +37,10 @@ public class RentalNotificationFactory implements NotificationFactory {
           rental.getOrganization().getName(),
           rental.getItem().getName(),
           rental.getDueDate()
+      );
+      case RENTAL_REJECTED -> new RentalRejectedContent(
+          rental.getOrganization().getName(),
+          rental.getItem().getName()
       );
       case RETURN_CONFIRMED -> new ReturnConfirmedContent(
           rental.getOrganization().getName(),

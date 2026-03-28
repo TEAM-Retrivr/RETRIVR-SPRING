@@ -94,6 +94,7 @@ public class AdminRequestedRentalService {
 
     // 3. 대여 거부
     rental.reject(request.adminNameToReject(), loginOrganization);
+    sendMessageService.sendRentalRejected(rental);
 
     return new AdminRentalDecisionResponse(
         rentalId,

@@ -86,6 +86,11 @@ public class SendMessageService {
   }
 
   @Transactional
+  public void sendRentalRejected(Rental rental) {
+    dispatch(MessageType.RENTAL_REJECTED, rental);
+  }
+
+  @Transactional
   public void sendReturnConfirmed(Rental rental) {
     dispatch(MessageType.RETURN_CONFIRMED, rental);
   }
