@@ -3,9 +3,10 @@ package retrivr.retrivrspring.application.service.open;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.application.service.message.SendMessageService;
+import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
@@ -32,7 +33,7 @@ public class PublicRentalService {
   private final RentalRepository rentalRepository;
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
-  private final SendMessageService sendMessageService;
+  private final ApplicationEventPublisher applicationEventPublisher;
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
@@ -60,7 +61,7 @@ public class PublicRentalService {
     // 5. Rental 생성 및 저장
     Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower);
     rentalRepository.save(requestedRental);
-    sendMessageService.sendRequestCompleted(requestedRental);
+    applicationEventPublisher.publishEvent(new RentalRequestedEvent(requestedRental.getId()));
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),
         request.itemUnitId(), requestedRental.getRequestedAt());

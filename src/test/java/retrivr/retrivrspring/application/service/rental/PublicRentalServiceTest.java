@@ -28,7 +28,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import retrivr.retrivrspring.application.service.message.SendMessageService;
+import org.springframework.context.ApplicationEventPublisher;
+import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -55,7 +56,7 @@ class PublicRentalServiceTest {
   @Mock private RentalRepository rentalRepository;
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
-  @Mock private SendMessageService sendMessageService;
+  @Mock private ApplicationEventPublisher applicationEventPublisher;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -65,7 +66,7 @@ class PublicRentalServiceTest {
         rentalRepository,
         itemRepository,
         itemUnitRepository,
-        sendMessageService
+        applicationEventPublisher
     );
   }
 
@@ -143,12 +144,16 @@ class PublicRentalServiceTest {
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
     ArgumentCaptor<Rental> rentalCaptor = ArgumentCaptor.forClass(Rental.class);
-    doAnswer(inv -> null).when(rentalRepository).save(any(Rental.class));
+    doAnswer(inv -> {
+      Rental savedRental = inv.getArgument(0);
+      setRentalId(savedRental, 1L);
+      return null;
+    }).when(rentalRepository).save(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
     verify(rentalRepository, times(1)).save(rentalCaptor.capture());
-    verify(sendMessageService).sendRequestCompleted(any(Rental.class));
+    verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isNull();
     assertThat(res.requestedAt()).isNotNull();
@@ -171,11 +176,16 @@ class PublicRentalServiceTest {
     when(req.phone()).thenReturn("010-0000-0000");
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
+    doAnswer(inv -> {
+      Rental savedRental = inv.getArgument(0);
+      setRentalId(savedRental, 1L);
+      return null;
+    }).when(rentalRepository).save(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
     verify(rentalRepository, times(1)).save(any(Rental.class));
-    verify(sendMessageService).sendRequestCompleted(any(Rental.class));
+    verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isEqualTo(99L);
   }
@@ -254,5 +264,14 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("노트북");
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
     assertThat(res.borrowerField()).containsEntry("학번", "20251234");
+  }
+  private void setRentalId(Rental rental, Long rentalId) {
+    try {
+      java.lang.reflect.Field idField = Rental.class.getDeclaredField("id");
+      idField.setAccessible(true);
+      idField.set(rental, rentalId);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

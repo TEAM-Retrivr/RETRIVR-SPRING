@@ -13,8 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import retrivr.retrivrspring.application.event.RentalReturnedEvent;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
-import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
@@ -39,7 +40,7 @@ class AdminActiveRentalServiceTest {
   @Mock
   ItemUnitRepository itemUnitRepository;
   @Mock
-  SendMessageService sendMessageService;
+  ApplicationEventPublisher applicationEventPublisher;
 
   @InjectMocks
   AdminActiveRentalService service;
@@ -56,19 +57,20 @@ class AdminActiveRentalServiceTest {
   }
 
   @Test
-  @DisplayName("confirmReturn: success sends return confirmed email")
+  @DisplayName("confirmReturn: success publishes return confirmed event")
   void confirmReturn_success() {
     Rental rental = mock(Rental.class);
     Organization organization = mock(Organization.class);
 
     when(rentalRepository.findByIdWithItems(1L)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(10L)).thenReturn(Optional.of(organization));
+    when(rental.getId()).thenReturn(1L);
 
     AdminRentalReturnResponse response =
         service.confirmReturn(10L, 1L, new AdminRentalReturnRequest("admin"));
 
     verify(rental).markReturned("admin", organization);
-    verify(sendMessageService).sendReturnConfirmed(rental);
+    verify(applicationEventPublisher).publishEvent(new RentalReturnedEvent(1L));
     assertThat(response.rentalId()).isEqualTo(1L);
     assertThat(response.rentalStatus()).isEqualTo(RentalStatus.RETURNED);
     assertThat(response.adminNameToConfirm()).isEqualTo("admin");
