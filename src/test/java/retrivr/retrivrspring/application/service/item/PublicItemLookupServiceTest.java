@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import retrivr.retrivrspring.application.service.open.PublicItemLookupService;
 import retrivr.retrivrspring.domain.entity.item.Item;
+import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
@@ -61,6 +62,13 @@ class PublicItemLookupServiceTest {
     return unit;
   }
 
+  private ItemBorrowerField mockBorrowerField(String label, boolean required) {
+    ItemBorrowerField borrowerField = mock(ItemBorrowerField.class);
+    when(borrowerField.getLabel()).thenReturn(label);
+    when(borrowerField.isRequired()).thenReturn(required);
+    return borrowerField;
+  }
+
   @Test
   @DisplayName("IL-01: org not found")
   void listLookup_orgNotFound_throw() {
@@ -98,7 +106,7 @@ class PublicItemLookupServiceTest {
   @Test
   @DisplayName("IL-06: item not found")
   void detailLookup_itemNotFound_throw() {
-    when(itemRepository.findById(10L)).thenReturn(Optional.empty());
+    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> publicItemLookupService.publicOrganizationItemLookup(10L))
         .isInstanceOf(ApplicationException.class)
@@ -111,18 +119,26 @@ class PublicItemLookupServiceTest {
   void detailLookup_ok() {
     long itemId = 10L;
     Item item = mock(Item.class);
+    List<ItemBorrowerField> borrowerFields = List.of(
+        mockBorrowerField("학번", true),
+        mockBorrowerField("연락처", false)
+    );
     List<ItemUnit> units = List.of(
         mockItemUnit(1L),
         mockItemUnit(2L)
     );
     when(item.isUnitType()).thenReturn(true);
     when(item.getItemManagementType()).thenReturn(ItemManagementType.UNIT);
-    when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
+    when(item.getItemBorrowerFields()).thenReturn(borrowerFields);
+    when(itemRepository.findFetchItemBorrowerFieldsById(itemId)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(units);
 
     PublicItemDetailResponse res = publicItemLookupService.publicOrganizationItemLookup(itemId);
 
     assertThat(res.itemUnits()).hasSize(2);
     assertThat(res.itemUnits().get(0).label()).isEqualTo("UMB-1");
+    assertThat(res.borrowerRequirements()).hasSize(2);
+    assertThat(res.borrowerRequirements().get(0).label()).isEqualTo("학번");
+    assertThat(res.borrowerRequirements().get(0).required()).isTrue();
   }
 }

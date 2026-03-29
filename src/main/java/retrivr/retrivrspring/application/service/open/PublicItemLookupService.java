@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.application.service.open;
 
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
@@ -12,11 +13,10 @@ import retrivr.retrivrspring.domain.repository.organization.OrganizationReposito
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse;
+import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse.BorrowerRequirement;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse.PublicItemUnitSummary;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemListPageResponse;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemSummary;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,10 +55,13 @@ public class PublicItemLookupService {
   }
 
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {
-    Item item = itemRepository.findById(itemId)
+    Item item = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+    List<BorrowerRequirement> borrowerRequirements = item.getItemBorrowerFields().stream()
+        .map(BorrowerRequirement::from)
+        .toList();
     if (!item.isUnitType()) {
-      return new PublicItemDetailResponse(List.of(), item.getItemManagementType());
+      return new PublicItemDetailResponse(List.of(), borrowerRequirements, item.getItemManagementType());
     }
 
     List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId);
@@ -67,6 +70,6 @@ public class PublicItemLookupService {
         .map(PublicItemUnitSummary::from)
         .toList();
 
-    return new PublicItemDetailResponse(list, item.getItemManagementType());
+    return new PublicItemDetailResponse(list, borrowerRequirements, item.getItemManagementType());
   }
 }
