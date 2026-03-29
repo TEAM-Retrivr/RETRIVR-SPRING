@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.QItem;
 import retrivr.retrivrspring.domain.entity.item.QItemUnit;
+import retrivr.retrivrspring.domain.entity.organization.QOrganization;
 import retrivr.retrivrspring.domain.entity.rental.*;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
@@ -246,5 +247,32 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
     }
     return rental.id.lt(cursor); // DESC 커서 페이징
   }
+
+  @Override
+  public List<Rental> findOverdueReminderTargets(LocalDate today) {
+    QRental rental = QRental.rental;
+    QBorrower borrower = QBorrower.borrower;
+    QOrganization organization = QOrganization.organization;
+    QRentalItem rentalItem = QRentalItem.rentalItem;
+    QItem item = QItem.item;
+
+    return jpaQueryFactory
+        .selectDistinct(rental)
+        .from(rental)
+        .join(rental.borrower, borrower).fetchJoin()
+        .join(rental.organization, organization).fetchJoin()
+        .join(rental.rentalItems, rentalItem).fetchJoin()
+        .join(rentalItem.item, item).fetchJoin()
+        .where(
+            rental.returnedAt.isNull(),
+            rental.dueDate.before(today),
+            borrower.phone.phone.isNotNull(),
+            borrower.phone.phone.ne(""),
+            rental.status.eq(RentalStatus.RENTED),
+            item.useMessageAlarmService.isTrue()
+        )
+        .fetch();
+  }
+
 
 }

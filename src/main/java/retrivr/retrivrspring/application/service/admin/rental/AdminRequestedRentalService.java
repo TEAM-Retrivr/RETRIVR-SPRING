@@ -1,8 +1,11 @@
 package retrivr.retrivrspring.application.service.admin.rental;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.event.RentalApprovedEvent;
+import retrivr.retrivrspring.application.event.RentalRejectedEvent;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -27,6 +30,7 @@ public class AdminRequestedRentalService {
 
   private final RentalRepository rentalRepository;
   private final OrganizationRepository organizationRepository;
+  private final ApplicationEventPublisher applicationEventPublisher;
 
   public AdminRentalRequestPageResponse getRequestedList(Long loginOrganizationId, Long cursor, Integer size) {
     if (!organizationRepository.existsById(loginOrganizationId)) {
@@ -69,6 +73,7 @@ public class AdminRequestedRentalService {
     
     // 4. 대여 요청 승인
     rental.approve(request.adminNameToApprove(), organizationToApprove);
+    applicationEventPublisher.publishEvent(new RentalApprovedEvent(rental.getId()));
 
     return new AdminRentalDecisionResponse(
         rentalId,
@@ -91,6 +96,7 @@ public class AdminRequestedRentalService {
 
     // 3. 대여 거부
     rental.reject(request.adminNameToReject(), loginOrganization);
+    applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
 
     return new AdminRentalDecisionResponse(
         rentalId,

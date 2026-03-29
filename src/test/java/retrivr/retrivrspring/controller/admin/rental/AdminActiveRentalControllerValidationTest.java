@@ -11,29 +11,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
+import retrivr.retrivrspring.global.error.GlobalExceptionHandler;
 import retrivr.retrivrspring.presentation.admin.rental.AdminActiveRentalController;
 
-@WebMvcTest(AdminActiveRentalController.class)
-@AutoConfigureMockMvc(addFilters = false)
-@ActiveProfiles("test")
-public class AdminActiveRentalControllerValidationTest {
+@ExtendWith(MockitoExtension.class)
+class AdminActiveRentalControllerValidationTest {
 
-  @Autowired
   private MockMvc mockMvc;
 
-  @MockitoBean
-  JpaMetamodelMappingContext jpaMetamodelMappingContext;
-
-  @MockitoBean
+  @Mock
   private AdminActiveRentalService adminRentalService;
+
+  @Mock
+  private SendMessageService sendMessageService;
+
+  @BeforeEach
+  void setUp() {
+    LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+    validator.afterPropertiesSet();
+
+    mockMvc = MockMvcBuilders
+        .standaloneSetup(new AdminActiveRentalController(adminRentalService, sendMessageService))
+        .setControllerAdvice(new GlobalExceptionHandler())
+        .setValidator(validator)
+        .build();
+  }
 
   @Nested
   @DisplayName("반납 확인 요청 검증")

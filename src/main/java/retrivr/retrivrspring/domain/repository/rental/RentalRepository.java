@@ -21,6 +21,9 @@ public interface RentalRepository
     @EntityGraph(attributePaths = {"rentalItems", "organization"})
     Optional<Rental> findFetchRentalItemAndOrganizationById(Long rentalId);
 
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
+    Optional<Rental> findFetchBorrowerRentalItemAndOrganizationById(Long rentalId);
+
     // 전체 REQUESTED 개수
     int countByOrganization_IdAndStatus(Long organizationId, RentalStatus status);
 

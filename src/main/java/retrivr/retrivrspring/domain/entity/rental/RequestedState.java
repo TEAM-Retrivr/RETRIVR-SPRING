@@ -65,4 +65,9 @@ public final class RequestedState implements RentalState {
   public int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot getOverdueDays when REQUESTED");  }
+
+  @Override
+  public boolean canSendOverdueMessage(Rental rental) {
+    return false;
+  }
 }

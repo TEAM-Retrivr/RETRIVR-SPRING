@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
+import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminMessageSendResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.req.AdminRentalReturnRequest;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResponse;
@@ -36,6 +38,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitLi
 public class AdminActiveRentalController {
 
   private final AdminActiveRentalService adminActiveRentalService;
+  private final SendMessageService sendMessageService;
 
   @GetMapping("/rentals/overdue")
   @Operation(summary = "연체된 물품 리스트 조회")
@@ -118,5 +121,25 @@ public class AdminActiveRentalController {
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return adminActiveRentalService.updateDueDate(loginUser.organizationId(), rentalId, request);
+  }
+
+  @PostMapping("/rentals/{rentalId}/messages/overdue-reminder")
+  @Operation(summary = "특정 대여 건 연체 알림 메시지 수동 발송")
+  @ApiResponse(
+      responseCode = "200",
+      description = "연체 알림 메시지 발송 성공 여부 반환"
+  )
+  @ApiErrorCodeExamples({
+      ErrorCode.NOT_FOUND_ORGANIZATION,
+      ErrorCode.NOT_FOUND_RENTAL,
+      ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION,
+      ErrorCode.DO_NOT_SEND_OVERDUE_MESSAGE
+  })
+  public AdminMessageSendResponse sendOverdueReminder(
+      @Parameter(description = "연체 알림 메시지를 발송할 대여 ID", example = "1")
+      @PathVariable("rentalId") Long rentalId,
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser
+  ){
+    return sendMessageService.sendOverdueReminder(rentalId, loginUser.organizationId());
   }
 }

@@ -44,7 +44,7 @@ public class PublicRentalController {
   }
 
   @GetMapping("/rentals/{rentalId}")
-  @Operation(summary = "대여 상태/대여 정보 조회(승인 완료 확인용)")
+  @Operation(summary = "대여 상태/대여 정보 조회(확인 완료 확인용)")
   @ApiResponse(
       responseCode = "200",
       description = "대여 정보 조회 성공",
