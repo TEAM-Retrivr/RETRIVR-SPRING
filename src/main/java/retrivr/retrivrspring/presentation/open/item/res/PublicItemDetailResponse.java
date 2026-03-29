@@ -1,12 +1,14 @@
 package retrivr.retrivrspring.presentation.open.item.res;
 
 import java.util.List;
+import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 
 public record PublicItemDetailResponse(
     List<PublicItemUnitSummary> itemUnits,
+    List<BorrowerRequirement> borrowerRequirements,
     ItemManagementType itemManagementType
 ) {
 
@@ -21,6 +23,19 @@ public record PublicItemDetailResponse(
           itemUnit.getId(),
           itemUnit.getLabel(),
           itemUnit.getStatus()
+      );
+    }
+  }
+
+  public record BorrowerRequirement(
+      String label,
+      boolean required
+  ) {
+
+    public static BorrowerRequirement from(ItemBorrowerField itemBorrowerField) {
+      return new BorrowerRequirement(
+          itemBorrowerField.getLabel(),
+          itemBorrowerField.isRequired()
       );
     }
   }
