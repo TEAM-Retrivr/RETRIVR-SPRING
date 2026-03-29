@@ -98,6 +98,7 @@ class AdminItemServiceTest {
 
     assertThat(response.itemUnits()).hasSize(2);
     assertThat(response.itemUnits().get(0).label()).isEqualTo("unit-a");
+    assertThat(response.itemUnits().get(0).status()).isEqualTo(ItemUnitStatus.AVAILABLE);
     assertThat(response.borrowerRequirements().get(0).label()).isEqualTo("학번");
   }
 
