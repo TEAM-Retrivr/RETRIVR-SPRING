@@ -135,17 +135,18 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
     QRentalItemUnit rentalItemUnit = QRentalItemUnit.rentalItemUnit;
     QItem item = QItem.item;
     QItemUnit itemUnit = QItemUnit.itemUnit;
+    long offset = cursor != null ? cursor : 0L;
 
     List<Rental> foundRental = jpaQueryFactory
         .selectFrom(rental)
         .join(rental.borrower).fetchJoin()
         .where(
             rental.organization.id.eq(organizationId),
-            cursorLt(rental, cursor),
             rental.status.eq(RentalStatus.RENTED)
                 .and(rental.dueDate.lt(today))
         )
         .orderBy(rental.id.desc())
+        .offset(offset)
         .limit(limit)
         .fetch();
 
