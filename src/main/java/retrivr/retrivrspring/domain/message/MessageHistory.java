@@ -19,6 +19,7 @@ public class MessageHistory extends BaseTimeEntity {
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "rental_id", nullable = false)
   private Rental rental;
 
     private String recipient;
