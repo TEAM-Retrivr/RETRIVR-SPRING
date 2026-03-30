@@ -24,7 +24,7 @@ public class OverdueReminderContent extends MessageContent {
   @Override
   protected String buildBody() {
     return String.format(
-        "대여지명: %s%n대여 물품명: %s%n연체일수: %d일%n빠른 시일 내에 반납 부탁드립니다.",
+        "%s입니다.%n대여해 가신 %s이(가) %d일 연체되었습니다.%n빠른 시일 내에 반납 부탁드립니다.",
         organizationName,
         itemName,
         overdueDays
