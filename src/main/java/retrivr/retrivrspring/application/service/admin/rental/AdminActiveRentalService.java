@@ -51,6 +51,7 @@ public class AdminActiveRentalService {
       int size) {
 
     LocalDate today = LocalDate.now();
+    long offset = cursor != null ? cursor : 0L;
 
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
         size);
@@ -62,7 +63,7 @@ public class AdminActiveRentalService {
     List<Rental> page = hasNext ? rentals.subList(0, normalizedSize.size()) : rentals;
     Long nextCursor = null;
     if (hasNext) {
-      nextCursor = page.getLast().getId();
+      nextCursor = offset + page.size();
     }
 
     List<OverdueRentalItemSummary> rows = page.stream()
