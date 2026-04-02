@@ -108,9 +108,18 @@ public class AdminItemService {
         List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId());
         ItemManagementType previousItemManagementType = item.getItemManagementType();
         Integer previousTotalQuantity = item.getTotalQuantity();
-        AdminItemUnitChangeSet unitChangeSet = adminItemUnitChangeClassifier.classify(
+        AdminItemUnitChangeSet requestedUnitChangeSet = adminItemUnitChangeClassifier.classify(
                 currentItemUnits,
                 request.unitChanges()
+        );
+        AdminItemUnitChangeSet unitChangeSet = new AdminItemUnitChangeSet(
+                item.resolveDeleteUnitLabelsForTargetType(
+                        request.itemManagementType(),
+                        currentItemUnits,
+                        requestedUnitChangeSet.deleteUnitLabels()
+                ),
+                requestedUnitChangeSet.createLabels(),
+                requestedUnitChangeSet.renameCommands()
         );
         item.validateUnitChangesForTargetType(
                 request.itemManagementType(),

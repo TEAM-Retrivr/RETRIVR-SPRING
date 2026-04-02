@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -218,6 +219,35 @@ class AdminItemServiceTest {
     assertThat(response.itemUnits()).hasSize(2);
     assertThat(response.itemUnits().get(0).label()).isEqualTo("unit-a");
     assertThat(response.itemUnits().get(1).label()).isEqualTo("unit-b");
+  }
+
+  @Test
+  @DisplayName("updateItem converts unit item to non-unit by deleting all existing units")
+  void updateItem_convertUnitToNonUnit_deletesAllUnits() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 2, 2);
+    ItemUnit firstUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
+    ItemUnit secondUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
+
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemId(itemId))
+        .thenReturn(List.of(firstUnit, secondUnit))
+        .thenReturn(List.of());
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(2, ItemManagementType.NON_UNIT, List.of());
+    stubUnitChangeClassification(List.of(firstUnit, secondUnit), request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.NON_UNIT);
+    assertThat(response.itemUnits()).isEmpty();
+    verify(itemUnitRepository).deleteAll(List.of(firstUnit, secondUnit));
   }
 
   @Test
