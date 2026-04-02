@@ -11,6 +11,7 @@ import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -398,6 +399,21 @@ public class Item extends BaseTimeEntity {
    * - 삭제 대상은 요청에 포함된 label 기준으로 결정한다.
    * - 대여 중/대여 요청 중 유닛은 삭제할 수 없다.
    */
+  public List<String> resolveDeleteUnitLabelsForTargetType(
+      ItemManagementType targetItemManagementType,
+      List<ItemUnit> currentItemUnits,
+      List<String> requestedDeleteUnitLabels
+  ) {
+    if (this.itemManagementType != ItemManagementType.UNIT
+        || targetItemManagementType != ItemManagementType.NON_UNIT) {
+      return requestedDeleteUnitLabels;
+    }
+
+    return currentItemUnits.stream()
+        .map(ItemUnit::getLabel)
+        .collect(Collectors.toList());
+  }
+
   public List<ItemUnit> getDeletableUnits(List<ItemUnit> currentItemUnits, List<String> deleteUnitLabels) {
     if (!isUnitType() || deleteUnitLabels == null || deleteUnitLabels.isEmpty()) {
       return List.of();
