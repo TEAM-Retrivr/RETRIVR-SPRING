@@ -92,7 +92,7 @@ public class Organization extends BaseTimeEntity {
   }
 
   public void updateProfileImageKey(String profileImageKey) {
-    this.profileImageKey = profileImageKey;
+    this.profileImageKey = (profileImageKey == null || profileImageKey.isBlank()) ? null : profileImageKey;
   }
 
   public String getPasswordHash() {
