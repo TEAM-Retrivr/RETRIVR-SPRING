@@ -101,6 +101,9 @@ public class AdminProfileController {
         content = @Content(schema = @Schema(implementation = AdminProfileImageUpdateResponse.class))
     )
     @ApiErrorCodeExamples({
+        ErrorCode.NOT_FOUND_ORGANIZATION,
+        ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION,
+        ErrorCode.NOT_FOUND_PROFILE_IMAGE
     })
     public AdminProfileImageUpdateResponse updateProfileImage(
         @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
