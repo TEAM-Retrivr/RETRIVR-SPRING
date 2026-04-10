@@ -74,7 +74,7 @@ public class EmailVerificationService {
                 signupTokenRepository.deleteByEmail(email);
                 break;
             case PASSWORD_RESET:
-                Organization organization = organizationRepository.findByEmail(request.email())
+                Organization organization = organizationRepository.findByEmail(email)
                     .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
                 passwordResetTokenRepository.deleteByOrganization(organization);
                 break;
