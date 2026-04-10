@@ -100,7 +100,7 @@ public enum ErrorCode {
 
     // 11000: File Storage Error
     NOT_ALLOWED_IMAGE_CONTENT_TYPE(HttpStatus.BAD_REQUEST, 11000, "저장할 수 없는 이미지 컨텐츠 유형입니다."),
-    NOT_FOUND_PROFILE_IMAGE(HttpStatus.NOT_FOUND, 11001, "ObjectKey 에 대한 이미지를 찹을 수 없습니다.");
+    NOT_FOUND_PROFILE_IMAGE(HttpStatus.NOT_FOUND, 11001, "ObjectKey 에 대한 이미지를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
