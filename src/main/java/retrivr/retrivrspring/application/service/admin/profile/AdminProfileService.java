@@ -120,6 +120,7 @@ public class AdminProfileService {
 
         // objectKey 가 null 일 경우 이미지 삭제
         if (request.objectKey() == null) {
+            imageStoragePort.delete(organization.getProfileImageKey());
             organization.updateProfileImageKey(null);
             return new AdminProfileImageUpdateResponse(loginOrganizationId, null);
         }
