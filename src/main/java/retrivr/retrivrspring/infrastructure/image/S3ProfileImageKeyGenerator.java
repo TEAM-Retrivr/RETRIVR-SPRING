@@ -29,6 +29,10 @@ public class S3ProfileImageKeyGenerator implements ProfileImageKeyGeneratorPort 
 
   @Override
   public boolean isProfileImageKeyOwner(Long organizationId, String objectKey) {
+    if (organizationId == null || objectKey == null || objectKey.isBlank()) {
+      return false;
+    }
+
     String expectedPrefix = "organizations/" + organizationId + "/profile/";
 
     if (!objectKey.startsWith(expectedPrefix)) {
