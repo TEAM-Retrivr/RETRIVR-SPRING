@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.infrastructure.image;
 
+import java.util.Locale;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -15,11 +16,14 @@ public final class ImageContentTypePolicy {
   );
 
   public static boolean isAllowed(String contentType) {
-    return contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase());
+    return contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT));
   }
 
   public static String extractExtension(String contentType) {
-    return switch (contentType.toLowerCase()) {
+    if (contentType == null || contentType.isBlank()) {
+      throw new IllegalArgumentException("content type must not be blank");
+    }
+    return switch (contentType.toLowerCase(Locale.ROOT)) {
       case "image/jpeg" -> "jpeg";
       case "image/jpg" -> "jpg";
       case "image/png" -> "png";
