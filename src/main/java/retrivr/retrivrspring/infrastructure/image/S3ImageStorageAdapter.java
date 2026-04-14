@@ -31,13 +31,13 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
   @Override
   public PresignedUploadUrl createPresignedUploadUrl(String objectKey, String contentType) {
     PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-        .bucket(s3Properties.getBucket())
+        .bucket(s3Properties.bucket())
         .key(objectKey)
         .contentType(contentType)
         .build();
 
     PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofSeconds(s3Properties.getPutExpiration()))
+        .signatureDuration(Duration.ofSeconds(s3Properties.putExpiration()))
         .putObjectRequest(putObjectRequest)
         .build();
 
@@ -52,12 +52,12 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
   @Override
   public String createPresignedDownloadUrl(String objectKey) {
     GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-        .bucket(s3Properties.getBucket())
+        .bucket(s3Properties.bucket())
         .key(objectKey)
         .build();
 
     GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofSeconds(s3Properties.getGetExpiration()))
+        .signatureDuration(Duration.ofSeconds(s3Properties.getExpiration()))
         .getObjectRequest(getObjectRequest)
         .build();
 
@@ -70,7 +70,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
   @Override
   public void delete(String objectKey) {
     DeleteObjectRequest request = DeleteObjectRequest.builder()
-        .bucket(s3Properties.getBucket())
+        .bucket(s3Properties.bucket())
         .key(objectKey)
         .build();
 
@@ -80,7 +80,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
   @Override
   public boolean exists(String objectKey) {
     HeadObjectRequest request = HeadObjectRequest.builder()
-        .bucket(s3Properties.getBucket())
+        .bucket(s3Properties.bucket())
         .key(objectKey)
         .build();
 
