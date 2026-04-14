@@ -29,6 +29,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResp
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminOverdueRentalItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.req.AdminRentalDueDateUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalDueDateUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse;
 
 @RequiredArgsConstructor
@@ -141,5 +142,32 @@ public class AdminActiveRentalController {
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ){
     return sendMessageService.sendOverdueReminder(rentalId, loginUser.organizationId());
+  }
+
+  @GetMapping("/rentals/search")
+  @Operation(summary = "대여중인 물품 검색")
+  @ApiResponse(
+      responseCode = "200",
+      description = "검색 결과",
+      content = @Content(schema = @Schema(implementation = AdminRentalSearchPageResponse.class)))
+  @ApiErrorCodeExamples({
+    ErrorCode.NOT_FOUND_ORGANIZATION
+  })
+  public AdminRentalSearchPageResponse searchRankedPageByKeyword(
+      @Parameter(description = "검색 키워드" , example = "c타입 충전기")
+      @RequestParam(name = "keyword")
+      String keyword,
+      @Parameter(description = "마지막으로 조회된 RentalId", example = "1")
+      @RequestParam(name = "cursorRentalId", required = false)
+      Long cursorRentalId,
+      @Parameter(description = "마지막으로 조회된 Score", example = "10.1")
+      @RequestParam(name = "cursorScore", required = false)
+      Double cursorScore,
+      @RequestParam(name = "size", required = false, defaultValue = "15")
+      Integer size,
+      @Parameter(hidden = true) @AuthOrg
+      AuthUser loginUser
+  ) {
+    return adminActiveRentalService.searchRankedPageByKeyword(keyword, cursorRentalId, cursorScore, size, loginUser.organizationId());
   }
 }
