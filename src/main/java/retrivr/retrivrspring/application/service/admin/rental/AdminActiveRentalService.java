@@ -256,7 +256,9 @@ public class AdminActiveRentalService {
         .collect(Collectors.toMap(Rental::getId, rental -> rental));
 
     List<RentalSearchSummary> summary = page.stream()
-        .map( r ->RentalSearchSummary.from(rentalMap.get(r.rentalId())))
+        .map(r -> rentalMap.get(r.rentalId()))
+        .filter(java.util.Objects::nonNull)
+        .map(RentalSearchSummary::from)
         .toList();
 
     return new AdminRentalSearchPageResponse(
