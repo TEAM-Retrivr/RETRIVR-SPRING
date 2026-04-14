@@ -3,6 +3,7 @@ package retrivr.retrivrspring.application.service.admin.rental;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.event.RentalReturnedEvent;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
+import retrivr.retrivrspring.application.vo.RentedRentalSearchResultWithScore;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -29,6 +31,8 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalDueDateUpd
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalItemPageResponse.RentalItemSummary;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResponse;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse.RentalSearchSummary;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitListPageResponse.BorrowedItemSummary;
 
@@ -224,4 +228,41 @@ public class AdminActiveRentalService {
     }
   }
 
+  public AdminRentalSearchPageResponse searchRankedPageByKeyword(String keyword, Long cursorRentalId, Double cursorScore,
+      Integer size, Long loginOrganizationId) {
+    Organization loginOrganization = organizationRepository.findById(loginOrganizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
+        size);
+
+    List<RentedRentalSearchResultWithScore> rentals = rentalRepository.searchRentedRentalPageBy(loginOrganizationId, keyword,
+        cursorRentalId, cursorScore, normalizedSize.sizePlusOne());
+
+    boolean hasNext = rentals.size() > normalizedSize.size();
+    List<RentedRentalSearchResultWithScore> page = hasNext ? rentals.subList(0, normalizedSize.size()) : rentals;
+    Double nextScoreCursor = null;
+    Long nextRentalIdCursor = null;
+    if (hasNext) {
+      nextScoreCursor = rentals.getLast().score();
+      nextRentalIdCursor = rentals.getLast().rentalId();
+    }
+
+    List<Long> rentalIds = page.stream()
+        .map(RentedRentalSearchResultWithScore::rentalId)
+        .toList();
+
+    Map<Long, Rental> rentalMap = rentalRepository.findAllById(rentalIds).stream()
+        .collect(Collectors.toMap(Rental::getId, rental -> rental));
+
+    List<RentalSearchSummary> summary = page.stream()
+        .map( r ->RentalSearchSummary.from(rentalMap.get(r.rentalId())))
+        .toList();
+
+    return new AdminRentalSearchPageResponse(
+        summary,
+        nextScoreCursor,
+        nextRentalIdCursor
+    );
+  }
 }
