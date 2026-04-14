@@ -244,8 +244,8 @@ public class AdminActiveRentalService {
     Double nextScoreCursor = null;
     Long nextRentalIdCursor = null;
     if (hasNext) {
-      nextScoreCursor = rentals.getLast().score();
-      nextRentalIdCursor = rentals.getLast().rentalId();
+      nextScoreCursor = page.getLast().score();
+      nextRentalIdCursor = page.getLast().rentalId();
     }
 
     List<Long> rentalIds = page.stream()
