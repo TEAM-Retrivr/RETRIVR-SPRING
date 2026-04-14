@@ -3,12 +3,15 @@ package retrivr.retrivrspring.infrastructure.repository.rental;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import retrivr.retrivrspring.application.vo.RentedRentalSearchResultWithScore;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.QItem;
 import retrivr.retrivrspring.domain.entity.item.QItemUnit;
@@ -23,7 +26,7 @@ import java.util.List;
 public class RentalSearchRepositoryImpl implements RentalSearchRepository {
 
   private final JPAQueryFactory jpaQueryFactory;
-
+  private final EntityManager em;
 
   public List<Rental> searchRequestedRentalPage(Long cursor, int limit, Long organizationId) {
     QRental rental = QRental.rental;
@@ -275,5 +278,116 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
         .fetch();
   }
 
+  @Override
+  public List<RentedRentalSearchResultWithScore> searchRentedRentalPageBy(Long organizationId, String keyword, Long cursorRentalId, Double cursorScore,
+      int size) {
+    Query query;
+    if (cursorRentalId == null || cursorScore == null) {
+      query = searchRentedRentalPageQueryIfCursorNull(organizationId, keyword, size);
+    }
+    else {
+      query = searchRentedRentalPageQueryIfCursorExist(organizationId, keyword, cursorRentalId, cursorScore, size);
+    }
 
+    @SuppressWarnings("unchecked")
+    List<Object[]> rows = query.getResultList();
+
+    if (rows.isEmpty()) {
+      return List.of();
+    }
+
+    return rows.stream()
+        .map(r -> new RentedRentalSearchResultWithScore((Long) r[0], (Double) r[1]))
+        .toList();
+  }
+
+  private Query searchRentedRentalPageQueryIfCursorNull(Long organizationId, String keyword, int size) {
+    String rawQuery = """
+        with scored as (
+                select
+                    r.rental_id as rentalId,
+                    max(
+                        similarity(b.name, :keyword)
+                        + similarity(i.name, :keyword)
+                        + case when lower(b.name) like lower(concat('%', :keyword, '%')) then 0.8 else 0.0 end
+                        + case when lower(i.name) like lower(concat('%', :keyword, '%')) then 0.8 else 0.0 end
+                        + case when b.phone like concat('%', :keyword, '%') then 1.0 else 0.0
+                          end
+                    ) as score
+                from rental r
+                join borrower b on r.borrower_id = b.borrower_id
+                join rental_item ri on ri.rental_id = r.rental_id
+                join item i on ri.item_id = i.item_id
+                where r.organization_id = :organizationId
+                  and r.status = 'RENTED'
+                  and (
+                        :keyword is null
+                        or trim(:keyword) = ''
+                        or b.name ilike concat('%', :keyword, '%')
+                        or i.name ilike concat('%', :keyword, '%')
+                        or similarity(b.name, :keyword) > 0.3
+                        or similarity(i.name, :keyword) > 0.3
+                        or b.phone like concat('%', :keyword, '%')
+                )
+                group by r.rental_id
+            )
+            select rentalId, score
+            from scored
+            order by score desc, rentalId desc
+            limit :size
+        """;
+
+    return em.createNativeQuery(rawQuery)
+        .setParameter("keyword", keyword)
+        .setParameter("size", size)
+        .setParameter("organizationId", organizationId);
+  }
+
+  private Query searchRentedRentalPageQueryIfCursorExist(Long organizationId, String keyword, Long cursorRentalId, Double cursorScore,
+      int size) {
+    String rawQuery = """
+        with scored as (
+                select
+                    r.rental_id as rentalId,
+                    max(
+                        similarity(b.name, :keyword)
+                        + similarity(i.name, :keyword)
+                        + case when lower(b.name) like lower(concat('%', :keyword, '%')) then 0.8 else 0.0 end
+                        + case when lower(i.name) like lower(concat('%', :keyword, '%')) then 0.8 else 0.0 end
+                        + case when b.phone like concat('%', :keyword, '%') then 1.0 else 0.0
+                          end
+                    ) as score
+                from rental r
+                join borrower b on r.borrower_id = b.borrower_id
+                join rental_item ri on ri.rental_id = r.rental_id
+                join item i on ri.item_id = i.item_id
+                where r.organization_id = :organizationId
+                  and r.status = 'RENTED'
+                  and (
+                        :keyword is null
+                        or trim(:keyword) = ''
+                        or b.name ilike concat('%', :keyword, '%')
+                        or i.name ilike concat('%', :keyword, '%')
+                        or similarity(b.name, :keyword) > 0.3
+                        or similarity(i.name, :keyword) > 0.3
+                        or b.phone like concat('%', :keyword, '%')
+                )
+                group by r.rental_id
+            )
+            select rentalId, score
+            from scored
+            where (
+                score < :cursorScore
+                or (score = :cursorScore and rentalId < :cursorRentalId)
+            )
+            order by score desc, rentalId desc
+            limit :size
+        """;
+    return em.createNativeQuery(rawQuery)
+        .setParameter("keyword", keyword)
+        .setParameter("size", size)
+        .setParameter("organizationId", organizationId)
+        .setParameter("cursorScore", cursorScore)
+        .setParameter("cursorRentalId", cursorRentalId);
+  }
 }
