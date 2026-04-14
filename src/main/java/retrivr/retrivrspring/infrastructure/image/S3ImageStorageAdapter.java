@@ -87,13 +87,8 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
     try {
       HeadObjectResponse ignored = s3Client.headObject(request);
       return true;
-    } catch (NoSuchKeyException e) {
+    } catch (Exception e) {
       return false;
-    } catch (S3Exception e) {
-      if (e.statusCode() == 404) {
-        return false;
-      }
-      throw e;
     }
   }
 }
