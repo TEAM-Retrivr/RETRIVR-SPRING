@@ -1,17 +1,12 @@
 package retrivr.retrivrspring.global.aws;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
-@Component
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 @ConfigurationProperties(prefix = "cloud.aws.s3")
-@Getter
-@NoArgsConstructor
-public class S3Properties {
-  private String bucket;
-  private String region;
-  private Long putExpiration;
-  private Long getExpiration;
-}
+public record S3Properties(
+    String bucket,
+    String region,
+    Long putExpiration,
+    Long getExpiration
+) {}

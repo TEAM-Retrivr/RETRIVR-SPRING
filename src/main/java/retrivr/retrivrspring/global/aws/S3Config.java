@@ -17,7 +17,7 @@ public class S3Config {
   @Bean
   public S3Client s3Client() {
     return S3Client.builder()
-        .region(Region.of(s3Properties.getRegion()))
+        .region(Region.of(s3Properties.region()))
         .credentialsProvider(DefaultCredentialsProvider.builder().build())
         .build();
   }
@@ -25,7 +25,7 @@ public class S3Config {
   @Bean
   public S3Presigner s3Presigner() {
     return S3Presigner.builder()
-        .region(Region.of(s3Properties.getRegion()))
+        .region(Region.of(s3Properties.region()))
         .credentialsProvider(DefaultCredentialsProvider.builder().build())
         .build();
   }
