@@ -57,3 +57,9 @@ springdoc:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods: ${CORS_ALLOWED_METHODS}
+
+scheduler:
+  rental-expire:
+    delay: ${RENTAL_EXPIRE_DELAY:60000}
+    batch-size: ${RENTAL_EXPIRE_BATCH_SIZE:100}
+    request-expire-minutes: ${RENTAL_EXPIRE_REQUEST_EXPIRE_MINUTES:15}
