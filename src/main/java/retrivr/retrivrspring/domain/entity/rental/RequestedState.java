@@ -43,6 +43,15 @@ public final class RequestedState implements RentalState {
     rental.setRejected(adminName, LocalDateTime.now());
   }
 
+  @Override
+  public void rejectBySystem(Rental rental, String systemMessage) {
+    // 1. Item 조회 및 거부 이벤트 트리거
+    Item item = rental.getItem();
+    item.onRentalRejected(rental.getItemUnit());
+
+    // 2. Reject 상태로 변경
+    rental.setRejected(systemMessage, LocalDateTime.now());
+  }
 
   /**
    *
