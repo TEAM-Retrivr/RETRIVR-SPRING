@@ -61,7 +61,7 @@ public class AdminRequestedRentalService {
   public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
       AdminRentalApproveRequest request, Long mockOrganizationId) {
     // 1. 요청된 Rental 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인한 Organization 조회
@@ -87,7 +87,7 @@ public class AdminRequestedRentalService {
   public AdminRentalDecisionResponse rejectRentalRequest(Long rentalId,
       AdminRentalRejectRequest request, Long loginOrganizationId) {
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인된 조직 조회

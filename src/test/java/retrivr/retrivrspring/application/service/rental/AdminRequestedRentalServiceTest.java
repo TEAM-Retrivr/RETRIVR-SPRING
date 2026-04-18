@@ -131,7 +131,7 @@ class AdminRequestedRentalServiceTest {
     Long orgId = 10L;
     AdminRentalApproveRequest req = mock(AdminRentalApproveRequest.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.empty());
+    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> service.approveRentalRequest(rentalId, req, orgId))
@@ -148,7 +148,7 @@ class AdminRequestedRentalServiceTest {
     Long orgId = 10L;
 
     Rental rental = mock(Rental.class);
-    when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
 
     AdminRentalApproveRequest req = mock(AdminRentalApproveRequest.class);
@@ -170,7 +170,7 @@ class AdminRequestedRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization org = mock(Organization.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
     when(rental.getId()).thenReturn(rentalId);
 
@@ -200,7 +200,7 @@ class AdminRequestedRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization org = mock(Organization.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
     when(rental.getId()).thenReturn(rentalId);
 
