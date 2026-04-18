@@ -105,4 +105,14 @@ public class AdminRequestedRentalService {
         LocalDateTime.now()
     );
   }
+
+  @Transactional
+  public void rejectRentalRequestBySystem(Rental rental) {
+    // 대여 거부
+    String systemMessage = "SYSTEM (요청 시간 만료)";
+    rental.rejectBySystem(systemMessage);
+
+    // 메시지 이벤트 발행
+    applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
+  }
 }
