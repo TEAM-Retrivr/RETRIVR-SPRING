@@ -2,7 +2,6 @@ package retrivr.retrivrspring.application.scheduler;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,13 +11,22 @@ import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 
 @Service
-@RequiredArgsConstructor
 public class RentalExpireProcessor {
 
-  @Value("${scheduler.rental-expire.request-expire-minutes}")
-  private static long REQUEST_EXPIRE_MINUTES;
+  private final long REQUEST_EXPIRE_MINUTES;
   private final RentalRepository rentalRepository;
   private final AdminRequestedRentalService adminRequestedRentalService;
+
+  public RentalExpireProcessor(
+      @Value("${scheduler.rental-expire.request-expire-minutes}")
+      int requestExpireMinutes,
+      RentalRepository rentalRepository,
+      AdminRequestedRentalService adminRequestedRentalService
+  ) {
+    this.rentalRepository = rentalRepository;
+    this.REQUEST_EXPIRE_MINUTES = requestExpireMinutes;
+    this.adminRequestedRentalService = adminRequestedRentalService;
+  }
 
   @Transactional
   public int expireBatch(int batchSize) {

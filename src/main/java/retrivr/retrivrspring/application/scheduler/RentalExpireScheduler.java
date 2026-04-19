@@ -1,19 +1,25 @@
 package retrivr.retrivrspring.application.scheduler;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class RentalExpireScheduler {
 
-  @Value("${scheduler.rental-expire.batch-size}")
-  private static int BATCH_SIZE;
+  private final int BATCH_SIZE;
   private final RentalExpireProcessor rentalExpireProcessor;
+
+  public RentalExpireScheduler(
+      @Value("${scheduler.rental-expire.batch-size}")
+      int batchSize,
+      RentalExpireProcessor rentalExpireProcessor
+  ) {
+    this.rentalExpireProcessor = rentalExpireProcessor;
+    this.BATCH_SIZE = batchSize;
+  }
 
   @Scheduled(fixedDelayString = "${scheduler.rental-expire.delay}")
   public void expireRequestedRentals() {
