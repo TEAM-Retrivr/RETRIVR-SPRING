@@ -33,7 +33,7 @@ public class RentalExpireProcessor {
     LocalDateTime threshold = LocalDateTime.now().minusMinutes(REQUEST_EXPIRE_MINUTES);
 
     List<Long> rentalIds = rentalRepository.findExpiredRequestedIdsForUpdateSkipLocked(threshold, batchSize);
-    List<Rental> rentals = rentalRepository.findAllById(rentalIds);
+    List<Rental> rentals = rentalRepository.findFetchBorrowerAndRentalItemAndOrganizationAllById(rentalIds);
     int rejectedCount = 0;
 
     for (Rental rental : rentals) {

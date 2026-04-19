@@ -26,6 +26,10 @@ public interface RentalRepository
     @EntityGraph(attributePaths = {"rentalItems", "organization"})
     Optional<Rental> findFetchRentalItemAndOrganizationByIdWithLock(@Param("rentalId") Long rentalId);
 
+    @Query("select r from Rental r where r.id in :rentalIds")
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "organization"})
+    List<Rental> findFetchBorrowerAndRentalItemAndOrganizationAllById(List<Long> rentalIds);
+
     @Query(
         value = """
           select r.rental_id
