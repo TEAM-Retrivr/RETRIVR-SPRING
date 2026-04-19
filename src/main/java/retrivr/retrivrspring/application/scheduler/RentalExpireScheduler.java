@@ -10,29 +10,35 @@ import org.springframework.stereotype.Component;
 public class RentalExpireScheduler {
 
   private final int BATCH_SIZE;
+  private final int MAX_ITERATIONS; // 비정상 무한 루프 방지용 상한. 최대 BATCH_SIZE * MAX_ITERATIONS 만큼의 row 처리
   private final RentalExpireProcessor rentalExpireProcessor;
 
   public RentalExpireScheduler(
       @Value("${scheduler.rental-expire.batch-size}")
       int batchSize,
+      @Value("${scheduler.rental-expire.max-iterations}")
+      int maxIterations,
       RentalExpireProcessor rentalExpireProcessor
   ) {
     this.rentalExpireProcessor = rentalExpireProcessor;
     this.BATCH_SIZE = batchSize;
+    this.MAX_ITERATIONS = maxIterations;
   }
 
   @Scheduled(fixedDelayString = "${scheduler.rental-expire.delay}")
   public void expireRequestedRentals() {
     int totalProcessed = 0;
 
-    while (true) {
+    for (int i = 0; i < MAX_ITERATIONS; i++) {
       int processed = rentalExpireProcessor.expireBatch(BATCH_SIZE);
       totalProcessed += processed;
 
-      // 100개씩 만료된 요청들을 거절시킴
-      // processed < BATCH_SIZE : 100개보다 적을 경우, 다음 루프에서 거절할 요청이 없으므로 종료
       if (processed < BATCH_SIZE) {
         break;
+      }
+
+      if (i == MAX_ITERATIONS - 1) {
+        log.warn("자동 만료 처리 중 최대 반복 횟수 도달. totalProcessed={}", totalProcessed);
       }
     }
 
