@@ -31,7 +31,7 @@ class RentalRequestTest {
     when(item.getOrganization()).thenReturn(org);
 
     // when
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
 
     // then
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.REQUESTED);
@@ -62,7 +62,7 @@ class RentalRequestTest {
     when(item.getOrganization()).thenReturn(org);
 
     // when
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // then
     verify(item, times(1)).onRentalRequested(unit);

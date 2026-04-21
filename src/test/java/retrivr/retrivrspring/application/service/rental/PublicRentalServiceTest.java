@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -57,6 +58,7 @@ class PublicRentalServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private ApplicationEventPublisher applicationEventPublisher;
+  @Mock private PublicIdGenerator publicIdGenerator;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -66,7 +68,8 @@ class PublicRentalServiceTest {
         rentalRepository,
         itemRepository,
         itemUnitRepository,
-        applicationEventPublisher
+        applicationEventPublisher,
+        publicIdGenerator
     );
   }
 
