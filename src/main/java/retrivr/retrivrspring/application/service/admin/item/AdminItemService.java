@@ -3,6 +3,7 @@ package retrivr.retrivrspring.application.service.admin.item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
@@ -42,6 +43,7 @@ public class AdminItemService {
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
     private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
+    private final PublicIdGenerator publicIdGenerator;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
         DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
@@ -79,6 +81,7 @@ public class AdminItemService {
 
         Item item = Item.builder()
                 .organization(organization)
+                .publicId(publicIdGenerator.generateItemId(organizationId))
                 .name(request.name())
                 .description(request.description())
                 .rentalDuration(request.rentalDuration())

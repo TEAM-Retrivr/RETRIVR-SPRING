@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
@@ -34,6 +35,7 @@ public class PublicRentalService {
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
+  private final PublicIdGenerator publicIdGenerator;
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
@@ -59,7 +61,8 @@ public class PublicRentalService {
     );
 
     // 5. Rental 생성 및 저장
-    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower);
+    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower, publicIdGenerator.generateRentalId(
+        targetItem.getOrganization().getId()));
     rentalRepository.save(requestedRental);
     applicationEventPublisher.publishEvent(new RentalRequestedEvent(requestedRental.getId()));
 
