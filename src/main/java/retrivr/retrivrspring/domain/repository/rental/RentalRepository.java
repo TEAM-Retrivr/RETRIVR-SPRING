@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
@@ -50,4 +51,7 @@ public interface RentalRepository
                 where r.id in :ids
             """)
     List<Rental> findRecentHomeRentalsByIds(@Param("ids") List<Long> ids);
+
+    @EntityGraph(attributePaths = {"borrower"})
+    List<Rental> findFetchBorrowerAllByOrganization(Organization organization);
 }
