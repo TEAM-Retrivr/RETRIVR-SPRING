@@ -2,6 +2,7 @@ package retrivr.retrivrspring.domain.entity.rental;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -47,5 +48,14 @@ public final class ReturnedState implements RentalState {
   @Override
   public boolean canSendOverdueMessage(Rental rental) {
     return false;
+  }
+
+  @Override
+  public int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now) {
+    Period period = Period.between(
+        decidedAt.toLocalDate(),
+        returnedAt.toLocalDate()
+    );
+    return period.getDays();
   }
 }

@@ -46,6 +46,9 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "rental_id")
   private Long id;
 
+  @Column(nullable = false, unique = true)
+  private String publicId;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "organization_id", nullable = false)
   private Organization organization;
@@ -96,9 +99,10 @@ public class Rental extends BaseTimeEntity {
     };
   }
 
-  public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower) {
+  public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower, String publicId) {
     Rental newRental = Rental.builder()
         .organization(item.getOrganization())
+        .publicId(publicId)
         .borrower(borrower)
         .status(RentalStatus.REQUESTED)
         .requestedAt(LocalDateTime.now())
@@ -138,6 +142,9 @@ public class Rental extends BaseTimeEntity {
     return state().canSendOverdueMessage(this);
   }
 
+  public int getRentalPeriod() {
+    return state().getRentalPeriod(this.decidedAt, this.returnedAt, LocalDateTime.now());
+  }
   /**
    *
    * 외부 사용 금지 메소드
@@ -205,6 +212,15 @@ public class Rental extends BaseTimeEntity {
   }
 
   public boolean isOverdue() {
-    return this.dueDate != null && this.dueDate.isBefore(LocalDate.now());
+    return this.getOverdueDays() != 0;
+  }
+
+  public boolean isCountable() {
+    return !(this.getStatus().equals(RentalStatus.REJECTED) || this.getStatus()
+        .equals(RentalStatus.REQUESTED));
+  }
+
+  public boolean isRented() {
+    return this.getStatus().equals(RentalStatus.RENTED);
   }
 }

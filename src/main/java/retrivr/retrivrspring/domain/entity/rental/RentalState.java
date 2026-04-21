@@ -17,4 +17,6 @@ public interface RentalState {
   int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt);
 
   boolean canSendOverdueMessage(Rental rental);
+
+  int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now);
 }
