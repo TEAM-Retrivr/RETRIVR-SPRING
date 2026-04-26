@@ -320,10 +320,10 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
                 join item i on ri.item_id = i.item_id
                 where r.organization_id = :organizationId
                   and r.status = 'RENTED'
-                  and (
-                        :keyword is null
-                        or trim(:keyword) = ''
-                        or b.name ilike concat('%', :keyword, '%')
+                  and :keyword is not null
+                  and :trim(:keyword) != ''
+                  and (     
+                        b.name ilike concat('%', :keyword, '%')
                         or i.name ilike concat('%', :keyword, '%')
                         or similarity(b.name, :keyword) > 0.3
                         or similarity(i.name, :keyword) > 0.3
@@ -363,10 +363,10 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
                 join item i on ri.item_id = i.item_id
                 where r.organization_id = :organizationId
                   and r.status = 'RENTED'
-                  and (
-                        :keyword is null
-                        or trim(:keyword) = ''
-                        or b.name ilike concat('%', :keyword, '%')
+                  and :keyword is not null
+                  and :trim(:keyword) != ''
+                  and (               
+                        b.name ilike concat('%', :keyword, '%')
                         or i.name ilike concat('%', :keyword, '%')
                         or similarity(b.name, :keyword) > 0.3
                         or similarity(i.name, :keyword) > 0.3
