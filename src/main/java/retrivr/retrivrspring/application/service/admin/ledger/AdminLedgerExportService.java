@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.application.service.admin.ledger;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,13 +64,16 @@ public class AdminLedgerExportService {
         new LedgerExportRequest(rentalLedgerRows, inventoryLedgerRows, statisticsLedgerRow)
     );
 
-    return new LedgerByteArrayAndFileName(new ByteArrayResource(excelBytes), organization.getName() + "_ledger.xlsx");
+    return new LedgerByteArrayAndFileName(new ByteArrayResource(excelBytes), organization.getName() + "_장부_"+ LocalDate.now() + ".xlsx");
   }
 
   private Map<Long, Long> createItemRentalCountMap(List<Rental> rentals) {
     Map<Long, Long> itemRentalCount = new HashMap<>();
 
     for (Rental rental : rentals) {
+      if (!rental.isCountable()) {
+        continue;
+      }
       rental.getRentalItems().forEach(rentalItem -> {
         Long itemId = rentalItem.getItem().getId();
         itemRentalCount.merge(itemId, 1L, Long::sum);
