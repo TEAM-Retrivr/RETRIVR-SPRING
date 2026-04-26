@@ -37,8 +37,8 @@ public interface RentalRepository
           where r.status = 'REQUESTED'
             and r.requested_at <= :threshold
           order by r.requested_at asc
-          for update skip locked
           limit :batchSize
+          for update skip locked
       """,
         nativeQuery = true
     )
