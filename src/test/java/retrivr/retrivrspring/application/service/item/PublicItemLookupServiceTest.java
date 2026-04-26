@@ -81,7 +81,7 @@ class PublicItemLookupServiceTest {
   @DisplayName("IL-01: org not found")
   void listLookup_orgNotFound_throw() {
     Organization mockOrg = mockOrganization(1, "조직1");
-    when(organizationRepository.findById(1L)).thenReturn(Optional.of(mockOrg));
+    when(organizationRepository.findById(1L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> publicItemLookupService.publicOrganizationItemListLookup(1L, null, 10))
         .isInstanceOf(ApplicationException.class)
