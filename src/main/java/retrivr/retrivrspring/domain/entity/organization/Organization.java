@@ -91,6 +91,10 @@ public class Organization extends BaseTimeEntity {
     this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));
   }
 
+  public void updateProfileImageKey(String profileImageKey) {
+    this.profileImageKey = (profileImageKey == null || profileImageKey.isBlank()) ? null : profileImageKey;
+  }
+
   public String getPasswordHash() {
     return password == null ? null : password.getValue();
   }
@@ -109,8 +113,6 @@ public class Organization extends BaseTimeEntity {
     }
   }
 
-
-
   private String requireHashedValue(String value, String fieldName) {
     if (value == null) {
       throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
@@ -124,5 +126,4 @@ public class Organization extends BaseTimeEntity {
     }
     return email;
   }
-
 }

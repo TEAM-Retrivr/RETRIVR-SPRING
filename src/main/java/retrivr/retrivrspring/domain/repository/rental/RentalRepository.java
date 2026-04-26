@@ -47,8 +47,12 @@ public interface RentalRepository
         @Param("batchSize") int batchSize
     );
 
+
     @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
     Optional<Rental> findFetchBorrowerRentalItemAndOrganizationById(Long rentalId);
+
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item"})
+    List<Rental> findFetchBorrowerAndItemByIdIn(List<Long> rentalIds);
 
     // 전체 REQUESTED 개수
     int countByOrganization_IdAndStatus(Long organizationId, RentalStatus status);
