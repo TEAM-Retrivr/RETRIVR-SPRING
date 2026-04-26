@@ -82,6 +82,17 @@ public interface RentalRepository
             """)
     List<Rental> findRecentHomeRentalsByIds(@Param("ids") List<Long> ids);
 
-    @EntityGraph(attributePaths = {"borrower"})
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
     List<Rental> findFetchBorrowerAllByOrganization(Organization organization);
+
+    @Query("""
+    select distinct r
+    from Rental r
+    left join fetch r.rentalItemUnits riu
+    left join fetch riu.itemUnit iu
+    where r in :rentals
+    """)
+    List<Rental> findFetchRentalItemUnitsByRentalIn(
+        @Param("rentals") List<Rental> rentals
+    );
 }

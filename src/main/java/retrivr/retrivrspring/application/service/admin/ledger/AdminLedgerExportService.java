@@ -41,6 +41,7 @@ public class AdminLedgerExportService {
 
     // 로그인한 조직에 대한 Rental, Item 정보 DB 에서 가져옴
     List<Rental> rentals = rentalRepository.findFetchBorrowerAllByOrganization(organization);
+    rentalRepository.findFetchRentalItemUnitsByRentalIn(rentals);
     List<Item> items = itemRepository.findFetchItemUnitsByOrganization(organization);
 
     // item 당 대여 횟수 Map 계산 (itemId, count)
