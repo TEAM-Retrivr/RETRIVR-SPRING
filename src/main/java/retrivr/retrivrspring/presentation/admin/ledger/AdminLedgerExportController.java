@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,7 +57,11 @@ public class AdminLedgerExportController {
         .contentType(MediaType.parseMediaType(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ))
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + data.fileName() + "\"")
+        .header(HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment()
+                .filename(data.fileName(), StandardCharsets.UTF_8)
+                .build()
+                .toString())
         .contentLength(data.resource().contentLength())
         .body(data.resource());
   }
