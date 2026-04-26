@@ -135,6 +135,8 @@ public class AdminProfileService {
             throw new ApplicationException(ErrorCode.NOT_FOUND_PROFILE_IMAGE);
         }
 
+        // 이전 이미지 삭제
+        imageStoragePort.delete(organization.getProfileImageKey());
         // 이미지 업데이트
         organization.updateProfileImageKey(request.objectKey());
 
