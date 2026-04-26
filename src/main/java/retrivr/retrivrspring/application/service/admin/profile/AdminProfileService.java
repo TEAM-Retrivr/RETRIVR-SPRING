@@ -1,9 +1,12 @@
 package retrivr.retrivrspring.application.service.admin.profile;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.port.image.PresignedUploadUrl;
 import retrivr.retrivrspring.application.port.image.ProfileImageKeyGeneratorPort;
@@ -23,6 +26,7 @@ import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse
 
 import java.util.Locale;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminProfileService {
@@ -136,7 +140,8 @@ public class AdminProfileService {
         }
 
         // 이전 이미지 삭제
-        imageStoragePort.delete(organization.getProfileImageKey());
+        deleteAfterCommit(organization.getProfileImageKey());
+
         // 이미지 업데이트
         organization.updateProfileImageKey(request.objectKey());
 
@@ -147,5 +152,23 @@ public class AdminProfileService {
             loginOrganizationId,
             downloadUrl
         );
+    }
+
+    private void deleteAfterCommit(String objectKey) {
+        if (objectKey == null) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                //todo: 이후 outbox 도입하여 고아 이미지 삭제 배치 구현
+                try {
+                    imageStoragePort.delete(objectKey);
+                } catch (Exception e) {
+                    log.warn("이전 프로필 이미지 삭제 실패. objectKey={}", objectKey, e);
+                }
+            }
+        });
     }
 }
