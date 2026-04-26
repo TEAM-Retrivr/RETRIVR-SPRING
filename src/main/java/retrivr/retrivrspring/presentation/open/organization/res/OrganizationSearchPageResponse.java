@@ -15,11 +15,10 @@ public record OrganizationSearchPageResponse(
   ) {
 
     public static OrganizationSearchSummary from(Organization organization) {
-      //todo: Organization 도메인에 img 추가 (figma 에 따라서 필요)
       return new OrganizationSearchSummary(
           organization.getId(),
           organization.getName(),
-          null
+          organization.getProfileImageKey()
       );
     }
   }

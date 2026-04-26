@@ -69,6 +69,19 @@ public class EmailVerificationService {
                         )
                 );
 
+        switch(verification.getPurpose()) {
+            case SIGNUP:
+                signupTokenRepository.deleteByEmail(email);
+                break;
+            case PASSWORD_RESET:
+                Organization organization = organizationRepository.findByEmail(email)
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+                passwordResetTokenRepository.deleteByOrganization(organization);
+                break;
+            case EMAIL_CHANGE:
+                // todo: Email 변경은 기획에서 사라짐
+                break;
+        }
         emailVerificationRepository.save(verification);
         emailVerificationCodeSender.sendVerificationCode(email, rawCode, purpose, emailVerificationProperties.getExpiresSeconds());
         return new EmailVerificationSendResponse(email, purpose.name(), emailVerificationProperties.getExpiresSeconds());
