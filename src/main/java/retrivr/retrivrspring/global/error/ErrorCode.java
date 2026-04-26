@@ -96,8 +96,16 @@ public enum ErrorCode {
     RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
 
     // 10000: Borrower Error
-    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다.")
-    ;
+    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다."),
+
+    // 11000: File Storage Error
+    NOT_ALLOWED_IMAGE_CONTENT_TYPE(HttpStatus.BAD_REQUEST, 11000, "저장할 수 없는 이미지 컨텐츠 유형입니다."),
+    NOT_FOUND_PROFILE_IMAGE(HttpStatus.NOT_FOUND, 11001, "ObjectKey 에 대한 이미지를 찾을 수 없습니다."),
+
+    // 11100: S3 Storage Error
+    S3_STORAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 11100, "S3 스토리지 오류입니다."),
+    EXTENSION_MUST_NOT_BE_BLANK(HttpStatus.BAD_REQUEST, 11101, "저장할 이미지의 확장자가 없습니다."),
+    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
