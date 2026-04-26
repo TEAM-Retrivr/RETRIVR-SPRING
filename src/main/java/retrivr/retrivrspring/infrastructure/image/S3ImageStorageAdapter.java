@@ -6,11 +6,12 @@ import org.springframework.stereotype.Component;
 import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.port.image.PresignedUploadUrl;
 import retrivr.retrivrspring.global.aws.S3Properties;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.error.InfraException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -85,10 +86,15 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
         .build();
 
     try {
-      HeadObjectResponse ignored = s3Client.headObject(request);
+      s3Client.headObject(request);
       return true;
-    } catch (Exception e) {
+    } catch (NoSuchKeyException e) {
       return false;
+    } catch (S3Exception e) {
+      if (e.statusCode() == 404) {
+        return false;
+      }
+      throw new InfraException(ErrorCode.S3_STORAGE_ERROR);
     }
   }
 }
