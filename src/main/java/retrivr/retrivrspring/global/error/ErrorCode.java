@@ -84,6 +84,13 @@ public enum ErrorCode {
     SIGNUP_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 7202, "회원가입 토큰이 만료되었습니다."),
     SIGNUP_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 7203, "이미 사용된 회원가입 토큰입니다."),
 
+    // 7300: Admin Code Error
+    ADMIN_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7301, "관리자 코드가 일치하지 않습니다."),
+    NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7302, "관리자 코드 인증 토큰이 존재하지 않습니다."),
+    EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7303, "관리자 코드 인증 토큰이 만료되었습니다."),
+    ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7304, "관리자 코드 인증 토큰이 일치하지 않습니다."),
+    ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7305, "이미 사용된 관리자 코드 인증 토큰입니다."),
+
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
     PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),
