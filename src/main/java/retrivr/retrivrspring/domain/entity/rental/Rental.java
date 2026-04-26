@@ -178,6 +178,10 @@ public class Rental extends BaseTimeEntity {
     this.dueDate = dueDate;
   }
 
+  public void updatePublicId(String publicId) {
+    this.publicId = publicId;
+  }
+
   private void addItem(Item item) {
     this.rentalItems.add(RentalItem.create(this, item));
   }
