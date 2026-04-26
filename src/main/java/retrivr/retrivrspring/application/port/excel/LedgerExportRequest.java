@@ -26,7 +26,7 @@ public record LedgerExportRequest(
       LocalDate dueDate,
       LocalDateTime returnedAt,
       String receivedBy,
-      Boolean isOverdue
+      boolean isOverdue
   ) {
 
     public static RentalLedgerRow of(Rental rental) {
