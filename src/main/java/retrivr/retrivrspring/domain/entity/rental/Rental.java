@@ -122,6 +122,10 @@ public class Rental extends BaseTimeEntity {
     state().reject(this, adminNameToReject, organizationToReject);
   }
 
+  public void rejectBySystem(String systemMessage) {
+    state().rejectBySystem(this, systemMessage);
+  }
+
   public void changeDueDate(LocalDate newDueDate, Organization loginOrganization) {
     state().changeDueDate(this, newDueDate, loginOrganization);
   }
