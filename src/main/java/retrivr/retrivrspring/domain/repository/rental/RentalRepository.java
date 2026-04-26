@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
@@ -80,4 +81,18 @@ public interface RentalRepository
                 where r.id in :ids
             """)
     List<Rental> findRecentHomeRentalsByIds(@Param("ids") List<Long> ids);
+
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
+    List<Rental> findFetchBorrowerAllByOrganization(Organization organization);
+
+    @Query("""
+    select distinct r
+    from Rental r
+    left join fetch r.rentalItemUnits riu
+    left join fetch riu.itemUnit iu
+    where r in :rentals
+    """)
+    List<Rental> findFetchRentalItemUnitsByRentalIn(
+        @Param("rentals") List<Rental> rentals
+    );
 }

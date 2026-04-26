@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -57,6 +58,7 @@ class PublicRentalServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private ApplicationEventPublisher applicationEventPublisher;
+  @Mock private PublicIdGenerator publicIdGenerator;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -66,7 +68,8 @@ class PublicRentalServiceTest {
         rentalRepository,
         itemRepository,
         itemUnitRepository,
-        applicationEventPublisher
+        applicationEventPublisher,
+        publicIdGenerator
     );
   }
 
@@ -148,11 +151,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(rentalCaptor.capture());
+    verify(rentalRepository, times(1)).saveAndFlush(rentalCaptor.capture());
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isNull();
@@ -180,11 +183,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(any(Rental.class));
+    verify(rentalRepository, times(1)).saveAndFlush(any(Rental.class));
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isEqualTo(99L);

@@ -72,3 +72,6 @@ scheduler:
     batch-size: ${RENTAL_EXPIRE_BATCH_SIZE:100}
     max-iterations: ${RENTAL_EXPIRE_MAX_ITERATIONS:100}
     request-expire-minutes: ${RENTAL_EXPIRE_REQUEST_EXPIRE_MINUTES:15}
+
+public-id:
+  secret: ${PUBLIC_ID_SECRET}

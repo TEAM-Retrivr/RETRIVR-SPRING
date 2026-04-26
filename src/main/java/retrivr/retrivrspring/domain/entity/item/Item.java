@@ -26,6 +26,9 @@ public class Item extends BaseTimeEntity {
   @Column(name = "item_id")
   private Long id;
 
+  @Column(nullable = false, unique = true)
+  private String publicId;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "organization_id", nullable = false)
   private Organization organization;
@@ -550,5 +553,22 @@ public class Item extends BaseTimeEntity {
     if (!requestedTotalQuantity.equals(finalUnitCount)) {
       throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "총 개수와 유닛 삭제/추가 요청이 일치하지 않습니다.");
     }
+  }
+
+  /**
+   * 
+   * 대여 중인 아이템의 갯수를 반환
+   * Unit 타입의 경우 Broken, Lost 등의 상태에 있는 itemUnit 에 의해 availableQuantity 가 감소할 수 있으므로 보정하여 반환
+   */
+  public int getRentedQuantity() {
+    if (this.itemManagementType == ItemManagementType.NON_UNIT) {
+      return totalQuantity - availableQuantity;
+    }
+
+    int unavailableCount = (int) getItemUnits().stream()
+        .filter(ItemUnit::isUnavailable)
+        .count();
+
+    return totalQuantity - availableQuantity + unavailableCount;
   }
 }

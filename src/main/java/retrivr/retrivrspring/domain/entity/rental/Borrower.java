@@ -80,4 +80,8 @@ public class Borrower extends BaseTimeEntity {
   public String getPhoneNumber() {
     return phone == null ? null : phone.getPhone();
   }
+
+  public String getAllAdditionalInfo() {
+    return additionalBorrowerInfo != null ? additionalBorrowerInfo.toString() : "";
+  }
 }

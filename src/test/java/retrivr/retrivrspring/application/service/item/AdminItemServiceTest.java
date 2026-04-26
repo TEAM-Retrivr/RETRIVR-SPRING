@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.admin.item.AdminItemService;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.domain.entity.item.Item;
@@ -48,6 +49,7 @@ class AdminItemServiceTest {
   @Mock private ItemBorrowerFieldRepository itemBorrowerFieldRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
+  @Mock private PublicIdGenerator publicIdGenerator;
 
   @InjectMocks
   private AdminItemService adminItemService;
@@ -109,7 +111,7 @@ class AdminItemServiceTest {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> {
+    when(itemRepository.saveAndFlush(any(Item.class))).thenAnswer(invocation -> {
       Item saved = invocation.getArgument(0);
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
@@ -119,6 +121,7 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(savedUnits.get(0), "id", 101L);
       return savedUnits;
     });
+    when(publicIdGenerator.generateItemId(any())).thenAnswer(invocation -> "public-id");
 
     AdminItemCreateResponse response = adminItemService.createItem(
         organizationId,

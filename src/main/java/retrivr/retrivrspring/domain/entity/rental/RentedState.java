@@ -60,4 +60,10 @@ public final class RentedState implements RentalState {
   public boolean canSendOverdueMessage(Rental rental) {
     return rental.getBorrower().isValidPhoneFormat();
   }
+
+  @Override
+  public int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now) {
+    long days = ChronoUnit.DAYS.between(decidedAt.toLocalDate(), now.toLocalDate());
+    return (int) Math.max(days, 0);
+  }
 }

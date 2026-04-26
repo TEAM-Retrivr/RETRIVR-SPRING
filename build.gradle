@@ -60,6 +60,9 @@ dependencies {
 
     // AWS
     implementation 'software.amazon.awssdk:s3:2.42.28'
+
+    // Excel
+    implementation 'org.apache.poi:poi-ooxml:5.5.1'
 }
 
 tasks.named('test') {

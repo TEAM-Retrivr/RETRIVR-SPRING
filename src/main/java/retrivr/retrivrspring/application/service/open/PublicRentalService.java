@@ -3,10 +3,13 @@ package retrivr.retrivrspring.application.service.open;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
@@ -24,6 +27,7 @@ import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalDetailResp
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,6 +38,9 @@ public class PublicRentalService {
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
+  private final PublicIdGenerator publicIdGenerator;
+
+  private static final int MAX_PUBLIC_ID_RETRY = 5;
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
@@ -59,8 +66,11 @@ public class PublicRentalService {
     );
 
     // 5. Rental 생성 및 저장
-    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower);
-    rentalRepository.save(requestedRental);
+    String publicId = publicIdGenerator.generateRentalId(targetItem.getOrganization().getId());
+    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower, publicId);
+
+    trySaveRental(requestedRental, targetItem.getOrganization().getId());
+
     applicationEventPublisher.publishEvent(new RentalRequestedEvent(requestedRental.getId()));
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),
@@ -87,5 +97,25 @@ public class PublicRentalService {
     }
 
     return PublicRentalDetailResponse.from(rental, itemName, itemUnitLabel, borrowerField);
+  }
+
+  private void trySaveRental(Rental rental, Long organizationId) {
+    for (int attempt = 0; attempt < MAX_PUBLIC_ID_RETRY; attempt++) {
+      try {
+        rentalRepository.saveAndFlush(rental);
+        return;
+      } catch(DataIntegrityViolationException e) {
+        log.warn(
+            "Rental publicId 충돌 발생. publicId={}, organizationId={}, attempt={}",
+            rental.getPublicId(),
+            organizationId,
+            attempt + 1
+        );
+      }
+      String publicId = publicIdGenerator.generateRentalId(organizationId);
+      rental.updatePublicId(publicId);
+    }
+
+    throw new ApplicationException(ErrorCode.RENTAL_PUBLIC_ID_GENERATE_FAILED);
   }
 }
