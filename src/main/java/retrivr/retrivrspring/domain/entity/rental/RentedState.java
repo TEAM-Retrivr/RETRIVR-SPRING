@@ -29,6 +29,12 @@ public final class RentedState implements RentalState {
   }
 
   @Override
+  public void rejectBySystem(Rental rental, String systemMessage) {
+    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
+        "Cannot reject when RENTED");
+  }
+
+  @Override
   public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     rental.validateRentalOwner(org);
     if (newDueDate == null) {

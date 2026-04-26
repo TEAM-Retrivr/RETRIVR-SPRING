@@ -34,6 +34,15 @@ public class GlobalExceptionHandler {
             .body(ErrorResponse.of(errorCode, e.getDetail()));
     }
 
+    @ExceptionHandler(InfraException.class)
+    public ResponseEntity<ErrorResponse> handleInfraException(InfraException e) {
+        ErrorCode errorCode = e.getErrorCode();
+        log.error("[InfraException] code={}, message={}", errorCode.getCode(), errorCode.getMessage(), e);
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ErrorResponse.of(errorCode, e.getDetail()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
         MethodArgumentNotValidException e

@@ -194,6 +194,26 @@ public class RentalScenarioNonUnitTest {
     assertThat(item.getAvailableQuantity()).isEqualTo(2); // reject에서 +1 복원
   }
 
+  @Test
+  @DisplayName("System 거절 정상(Non_UNIT): REQUESTED -> REJECTED, availableQuantity 1 증가(복원)")
+  void reject_ok_nonUnit_restoreQuantity_system() {
+    Item item = nonUnitItem(org(1L), 3, 2, 7);
+    Borrower borrower = borrower();
+
+    Rental rental = Rental.request(item, null, borrower);
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+
+    //when
+    rental.rejectBySystem("SYSTEM");
+
+    //then
+    assertThat(rental.getStatus()).isEqualTo(RentalStatus.REJECTED);
+    assertThat(rental.getDecidedAt()).isNotNull();
+    assertThat(rental.getDecidedBy()).isEqualTo("SYSTEM");
+
+    assertThat(item.getAvailableQuantity()).isEqualTo(2);
+  }
+
   // ============================================================
   // 4) 반납(Mark Returned)
   // ============================================================

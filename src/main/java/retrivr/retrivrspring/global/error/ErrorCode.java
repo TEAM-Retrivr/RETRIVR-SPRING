@@ -84,6 +84,13 @@ public enum ErrorCode {
     SIGNUP_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 7202, "회원가입 토큰이 만료되었습니다."),
     SIGNUP_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 7203, "이미 사용된 회원가입 토큰입니다."),
 
+    // 7300: Admin Code Error
+    ADMIN_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7301, "관리자 코드가 일치하지 않습니다."),
+    NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7302, "관리자 코드 인증 토큰이 존재하지 않습니다."),
+    EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7303, "관리자 코드 인증 토큰이 만료되었습니다."),
+    ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7304, "관리자 코드 인증 토큰이 일치하지 않습니다."),
+    ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7305, "이미 사용된 관리자 코드 인증 토큰입니다."),
+
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
     PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),
@@ -96,8 +103,16 @@ public enum ErrorCode {
     RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
 
     // 10000: Borrower Error
-    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다.")
-    ;
+    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다."),
+
+    // 11000: File Storage Error
+    NOT_ALLOWED_IMAGE_CONTENT_TYPE(HttpStatus.BAD_REQUEST, 11000, "저장할 수 없는 이미지 컨텐츠 유형입니다."),
+    NOT_FOUND_PROFILE_IMAGE(HttpStatus.NOT_FOUND, 11001, "ObjectKey 에 대한 이미지를 찾을 수 없습니다."),
+
+    // 11100: S3 Storage Error
+    S3_STORAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 11100, "S3 스토리지 오류입니다."),
+    EXTENSION_MUST_NOT_BE_BLANK(HttpStatus.BAD_REQUEST, 11101, "저장할 이미지의 확장자가 없습니다."),
+    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

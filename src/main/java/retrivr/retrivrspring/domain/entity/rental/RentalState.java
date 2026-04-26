@@ -10,6 +10,8 @@ public interface RentalState {
 
   void reject(Rental rental, String adminName, Organization org);
 
+  void rejectBySystem(Rental rental, String systemMessage);
+
   void changeDueDate(Rental rental, LocalDate newDueDate, Organization org);
 
   void markReturned(Rental rental, String adminName, Organization org);

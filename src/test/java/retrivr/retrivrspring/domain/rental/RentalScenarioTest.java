@@ -305,6 +305,33 @@ public class RentalScenarioTest {
         .isEqualTo(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
   }
 
+  @Test
+  @DisplayName("시스템 거절 정상: REQUESTED -> REJECTED, unit AVAILABLE 복귀, availableQuantity 1 증가")
+  void reject_ok_restoreStock_and_changeStatus_whenSystemReject() {
+    // given
+    Organization org = org(1L);
+    Item item = unitItem(org, 2, 1, 7);
+    ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
+    Borrower borrower = borrower();
+
+    Rental rental = Rental.request(item, unit, borrower);
+
+    // when: 거절
+    rental.rejectBySystem("SYSTEM");
+
+    // then: Rental 상태
+    assertThat(rental.getStatus()).isEqualTo(RentalStatus.REJECTED);
+    assertThat(rental.getDecidedAt()).isNotNull();
+    assertThat(rental.getDecidedBy()).isEqualTo("SYSTEM");
+    assertThat(rental.getDueDate()).isNull();
+    assertThat(rental.getReceivedBy()).isNull();
+    assertThat(rental.getReturnedAt()).isNull();
+
+    // then: 재고/유닛 복원 (Item.onRentalRejected가 plusOne & unit returned 호출)
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+    assertThat(unit.getStatus()).isEqualTo(ItemUnitStatus.AVAILABLE);
+  }
+
   // ============================================================
   // 4) 반납(Mark Returned)
   // ============================================================
