@@ -111,7 +111,7 @@ class AdminItemServiceTest {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> {
+    when(itemRepository.saveAndFlush(any(Item.class))).thenAnswer(invocation -> {
       Item saved = invocation.getArgument(0);
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;

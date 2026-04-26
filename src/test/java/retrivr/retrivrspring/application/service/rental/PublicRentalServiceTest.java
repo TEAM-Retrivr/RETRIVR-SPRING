@@ -151,11 +151,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(rentalCaptor.capture());
+    verify(rentalRepository, times(1)).saveAndFlush(rentalCaptor.capture());
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isNull();
@@ -183,11 +183,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(any(Rental.class));
+    verify(rentalRepository, times(1)).saveAndFlush(any(Rental.class));
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isEqualTo(99L);
