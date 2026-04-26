@@ -314,7 +314,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // when: 거절
     rental.rejectBySystem("SYSTEM");

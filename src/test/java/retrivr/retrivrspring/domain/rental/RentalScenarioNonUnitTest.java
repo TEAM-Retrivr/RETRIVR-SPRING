@@ -200,7 +200,7 @@ public class RentalScenarioNonUnitTest {
     Item item = nonUnitItem(org(1L), 3, 2, 7);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
     assertThat(item.getAvailableQuantity()).isEqualTo(1);
 
     //when
