@@ -80,7 +80,8 @@ class PublicItemLookupServiceTest {
   @Test
   @DisplayName("IL-01: org not found")
   void listLookup_orgNotFound_throw() {
-    when(organizationRepository.findById(1L)).thenReturn(Optional.of(mockOrganization(1, "조직1")));
+    Organization mockOrg = mockOrganization(1, "조직1");
+    when(organizationRepository.findById(1L)).thenReturn(Optional.of(mockOrg));
 
     assertThatThrownBy(() -> publicItemLookupService.publicOrganizationItemListLookup(1L, null, 10))
         .isInstanceOf(ApplicationException.class)
@@ -95,7 +96,8 @@ class PublicItemLookupServiceTest {
   @DisplayName("IL-02: hasNext true")
   void listLookup_hasNext_true() {
     long orgId = 1L;
-    when(organizationRepository.findById(1L)).thenReturn(Optional.of(mockOrganization(1, "조직1")));
+    Organization mockOrg = mockOrganization(1, "조직1");
+    when(organizationRepository.findById(1L)).thenReturn(Optional.of(mockOrg));
     List<Item> fetched = List.of(
         mockItem(100L, "A", 1, 3, true, 7, null, null),
         mockItem(99L, "B", 1, 3, true, 7, null, null),
