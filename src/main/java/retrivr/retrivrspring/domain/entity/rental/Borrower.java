@@ -82,6 +82,6 @@ public class Borrower extends BaseTimeEntity {
   }
 
   public String getAllAdditionalInfo() {
-    return additionalBorrowerInfo.toString();
+    return additionalBorrowerInfo != null ? additionalBorrowerInfo.toString() : "";
   }
 }
