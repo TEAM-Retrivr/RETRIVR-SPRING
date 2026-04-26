@@ -37,7 +37,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
         .build();
 
     PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofSeconds(s3Properties.putExpiration()))
+        .signatureDuration(Duration.ofMillis(s3Properties.putExpiration()))
         .putObjectRequest(putObjectRequest)
         .build();
 
@@ -57,7 +57,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
         .build();
 
     GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofSeconds(s3Properties.getExpiration()))
+        .signatureDuration(Duration.ofMillis(s3Properties.getExpiration()))
         .getObjectRequest(getObjectRequest)
         .build();
 
