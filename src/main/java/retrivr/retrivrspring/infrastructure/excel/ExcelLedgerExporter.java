@@ -4,8 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -118,13 +116,13 @@ public class ExcelLedgerExporter implements LedgerExporter {
     }
 
     if (value instanceof LocalDate localDate) {
-      cell.setCellValue(Date.from(localDate.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant()));
+      cell.setCellValue(localDate);
       cell.setCellStyle(dateStyle);
       return;
     }
 
     if (value instanceof LocalDateTime localDateTime) {
-      cell.setCellValue(Date.from(localDateTime.atZone(ZoneId.of("Asia/Seoul")).toInstant()));
+      cell.setCellValue(localDateTime);
       cell.setCellStyle(dateTimeStyle);
       return;
     }
