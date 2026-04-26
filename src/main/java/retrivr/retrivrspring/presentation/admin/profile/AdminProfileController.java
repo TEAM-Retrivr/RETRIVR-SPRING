@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +20,11 @@ import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileImageUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminGetPresignedURLForUploadRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
 @RestController
@@ -65,5 +71,45 @@ public class AdminProfileController {
             @Valid @RequestBody AdminProfileUpdateRequest request
     ) {
         return adminProfileService.updateProfile(authUser.organizationId(), request);
+    }
+
+    @PostMapping("/images/pre-signed-upload-url")
+    @Operation(
+        summary = "관리자 프로필 사진 업로드용 Presigned URL 발급"
+    )
+    @ApiResponse(
+        responseCode = "200",
+        content = @Content(schema = @Schema(implementation = AdminGetPresignedURLForUploadResponse.class))
+    )
+    @ApiErrorCodeExamples({
+        ErrorCode.NOT_FOUND_ORGANIZATION,
+        ErrorCode.NOT_ALLOWED_IMAGE_CONTENT_TYPE
+    })
+    public AdminGetPresignedURLForUploadResponse getPresignedURLForUpload(
+        @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
+        @Valid @RequestBody AdminGetPresignedURLForUploadRequest request
+    ) {
+        return adminProfileService.getPresignedURLForUpload(loginUser.organizationId(), request);
+    }
+
+    @PutMapping("/images")
+    @Operation(
+        summary = "관리자 프로필 수정 확정",
+        description = "관리자 프로필을 입력된 ObjectKey 로 대체합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        content = @Content(schema = @Schema(implementation = AdminProfileImageUpdateResponse.class))
+    )
+    @ApiErrorCodeExamples({
+        ErrorCode.NOT_FOUND_ORGANIZATION,
+        ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION,
+        ErrorCode.NOT_FOUND_PROFILE_IMAGE
+    })
+    public AdminProfileImageUpdateResponse updateProfileImage(
+        @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
+        @Valid @RequestBody AdminProfileImageUpdateRequest request
+    ) {
+        return adminProfileService.updateProfileImage(loginUser.organizationId(), request);
     }
 }
