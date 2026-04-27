@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
@@ -15,6 +16,7 @@ import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
@@ -47,6 +49,7 @@ public class AdminItemService {
     private final ItemUnitRepository itemUnitRepository;
     private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
     private final PublicIdGenerator publicIdGenerator;
+    private final AdminCodeVerificationService adminCodeVerificationService;
 
     private static final int MAX_PUBLIC_ID_RETRY = 5;
 
@@ -95,6 +98,12 @@ public class AdminItemService {
     @Transactional
     public AdminItemUpdateResponse updateItem(Long organizationId, Long itemId,
                                               AdminItemUpdateRequest request) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+        
+        // 관리자 코드 인증 토큰 검증
+        adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
+            organization, AdminCodeVerificationPurpose.ITEM_UPDATE, request.adminCodeVerificationToken());
 
         Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
                         organizationId)
