@@ -55,7 +55,7 @@ public record AdminItemUpdateRequest(
     Boolean isActive,
 
     @Schema(description = "관리자 코드 인증 토큰", example = "cvt_token")
-    @NotNull
+    @NotBlank
     String adminCodeVerificationToken
 ) {
 }
