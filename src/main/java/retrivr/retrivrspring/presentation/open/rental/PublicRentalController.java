@@ -55,7 +55,7 @@ public class PublicRentalController {
       description = "대여 정보 조회 성공",
       content = @Content(schema = @Schema(implementation = PublicRentalDetailResponse.class))
   )
-  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL})
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_RENTAL, ErrorCode.NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN, ErrorCode.ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH, ErrorCode.EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN, ErrorCode.ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN})
   public PublicRentalDetailResponse getRentalInfo(
       @PathVariable("rentalId") Long rentalId,
       @RequestParam(name = "token") String token
@@ -78,7 +78,7 @@ public class PublicRentalController {
     return publicRentalService.approveRentalRequest(rentalId, request);
   }
 
-  @PostMapping("rentals/{rentalId}/reject")
+  @PostMapping("/rentals/{rentalId}/reject")
   @Operation(summary = "대여 요청 현장 즉시 거부")
   @ApiResponse(
       responseCode = "200",
