@@ -8,10 +8,15 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.event.RentalApprovedEvent;
+import retrivr.retrivrspring.application.event.RentalRejectedEvent;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -20,12 +25,17 @@ import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalCreateRequest;
+import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateApproveRequest;
+import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateRejectRequest;
 import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalCreateResponse;
 import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalDetailResponse;
 
 import java.util.HashMap;
 import java.util.Map;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalImmediateApproveResponse;
+import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalImmediateRejectResponse;
 
 @Slf4j
 @Service
@@ -39,6 +49,7 @@ public class PublicRentalService {
   private final ItemUnitRepository itemUnitRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
   private final PublicIdGenerator publicIdGenerator;
+  private final AdminCodeVerificationService adminCodeVerificationService;
 
   private static final int MAX_PUBLIC_ID_RETRY = 5;
 
@@ -77,15 +88,18 @@ public class PublicRentalService {
         request.itemUnitId(), requestedRental.getRequestedAt());
   }
 
-  public PublicRentalDetailResponse checkRentalStatusAndDetail(Long rentalId) {
+  public PublicRentalDetailResponse checkRentalStatusAndDetail(Long rentalId, String token) {
     Rental rental = rentalRepository.findById(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
+    adminCodeVerificationService.validateAdminCodeVerificationToken(
+        rental.getOrganization(), AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, token);
+
     //todo: 장바구니? 기능 이후 name List 를 넘기도록 수정
-    String itemName = rental.getRentalItems().getFirst().getItem().getName();
+    String itemName = rental.getItem().getName();
     String itemUnitLabel = null;
-    if (!rental.getRentalItemUnits().isEmpty()) {
-      itemUnitLabel = rental.getRentalItemUnits().getFirst().getItemUnit().getLabel();
+    if (rental.hasItemUnit()) {
+      itemUnitLabel = rental.getItemUnit().getLabel();
     }
 
     Map<String, String> borrowerField = new HashMap<>();
@@ -117,5 +131,46 @@ public class PublicRentalService {
     }
 
     throw new ApplicationException(ErrorCode.RENTAL_PUBLIC_ID_GENERATE_FAILED);
+  }
+
+  @Transactional
+  public PublicRentalImmediateApproveResponse approveRentalRequest(Long rentalId, PublicRentalImmediateApproveRequest request) {
+    // 요청된 Rental 조회
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
+
+    Organization organization = rental.getOrganization();
+
+    // 관리자 코드 인증 토큰 검증
+    adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
+        organization, AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, request.adminCodeVerificationToken());
+
+    // 대여 요청 승인
+    rental.approve(request.adminNameToApprove(), organization);
+    applicationEventPublisher.publishEvent(new RentalApprovedEvent(rental.getId()));
+
+    return new PublicRentalImmediateApproveResponse(organization.getId());
+  }
+
+  @Transactional
+  public PublicRentalImmediateRejectResponse rejectRentalRequest(Long rentalId, PublicRentalImmediateRejectRequest request) {
+
+    // 1. 대여 정보 조회
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
+
+    // 2. 로그인된 조직 조회
+    Organization organization = rental.getOrganization();
+
+    // 관리자 코드 인증 토큰 검증
+    adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
+        organization, AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, request.adminCodeVerificationToken());
+
+
+    // 3. 대여 거부
+    rental.reject(request.adminNameToReject(), organization);
+    applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
+
+    return new PublicRentalImmediateRejectResponse(organization.getId());
   }
 }

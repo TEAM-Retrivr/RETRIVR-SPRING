@@ -85,4 +85,27 @@ public class AdminCodeVerificationService {
     // 토큰 논리적 삭제
     token.markUsed(now);
   }
+
+  public void validateAdminCodeVerificationToken(Organization organization, AdminCodeVerificationPurpose purpose, String rawToken) {
+    LocalDateTime now = LocalDateTime.now();
+
+    AdminCodeVerificationToken token = adminCodeVerificationTokenRepository.findByOrganizationAndPurpose(
+            organization, purpose)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN));
+
+    // 토큰 값의 일치 여부 검증
+    if (!passwordEncoder.matches(rawToken, token.getTokenHash())) {
+      throw new ApplicationException(ErrorCode.ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH);
+    }
+
+    // 토큰 만료 여부 검증
+    if (token.isExpired(now)) {
+      throw new ApplicationException(ErrorCode.EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN);
+    }
+
+    // 토큰 사용 여부 검증
+    if (token.isUsed()) {
+      throw new ApplicationException(ErrorCode.ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN);
+    }
+  }
 }
