@@ -59,13 +59,13 @@ public class AdminRequestedRentalService {
 
   @Transactional
   public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
-      AdminRentalApproveRequest request, Long mockOrganizationId) {
+      AdminRentalApproveRequest request, Long loginOrganizationId) {
     // 1. 요청된 Rental 조회
     Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인한 Organization 조회
-    Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
+    Organization organizationToApprove = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     // 3. Rental 을 소유한 Organization 인지 검증

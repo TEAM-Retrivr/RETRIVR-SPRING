@@ -94,7 +94,7 @@ public class AdminProfileController {
 
     @PutMapping("/images")
     @Operation(
-        summary = "관리자 프로필 수정 확정",
+        summary = "관리자 프로필 이미지 수정 확정",
         description = "관리자 프로필을 입력된 ObjectKey 로 대체합니다."
     )
     @ApiResponse(
