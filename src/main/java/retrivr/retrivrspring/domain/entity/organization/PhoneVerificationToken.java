@@ -57,7 +57,7 @@ public class PhoneVerificationToken extends BaseTimeEntity {
   }
 
   public boolean isExpired(LocalDateTime now) {
-    return now.isAfter(this.expiresAt);
+    return !now.isBefore(this.expiresAt);
   }
 
   public void delete() {
