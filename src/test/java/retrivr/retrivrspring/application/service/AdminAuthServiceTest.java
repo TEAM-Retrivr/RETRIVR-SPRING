@@ -156,6 +156,65 @@ class AdminAuthServiceTest {
     }
 
     @Test
+    void signup_passwordWithDisallowedSpecialCharacter_throwsInvalidValue() {
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash("$2a$10$signupHash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        token.markCodeVerified(LocalDateTime.now());
+
+        given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
+        given(passwordEncoder.matches("st_xxx", "$2a$10$signupHash")).willReturn(true);
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> adminAuthService.signup(
+                        new AdminSignupRequest(email, "Password123?", "Org", "DEV", "st_xxx")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+    }
+
+    @Test
+    void signup_passwordWithOnlyLowercaseLettersNumberAndAllowedSpecialCharacter_succeeds() {
+        String password = "password1!";
+        String rawSignupToken = "st_xxx";
+        String hashedSignupToken = "$2a$10$signupHash";
+
+        SignupToken token = SignupToken.builder()
+                .email(email)
+                .tokenHash(hashedSignupToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        token.markCodeVerified(LocalDateTime.now());
+
+        given(signupTokenRepository.findByEmail(email)).willReturn(Optional.of(token));
+        given(passwordEncoder.matches(rawSignupToken, hashedSignupToken)).willReturn(true);
+        given(organizationRepository.findByEmail(email)).willReturn(Optional.empty());
+        given(passwordEncoder.encode(password)).willReturn(hashedPassword);
+        given(passwordEncoder.encode("DEV")).willReturn("encoded-admin-code");
+
+        Organization saved = Organization.builder()
+                .id(2L)
+                .email(email)
+                .passwordHash(hashedPassword)
+                .status(OrganizationStatus.PENDING)
+                .adminCodeHash("encoded-admin-code")
+                .build();
+
+        given(organizationRepository.save(any())).willReturn(saved);
+
+        var res = adminAuthService.signup(
+                new AdminSignupRequest(email, password, "Org", "DEV", rawSignupToken)
+        );
+
+        assertEquals(2L, res.orgId());
+    }
+
+    @Test
     @DisplayName("resetPassword success")
     void resetPassword_success() {
 
@@ -209,5 +268,36 @@ class AdminAuthServiceTest {
         );
 
         assertEquals(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION, ex.getErrorCode());
+    }
+
+    @Test
+    void resetPassword_withAllowedSpecialCharacter_succeeds() {
+
+        Organization org = Organization.builder()
+                .id(1L)
+                .email(email)
+                .passwordHash("encoded-password")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("encoded-admin-code")
+                .build();
+
+        PasswordResetToken token = PasswordResetToken.builder()
+                .organization(org)
+                .tokenHash("$2a$10$hash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
+        given(passwordResetTokenRepository
+                .findTopByOrganizationOrderByCreatedAtDesc(org))
+                .willReturn(Optional.of(token));
+        given(passwordEncoder.matches("token", "$2a$10$hash")).willReturn(true);
+        given(passwordEncoder.encode("NewPassword123*")).willReturn("encoded");
+
+        var res = adminAuthService.resetPassword(
+                new PasswordResetRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "token", "NewPassword123*", "NewPassword123*")
+        );
+
+        assertTrue(res.success());
     }
 }
