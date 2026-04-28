@@ -34,7 +34,7 @@ public class RentalApprovedContent extends RentalMessageContentSupport {
         "단체명 %s%n대여 물품명 %s%n반납 예정일 %s%n대여 요청이 승인됐습니다.",
         organizationName(),
         itemName(),
-        dueDate
+        formatDate(dueDate)
     );
   }
 
