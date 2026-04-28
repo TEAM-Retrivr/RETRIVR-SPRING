@@ -100,6 +100,8 @@ public enum ErrorCode {
     PHONE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7406, "인증 토큰이 일치하지 않습니다."),
     EXPIRED_PHONE_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, 7407, "인증 토큰이 만료되었습니다."),
 
+    TOO_MANY_PHONE_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, 7408, "핸드폰 번호 인증 시도가 너무 많습니다."),
+
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
     PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),

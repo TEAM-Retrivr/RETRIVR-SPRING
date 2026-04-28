@@ -87,8 +87,8 @@ public class PublicPhoneVerificationService {
             request.verificationId())
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_PHONE_VERIFICATION));
 
-    if (!passwordEncoder.matches(request.rawCode(), phoneVerification.getCodeHash())) {
-      throw new ApplicationException(ErrorCode.PHONE_VERIFICATION_CODE_MISMATCH);
+    if (phoneVerification.isVerificationLocked(now)) {
+      throw new ApplicationException(ErrorCode.TOO_MANY_PHONE_VERIFICATION_ATTEMPTS);
     }
 
     if (!phoneVerification.isMatchesPurpose(request.purpose())) {

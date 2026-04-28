@@ -54,7 +54,8 @@ public class PublicPhoneVerificationController {
       ErrorCode.NOT_FOUND_PHONE_VERIFICATION,
       ErrorCode.PHONE_VERIFICATION_PURPOSE_MISMATCH,
       ErrorCode.EXPIRED_PHONE_VERIFICATION,
-      ErrorCode.PHONE_VERIFICATION_CODE_MISMATCH
+      ErrorCode.PHONE_VERIFICATION_CODE_MISMATCH,
+      ErrorCode.TOO_MANY_PHONE_VERIFICATION_ATTEMPTS
   })
   public PhoneVerificationVerifyResponse verifyCode(
       @RequestBody @Valid PhoneVerificationVerifyRequest request

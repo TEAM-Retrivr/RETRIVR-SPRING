@@ -65,13 +65,20 @@ public class PhoneVerification extends BaseTimeEntity {
   @Column(nullable = false)
   private int requestAttempts;
 
+  @Column(nullable = false)
+  private int failedAttempts;
+
   private LocalDateTime lastAttemptAt;
 
   private LocalDateTime requestLockExpiration;
 
+  private LocalDateTime verificationLockExpiration;
+
   private static final int MAX_REQUEST_ATTEMPTS = 3;
+  public static final int MAX_FAILED_VERIFICATION_ATTEMPTS = 20;
   public static final int EXPIRATION_TIME_MINUTES = 3;
-  private static final int LOCK_TIME = 5; // 분
+  private static final int REQUEST_LOCK_TIME_MINUTES = 5;
+  private static final int VERIFICATION_LOCK_TIME_MINUTES = 5;
 
   public static PhoneVerification create(
       PhoneNumber phone,
@@ -85,41 +92,58 @@ public class PhoneVerification extends BaseTimeEntity {
         .codeHash(codeHash)
         .expiresAt(now.plusMinutes(EXPIRATION_TIME_MINUTES))
         .requestAttempts(1)
+        .failedAttempts(0)
         .build();
   }
 
   public void refresh(String codeHash, LocalDateTime now) {
-    if (lastAttemptAt != null && lastAttemptAt.isBefore(now.minusMinutes(LOCK_TIME))) {
-      unlock();
+    if (lastAttemptAt != null
+        && lastAttemptAt.isBefore(now.minusMinutes(REQUEST_LOCK_TIME_MINUTES))) {
+      unlockRequest();
     }
-    if (isLocked(now)) {
+    if (isRequestLocked(now)) {
       throw new DomainException(ErrorCode.TOO_MANY_PHONE_VERIFICATION_REQUEST);
     }
 
     this.codeHash = codeHash;
     this.expiresAt = now.plusMinutes(EXPIRATION_TIME_MINUTES);
     this.verifiedAt = null;
+    this.failedAttempts = 0;
+    this.verificationLockExpiration = null;
     this.requestAttempts++;
-    lastAttemptAt = now;
+    this.lastAttemptAt = now;
     clearToken();
 
-    if (requestAttempts >= 3) {
-      lock(now);
+    if (requestAttempts >= MAX_REQUEST_ATTEMPTS) {
+      lockRequest(now);
     }
   }
 
-  public boolean isLocked(LocalDateTime now) {
+  public boolean isRequestLocked(LocalDateTime now) {
     return requestLockExpiration != null && now.isBefore(requestLockExpiration);
   }
 
-  public void lock(LocalDateTime now) {
-    this.requestLockExpiration = now.plusMinutes(LOCK_TIME);
+  public void lockRequest(LocalDateTime now) {
+    this.requestLockExpiration = now.plusMinutes(REQUEST_LOCK_TIME_MINUTES);
     this.requestAttempts = 0;
   }
 
-  private void unlock() {
+  private void unlockRequest() {
     this.requestLockExpiration = null;
     this.requestAttempts = 0;
+  }
+
+  public boolean isVerificationLocked(LocalDateTime now) {
+    return verificationLockExpiration != null && now.isBefore(verificationLockExpiration);
+  }
+
+  public int incrementFailedAttempts() {
+    this.failedAttempts += 1;
+    return this.failedAttempts;
+  }
+
+  public void lockVerification(LocalDateTime now) {
+    this.verificationLockExpiration = now.plusMinutes(VERIFICATION_LOCK_TIME_MINUTES);
   }
 
   public boolean isExpired(LocalDateTime now) {
@@ -132,6 +156,8 @@ public class PhoneVerification extends BaseTimeEntity {
 
   public void markVerified(LocalDateTime now) {
     this.verifiedAt = now;
+    this.failedAttempts = 0;
+    this.verificationLockExpiration = null;
   }
 
   public void clearToken() {
