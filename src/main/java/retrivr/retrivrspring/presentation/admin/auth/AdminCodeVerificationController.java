@@ -63,6 +63,7 @@ public class AdminCodeVerificationController {
   )
   @ApiErrorCodeExamples({
       ErrorCode.NOT_FOUND_ORGANIZATION,
+      ErrorCode.NOT_FOUND_RENTAL,
       ErrorCode.ADMIN_CODE_MISMATCH
   })
   public AdminCodeVerificationResponseForPublic verifyAdminCodeForPublic(
