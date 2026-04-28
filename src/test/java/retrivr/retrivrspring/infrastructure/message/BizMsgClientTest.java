@@ -61,8 +61,10 @@ class BizMsgClientTest {
     )));
 
     assertThat(responses).hasSize(1);
-    assertThat(responses.getFirst().msgid()).isEqualTo("msg-123");
-    assertThat(responses.getFirst().isSuccess()).isTrue();
+    assertThat(responses.get(0).code()).isEqualTo("success");
+    assertThat(responses.get(0).data().asText()).isEqualTo("accepted");
+    assertThat(responses.get(0).message()).isEqualTo("sent");
+    assertThat(responses.get(0).isSuccess()).isTrue();
   }
 
   @Test
@@ -101,7 +103,9 @@ class BizMsgClientTest {
     )));
 
     assertThat(responses).hasSize(1);
-    assertThat(responses.getFirst().msgid()).isEqualTo("msg-123");
-    assertThat(responses.getFirst().isSuccess()).isTrue();
+    assertThat(responses.get(0).code()).isEqualTo("success");
+    assertThat(responses.get(0).data().asText()).isEqualTo("accepted");
+    assertThat(responses.get(0).message()).isEqualTo("sent");
+    assertThat(responses.get(0).isSuccess()).isTrue();
   }
 }
