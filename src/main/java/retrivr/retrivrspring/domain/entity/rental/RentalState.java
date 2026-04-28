@@ -10,6 +10,8 @@ public interface RentalState {
 
   void reject(Rental rental, String adminName, Organization org);
 
+  void rejectBySystem(Rental rental, String systemMessage);
+
   void changeDueDate(Rental rental, LocalDate newDueDate, Organization org);
 
   void markReturned(Rental rental, String adminName, Organization org);
@@ -17,4 +19,6 @@ public interface RentalState {
   int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt);
 
   boolean canSendOverdueMessage(Rental rental);
+
+  int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now);
 }

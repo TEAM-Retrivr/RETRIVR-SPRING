@@ -57,3 +57,21 @@ springdoc:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods: ${CORS_ALLOWED_METHODS}
+
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET}
+      region: ${S3_REGION}
+      put-expiration: ${S3_PUT_EXPIRATION:300000}  #ms (5분)
+      get-expiration: ${S3_GET_EXPIRATION:300000}  #ms (5분)
+
+scheduler:
+  rental-expire:
+    delay: ${RENTAL_EXPIRE_DELAY:60000}
+    batch-size: ${RENTAL_EXPIRE_BATCH_SIZE:100}
+    max-iterations: ${RENTAL_EXPIRE_MAX_ITERATIONS:100}
+    request-expire-minutes: ${RENTAL_EXPIRE_REQUEST_EXPIRE_MINUTES:15}
+
+public-id:
+  secret: ${PUBLIC_ID_SECRET}

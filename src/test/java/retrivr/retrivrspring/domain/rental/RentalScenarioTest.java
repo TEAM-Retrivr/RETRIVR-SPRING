@@ -74,7 +74,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // when: “요청” 단계에서 도메인 효과 발생
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // then
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.REQUESTED);
@@ -103,7 +103,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // when
-    Throwable t = catchThrowable(() -> Rental.request(item, null, borrower));
+    Throwable t = catchThrowable(() -> Rental.request(item, null, borrower, "public-id"));
 
     // then
     assertThat(t).isInstanceOf(DomainException.class)
@@ -121,7 +121,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // when
-    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower));
+    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower, "public-id"));
 
     // then
     assertThat(t).isInstanceOf(DomainException.class)
@@ -139,7 +139,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // when
-    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower));
+    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower, "public-id"));
 
     // then
     assertThat(t).isInstanceOf(DomainException.class)
@@ -161,7 +161,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // 요청 효과 먼저 반영(실제 흐름)
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // when
     rental.approve("admin", org);
@@ -188,7 +188,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // when
     Throwable t = catchThrowable(() -> rental.approve("admin", other));
@@ -208,7 +208,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     ReflectionTestUtils.setField(rental, "status", RentalStatus.RENTED); // 강제 세팅
 
     // when
@@ -229,7 +229,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     ReflectionTestUtils.setField(unit, "status", ItemUnitStatus.AVAILABLE); // 강제 세팅
 
     // when
@@ -266,7 +266,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // when: 거절
     rental.reject("admin", org);
@@ -294,7 +294,7 @@ public class RentalScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
 
     // when
     Throwable t = catchThrowable(() -> rental.reject("admin", other));
@@ -303,6 +303,33 @@ public class RentalScenarioTest {
     assertThat(t).isInstanceOf(DomainException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
+  }
+
+  @Test
+  @DisplayName("시스템 거절 정상: REQUESTED -> REJECTED, unit AVAILABLE 복귀, availableQuantity 1 증가")
+  void reject_ok_restoreStock_and_changeStatus_whenSystemReject() {
+    // given
+    Organization org = org(1L);
+    Item item = unitItem(org, 2, 1, 7);
+    ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
+    Borrower borrower = borrower();
+
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
+
+    // when: 거절
+    rental.rejectBySystem("SYSTEM");
+
+    // then: Rental 상태
+    assertThat(rental.getStatus()).isEqualTo(RentalStatus.REJECTED);
+    assertThat(rental.getDecidedAt()).isNotNull();
+    assertThat(rental.getDecidedBy()).isEqualTo("SYSTEM");
+    assertThat(rental.getDueDate()).isNull();
+    assertThat(rental.getReceivedBy()).isNull();
+    assertThat(rental.getReturnedAt()).isNull();
+
+    // then: 재고/유닛 복원 (Item.onRentalRejected가 plusOne & unit returned 호출)
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+    assertThat(unit.getStatus()).isEqualTo(ItemUnitStatus.AVAILABLE);
   }
 
   // ============================================================
@@ -319,7 +346,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // 요청 -> 승인까지 만들어서 RENTED 상태 만들기
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     rental.approve("admin", org);
 
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.RENTED);
@@ -350,7 +377,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // 요청 -> 승인까지 만들어서 RENTED 상태 만들기
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     rental.approve("admin", org);
 
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.RENTED);
@@ -376,7 +403,7 @@ public class RentalScenarioTest {
     Borrower borrower = borrower();
 
     // 요청 -> 승인까지 만들어서 RENTED 상태 만들기
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     rental.approve("admin", org);
 
     ReflectionTestUtils.setField(rental, "status", RentalStatus.RETURNED);

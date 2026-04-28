@@ -30,6 +30,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -57,6 +59,8 @@ class PublicRentalServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private ApplicationEventPublisher applicationEventPublisher;
+  @Mock private PublicIdGenerator publicIdGenerator;
+  @Mock private AdminCodeVerificationService adminCodeVerificationService;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -66,7 +70,9 @@ class PublicRentalServiceTest {
         rentalRepository,
         itemRepository,
         itemUnitRepository,
-        applicationEventPublisher
+        applicationEventPublisher,
+        publicIdGenerator,
+        adminCodeVerificationService
     );
   }
 
@@ -148,11 +154,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(rentalCaptor.capture());
+    verify(rentalRepository, times(1)).saveAndFlush(rentalCaptor.capture());
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isNull();
@@ -180,11 +186,11 @@ class PublicRentalServiceTest {
       Rental savedRental = inv.getArgument(0);
       setRentalId(savedRental, 1L);
       return null;
-    }).when(rentalRepository).save(any(Rental.class));
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
 
     PublicRentalCreateResponse res = service().requestRental(10L, req);
 
-    verify(rentalRepository, times(1)).save(any(Rental.class));
+    verify(rentalRepository, times(1)).saveAndFlush(any(Rental.class));
     verify(applicationEventPublisher).publishEvent(new RentalRequestedEvent(1L));
     assertThat(res.itemId()).isEqualTo(10L);
     assertThat(res.itemUnitId()).isEqualTo(99L);
@@ -195,7 +201,7 @@ class PublicRentalServiceTest {
   void checkRental_notFound() {
     when(rentalRepository.findById(777L)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service().checkRentalStatusAndDetail(777L))
+    assertThatThrownBy(() -> service().checkRentalStatusAndDetail(777L, "token"))
         .isInstanceOf(ApplicationException.class);
   }
 
@@ -203,7 +209,9 @@ class PublicRentalServiceTest {
   @DisplayName("PR-09: detail without unit")
   void checkRental_detail_withoutUnit() {
     Rental rental = mock(Rental.class);
+    Organization org = mockOrg(1L);
     when(rental.getId()).thenReturn(1L);
+    when(rental.getOrganization()).thenReturn(org);
     when(rental.getStatus()).thenReturn(RentalStatus.REQUESTED);
     when(rental.getDecidedAt()).thenReturn((LocalDateTime) null);
     when(rental.getDueDate()).thenReturn((LocalDate) null);
@@ -214,6 +222,9 @@ class PublicRentalServiceTest {
     when(rentalItem.getItem()).thenReturn(item);
     when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
     when(rental.getRentalItemUnits()).thenReturn(List.of());
+    when(rental.getItem()).thenReturn(item);
+    when(rental.hasItemUnit()).thenReturn(false);
+
 
     Borrower borrower = mock(Borrower.class);
     JsonNode info = objectMapper.valueToTree(Map.of("학과", "컴공"));
@@ -223,7 +234,7 @@ class PublicRentalServiceTest {
 
     when(rentalRepository.findById(1L)).thenReturn(Optional.of(rental));
 
-    PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(1L);
+    PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(1L, "token");
 
     assertThat(res.itemName()).isEqualTo("카메라");
     assertThat(res.itemUnitLabel()).isNull();
@@ -244,12 +255,17 @@ class PublicRentalServiceTest {
     RentalItem rentalItem = mock(RentalItem.class);
     when(rentalItem.getItem()).thenReturn(item);
     when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
+    when(rental.getItem()).thenReturn(item);
+
 
     ItemUnit unit = mock(ItemUnit.class);
     when(unit.getLabel()).thenReturn("unit-001");
     RentalItemUnit riu = mock(RentalItemUnit.class);
     when(riu.getItemUnit()).thenReturn(unit);
     when(rental.getRentalItemUnits()).thenReturn(List.of(riu));
+    when(rental.getItemUnit()).thenReturn(unit);
+    when(rental.hasItemUnit()).thenReturn(true);
+
 
     Borrower borrower = mock(Borrower.class);
     JsonNode info = objectMapper.valueToTree(Map.of("학번", "20251234"));
@@ -259,7 +275,7 @@ class PublicRentalServiceTest {
 
     when(rentalRepository.findById(2L)).thenReturn(Optional.of(rental));
 
-    PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(2L);
+    PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(2L, "token");
 
     assertThat(res.itemName()).isEqualTo("노트북");
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");

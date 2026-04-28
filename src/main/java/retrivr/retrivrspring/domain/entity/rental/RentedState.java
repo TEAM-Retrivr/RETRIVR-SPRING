@@ -28,6 +28,12 @@ public final class RentedState implements RentalState {
   }
 
   @Override
+  public void rejectBySystem(Rental rental, String systemMessage) {
+    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
+        "Cannot reject when RENTED");
+  }
+
+  @Override
   public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     rental.validateRentalOwner(org);
     if (newDueDate == null) {
@@ -53,5 +59,11 @@ public final class RentedState implements RentalState {
   @Override
   public boolean canSendOverdueMessage(Rental rental) {
     return rental.getBorrower().isValidPhoneFormat();
+  }
+
+  @Override
+  public int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now) {
+    long days = ChronoUnit.DAYS.between(decidedAt.toLocalDate(), now.toLocalDate());
+    return (int) Math.max(days, 0);
   }
 }

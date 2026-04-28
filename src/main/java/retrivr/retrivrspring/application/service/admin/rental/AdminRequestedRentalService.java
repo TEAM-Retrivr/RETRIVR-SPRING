@@ -59,13 +59,13 @@ public class AdminRequestedRentalService {
 
   @Transactional
   public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
-      AdminRentalApproveRequest request, Long mockOrganizationId) {
+      AdminRentalApproveRequest request, Long loginOrganizationId) {
     // 1. 요청된 Rental 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인한 Organization 조회
-    Organization organizationToApprove = organizationRepository.findById(mockOrganizationId)
+    Organization organizationToApprove = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     // 3. Rental 을 소유한 Organization 인지 검증
@@ -87,7 +87,7 @@ public class AdminRequestedRentalService {
   public AdminRentalDecisionResponse rejectRentalRequest(Long rentalId,
       AdminRentalRejectRequest request, Long loginOrganizationId) {
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationById(rentalId)
+    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인된 조직 조회
@@ -104,5 +104,15 @@ public class AdminRequestedRentalService {
         request.adminNameToReject(),
         LocalDateTime.now()
     );
+  }
+
+  @Transactional
+  public void rejectRentalRequestBySystem(Rental rental) {
+    // 대여 거부
+    String systemMessage = "SYSTEM (요청 시간 만료)";
+    rental.rejectBySystem(systemMessage);
+
+    // 메시지 이벤트 발행
+    applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
   }
 }

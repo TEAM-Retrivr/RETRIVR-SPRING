@@ -43,6 +43,14 @@ public class ItemUnit extends BaseTimeEntity {
   }
 
   /**
+   * 대여 경합 중이거나 대여중인 상태를 제외하고 이용 가능하지 않은 상태인지 판단
+   */
+  public boolean isUnavailable() {
+    validateStatusExists();
+    return this.status == ItemUnitStatus.LOST || this.status == ItemUnitStatus.BROKEN || this.status == ItemUnitStatus.INACTIVE;
+  }
+
+  /**
    * 대여 요청 처리.
    * AVAILABLE 상태의 유닛만 RENTAL_PENDING 상태로 전이할 수 있다.
    */

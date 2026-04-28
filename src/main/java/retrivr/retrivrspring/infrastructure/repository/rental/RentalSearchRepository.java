@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import retrivr.retrivrspring.application.vo.RentedRentalSearchResultWithScore;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 
@@ -21,4 +22,7 @@ public interface RentalSearchRepository {
   List<Rental> findRentedByItemId(Long itemId, Long cursor, int limit);
 
   List<Rental> findOverdueReminderTargets(LocalDate today);
+
+  List<RentedRentalSearchResultWithScore> searchRentedRentalPageBy(Long organizationId, String keyword, Long cursorRentalId, Double cursorScore,
+      int size);
 }

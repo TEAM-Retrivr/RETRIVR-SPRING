@@ -44,11 +44,8 @@ public enum ErrorCode {
     INVALID_ITEM_UNIT(HttpStatus.INTERNAL_SERVER_ERROR, 4009, "아이템 유닛 데이터 잘못되었습니다."),
     ITEM_UNIT_REQUIRED_FOR_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4010, "UNIT 타입 물건은 고유번호(ItemUnit)가 반드시 필요합니다."),
     ITEM_UNIT_NOT_ALLOWED_FOR_NON_UNIT_TYPE(HttpStatus.BAD_REQUEST, 4011, "Non Unit 타입 물건은 고유번호를 사용할 수 없습니다."),
-    CANNOT_CONVERT_NON_UNIT_ITEM_WITH_UNAVAILABLE_QUANTITY_TO_UNIT(
-        HttpStatus.BAD_REQUEST,
-        4012,
-        "대여 불가능 수량이 있는 비유닛 물품은 유닛 물품으로 변경할 수 없습니다."
-    ),
+    CANNOT_CONVERT_NON_UNIT_ITEM_WITH_UNAVAILABLE_QUANTITY_TO_UNIT(HttpStatus.BAD_REQUEST, 4012, "대여 불가능 수량이 있는 비유닛 물품은 유닛 물품으로 변경할 수 없습니다."),
+    ITEM_PUBLIC_ID_GENERATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 4013, "아이템 공개 ID 생성에 실패했습니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_LABEL(HttpStatus.BAD_REQUEST, 5000, "대여자 라벨이 잘못되었습니다."),
@@ -57,6 +54,7 @@ public enum ErrorCode {
     INVALID_RENTAL_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 5003, "대여 데이터가 잘못되었습니다."),
     RENTAL_DUE_DATE_UPDATE_EXCEPTION(HttpStatus.BAD_REQUEST, 5004, "반납 일자를 수정할 수 없는 상태입니다."),
     DO_NOT_SEND_OVERDUE_MESSAGE(HttpStatus.CONFLICT, 5005, "연체 문자를 보낼 수 없는 대여 상태입니다."),
+    RENTAL_PUBLIC_ID_GENERATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 5006, "대여 공개 ID 생성에 실패했습니다."),
 
     // 6000: Authentication Error
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, 6000, "이메일 또는 비밀번호가 올바르지 않습니다."),
@@ -84,6 +82,13 @@ public enum ErrorCode {
     SIGNUP_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, 7202, "회원가입 토큰이 만료되었습니다."),
     SIGNUP_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 7203, "이미 사용된 회원가입 토큰입니다."),
 
+    // 7300: Admin Code Error
+    ADMIN_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7301, "관리자 코드가 일치하지 않습니다."),
+    NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7302, "관리자 코드 인증 토큰이 존재하지 않습니다."),
+    EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7303, "관리자 코드 인증 토큰이 만료되었습니다."),
+    ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7304, "관리자 코드 인증 토큰이 일치하지 않습니다."),
+    ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7305, "이미 사용된 관리자 코드 인증 토큰입니다."),
+
     // 7400: Phone Verification Error
     TOO_MANY_PHONE_VERIFICATION_REQUEST(HttpStatus.TOO_MANY_REQUESTS, 7400, "핸드폰 번호 인증 요청이 너무 많습니다."),
     NOT_FOUND_PHONE_VERIFICATION(HttpStatus.NOT_FOUND, 7401, "핸드폰 번호 인증 객체가 없습니다."),
@@ -106,8 +111,16 @@ public enum ErrorCode {
     RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
 
     // 10000: Borrower Error
-    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다.")
-    ;
+    INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다."),
+
+    // 11000: File Storage Error
+    NOT_ALLOWED_IMAGE_CONTENT_TYPE(HttpStatus.BAD_REQUEST, 11000, "저장할 수 없는 이미지 컨텐츠 유형입니다."),
+    NOT_FOUND_PROFILE_IMAGE(HttpStatus.NOT_FOUND, 11001, "ObjectKey 에 대한 이미지를 찾을 수 없습니다."),
+
+    // 11100: S3 Storage Error
+    S3_STORAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 11100, "S3 스토리지 오류입니다."),
+    EXTENSION_MUST_NOT_BE_BLANK(HttpStatus.BAD_REQUEST, 11101, "저장할 이미지의 확장자가 없습니다."),
+    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

@@ -69,7 +69,7 @@ public class RentalChangeDueDateScenarioTest {
     ItemUnit unit = unit(item, 100L, ItemUnitStatus.AVAILABLE);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, unit, borrower);
+    Rental rental = Rental.request(item, unit, borrower, "public-id");
     rental.approve("admin", org);
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.RENTED);
     return rental;

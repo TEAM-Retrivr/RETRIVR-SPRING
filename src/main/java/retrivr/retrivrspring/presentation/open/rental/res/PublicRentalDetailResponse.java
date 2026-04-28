@@ -1,19 +1,15 @@
 package retrivr.retrivrspring.presentation.open.rental.res;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
-import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
 public record PublicRentalDetailResponse(
     Long rentalId,
-    RentalStatus rentalStatus,
     String itemName,
     String itemUnitLabel,
     Map<String, String> borrowerField,
-    LocalDateTime decidedAt,
-    LocalDate dueDate
+    LocalDateTime requestedAt
 ) {
 
   public static PublicRentalDetailResponse from(
@@ -24,12 +20,10 @@ public record PublicRentalDetailResponse(
   ) {
     return new PublicRentalDetailResponse(
         rental.getId(),
-        rental.getStatus(),
         itemName,
         itemUnitLabel,
         borrowerField,
-        rental.getDecidedAt(),
-        rental.getDueDate()
+        rental.getRequestedAt()
     );
   }
 

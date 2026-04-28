@@ -1,8 +1,12 @@
 package retrivr.retrivrspring.application.service.admin.item;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
@@ -12,6 +16,7 @@ import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
@@ -32,6 +37,7 @@ import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,6 +48,10 @@ public class AdminItemService {
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
     private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
+    private final PublicIdGenerator publicIdGenerator;
+    private final AdminCodeVerificationService adminCodeVerificationService;
+
+    private static final int MAX_PUBLIC_ID_RETRY = 5;
 
     public AdminItemPageResponse getItems(Long organizationId, Long cursor, Integer size) {
         DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
@@ -77,20 +87,8 @@ public class AdminItemService {
 
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
-        Item item = Item.builder()
-                .organization(organization)
-                .name(request.name())
-                .description(request.description())
-                .rentalDuration(request.rentalDuration())
-                .totalQuantity(request.totalQuantity())
-                .availableQuantity(request.totalQuantity())
-                .useMessageAlarmService(request.useMessageAlarmService())
-                .itemManagementType(request.itemManagementType())
-                .guaranteedGoods(request.guaranteedGoods())
-                .isActive(true)
-                .build();
+        Item savedItem = issuePublicIdAndSaveItem(organization, request);
 
-        Item savedItem = itemRepository.save(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
         List<ItemUnit> itemUnits = itemUnitRepository.saveAll(savedItem.createUnits(request.unitLabels()));
 
@@ -100,6 +98,12 @@ public class AdminItemService {
     @Transactional
     public AdminItemUpdateResponse updateItem(Long organizationId, Long itemId,
                                               AdminItemUpdateRequest request) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+        
+        // 관리자 코드 인증 토큰 검증
+        adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
+            organization, AdminCodeVerificationPurpose.ITEM_UPDATE, request.adminCodeVerificationToken());
 
         Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
                         organizationId)
@@ -203,5 +207,39 @@ public class AdminItemService {
             ));
         }
         return itemBorrowerFieldRepository.saveAll(fields);
+    }
+
+    private Item issuePublicIdAndSaveItem(Organization organization, AdminItemCreateRequest request) {
+        Long organizationId = organization.getId();
+
+        for (int attempt = 0; attempt < MAX_PUBLIC_ID_RETRY; attempt++) {
+            String publicId = publicIdGenerator.generateItemId(organizationId);
+            Item item = Item.builder()
+                .organization(organization)
+                .publicId(publicId)
+                .name(request.name())
+                .description(request.description())
+                .rentalDuration(request.rentalDuration())
+                .totalQuantity(request.totalQuantity())
+                .availableQuantity(request.totalQuantity())
+                .useMessageAlarmService(request.useMessageAlarmService())
+                .itemManagementType(request.itemManagementType())
+                .guaranteedGoods(request.guaranteedGoods())
+                .isActive(true)
+                .build();
+
+            try {
+                return itemRepository.saveAndFlush(item);
+            } catch(DataIntegrityViolationException e) {
+                log.warn(
+                    "Item publicId 충돌 발생. publicId={}, organizationId={}, attempt={}",
+                    publicId,
+                    organizationId,
+                    attempt + 1
+                );
+            }
+        }
+
+        throw new ApplicationException(ErrorCode.ITEM_PUBLIC_ID_GENERATE_FAILED);
     }
 }

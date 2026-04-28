@@ -79,6 +79,7 @@ public class AdminHomeService {
 
         return new AdminHomeResponse(
                 organization.getName(),
+                organization.getId(),
                 organization.getProfileImageKey(), // todo: 추후 s3 연동 후 수정
                 requestCount,
                 recentRequests

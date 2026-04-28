@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
@@ -29,10 +30,8 @@ public class PublicItemLookupService {
 
   public PublicItemListPageResponse publicOrganizationItemListLookup(Long organizationId,
       Long cursor, int size) {
-    boolean isValidOrganization = organizationRepository.existsById(organizationId);
-    if (!isValidOrganization) {
-      throw new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION);
-    }
+    Organization organization = organizationRepository.findById(organizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(size);
 
@@ -51,7 +50,7 @@ public class PublicItemLookupService {
         .map(PublicItemSummary::from)
         .toList();
 
-    return new PublicItemListPageResponse(organizationId, content, nextCursor);
+    return new PublicItemListPageResponse(organizationId, organization.getName(), content, nextCursor);
   }
 
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {

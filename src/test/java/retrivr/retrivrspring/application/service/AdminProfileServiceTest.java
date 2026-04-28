@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
@@ -31,6 +32,9 @@ class AdminProfileServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AdminCodeVerificationService adminCodeVerificationService;
 
     @InjectMocks
     private AdminProfileService adminProfileService;
@@ -59,7 +63,8 @@ class AdminProfileServiceTest {
                         "NewPassword123!",
                         "NewPassword123!",
                         "New Org",
-                        "new-admin-code"
+                        "new-admin-code",
+                    "token"
                 )
         );
 
@@ -102,7 +107,8 @@ class AdminProfileServiceTest {
                                 "NewPassword123!",
                                 "NewPassword123!",
                                 "New Org",
-                                "new-admin-code"
+                                "new-admin-code",
+                            "token"
                         )
                 )
         );
@@ -135,7 +141,8 @@ class AdminProfileServiceTest {
                                 "NewPassword123!",
                                 "DifferentPassword123!",
                                 "New Org",
-                                "new-admin-code"
+                                "new-admin-code",
+                            "token"
                         )
                 )
         );

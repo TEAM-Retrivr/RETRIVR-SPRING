@@ -26,6 +26,12 @@ public final class RejectedState implements RentalState {
   }
 
   @Override
+  public void rejectBySystem(Rental rental, String systemMessage) {
+    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
+        "Cannot reject when REJECTED");
+  }
+
+  @Override
   public void changeDueDate(Rental rental, LocalDate newDueDate, Organization org) {
     throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
         "Cannot changeDueDate when REJECTED");
@@ -39,12 +45,16 @@ public final class RejectedState implements RentalState {
 
   @Override
   public int getOverdueDays(LocalDate dueDate, LocalDateTime returnedAt) {
-    throw new DomainException(ErrorCode.RENTAL_STATUS_TRANSITION_EXCEPTION,
-        "Cannot getOverdueDays when REJECTED");
+    return 0;
   }
 
   @Override
   public boolean canSendOverdueMessage(Rental rental) {
     return false;
+  }
+
+  @Override
+  public int getRentalPeriod(LocalDateTime decidedAt, LocalDateTime returnedAt, LocalDateTime now) {
+    return 0;
   }
 }

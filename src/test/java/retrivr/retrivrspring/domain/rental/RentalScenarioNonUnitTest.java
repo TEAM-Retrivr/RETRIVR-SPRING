@@ -75,7 +75,7 @@ public class RentalScenarioNonUnitTest {
     Borrower borrower = borrower();
 
     // when
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
 
     // then
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.REQUESTED);
@@ -97,7 +97,7 @@ public class RentalScenarioNonUnitTest {
     Borrower borrower = borrower();
 
     // when
-    Throwable t = catchThrowable(() -> Rental.request(item, null, borrower));
+    Throwable t = catchThrowable(() -> Rental.request(item, null, borrower, "public-id"));
 
     // then
     assertThat(t).isInstanceOf(DomainException.class)
@@ -115,7 +115,7 @@ public class RentalScenarioNonUnitTest {
     Borrower borrower = borrower();
 
     // when
-    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower));
+    Throwable t = catchThrowable(() -> Rental.request(item, unit, borrower, "public-id"));
 
     // then
     assertThat(t).isInstanceOf(DomainException.class)
@@ -134,7 +134,7 @@ public class RentalScenarioNonUnitTest {
     Item item = nonUnitItem(org, 3, 2, 7);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
 
     // when
     rental.approve("admin", org);
@@ -157,7 +157,7 @@ public class RentalScenarioNonUnitTest {
 
     Item item = nonUnitItem(owner, 3, 2, 7);
     Borrower borrower = borrower();
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
 
     // when
     Throwable t = catchThrowable(() -> rental.approve("admin", other));
@@ -180,7 +180,7 @@ public class RentalScenarioNonUnitTest {
     Item item = nonUnitItem(org, 3, 2, 7);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
     assertThat(item.getAvailableQuantity()).isEqualTo(1); // request에서 -1
 
     // when
@@ -192,6 +192,26 @@ public class RentalScenarioNonUnitTest {
     assertThat(rental.getDecidedBy()).isEqualTo("admin");
 
     assertThat(item.getAvailableQuantity()).isEqualTo(2); // reject에서 +1 복원
+  }
+
+  @Test
+  @DisplayName("System 거절 정상(Non_UNIT): REQUESTED -> REJECTED, availableQuantity 1 증가(복원)")
+  void reject_ok_nonUnit_restoreQuantity_system() {
+    Item item = nonUnitItem(org(1L), 3, 2, 7);
+    Borrower borrower = borrower();
+
+    Rental rental = Rental.request(item, null, borrower, "public-id");
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+
+    //when
+    rental.rejectBySystem("SYSTEM");
+
+    //then
+    assertThat(rental.getStatus()).isEqualTo(RentalStatus.REJECTED);
+    assertThat(rental.getDecidedAt()).isNotNull();
+    assertThat(rental.getDecidedBy()).isEqualTo("SYSTEM");
+
+    assertThat(item.getAvailableQuantity()).isEqualTo(2);
   }
 
   // ============================================================
@@ -206,7 +226,7 @@ public class RentalScenarioNonUnitTest {
     Item item = nonUnitItem(org, 3, 2, 7);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
     rental.approve("admin", org);
     assertThat(rental.getStatus()).isEqualTo(RentalStatus.RENTED);
     assertThat(item.getAvailableQuantity()).isEqualTo(1);
@@ -230,7 +250,7 @@ public class RentalScenarioNonUnitTest {
     Item item = nonUnitItem(org, 3, 2, 7);
     Borrower borrower = borrower();
 
-    Rental rental = Rental.request(item, null, borrower);
+    Rental rental = Rental.request(item, null, borrower, "public-id");
     ReflectionTestUtils.setField(rental, "status", RentalStatus.RETURNED);
 
     // when

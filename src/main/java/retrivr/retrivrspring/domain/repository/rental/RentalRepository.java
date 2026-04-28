@@ -1,10 +1,14 @@
 package retrivr.retrivrspring.domain.repository.rental;
 
+import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 
@@ -18,11 +22,38 @@ public interface RentalRepository
     @EntityGraph(attributePaths = {"organization"})
     Optional<Rental> findFetchOrganizationById(Long rentalId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Rental r where r.id = :rentalId")
     @EntityGraph(attributePaths = {"rentalItems", "organization"})
-    Optional<Rental> findFetchRentalItemAndOrganizationById(Long rentalId);
+    Optional<Rental> findFetchRentalItemAndOrganizationByIdWithLock(@Param("rentalId") Long rentalId);
+
+    @Query("select r from Rental r where r.id in :rentalIds")
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "organization"})
+    List<Rental> findFetchBorrowerAndRentalItemAndOrganizationAllById(List<Long> rentalIds);
+
+    @Query(
+        value = """
+          select r.rental_id
+          from rental r
+          where r.status = 'REQUESTED'
+            and r.requested_at <= :threshold
+          order by r.requested_at asc
+          limit :batchSize
+          for update skip locked
+      """,
+        nativeQuery = true
+    )
+    List<Long> findExpiredRequestedIdsForUpdateSkipLocked(
+        @Param("threshold") LocalDateTime threshold,
+        @Param("batchSize") int batchSize
+    );
+
 
     @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
     Optional<Rental> findFetchBorrowerRentalItemAndOrganizationById(Long rentalId);
+
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item"})
+    List<Rental> findFetchBorrowerAndItemByIdIn(List<Long> rentalIds);
 
     // 전체 REQUESTED 개수
     int countByOrganization_IdAndStatus(Long organizationId, RentalStatus status);
@@ -50,4 +81,18 @@ public interface RentalRepository
                 where r.id in :ids
             """)
     List<Rental> findRecentHomeRentalsByIds(@Param("ids") List<Long> ids);
+
+    @EntityGraph(attributePaths = {"borrower", "rentalItems", "rentalItems.item", "organization"})
+    List<Rental> findFetchBorrowerAllByOrganization(Organization organization);
+
+    @Query("""
+    select distinct r
+    from Rental r
+    left join fetch r.rentalItemUnits riu
+    left join fetch riu.itemUnit iu
+    where r in :rentals
+    """)
+    List<Rental> findFetchRentalItemUnitsByRentalIn(
+        @Param("rentals") List<Rental> rentals
+    );
 }

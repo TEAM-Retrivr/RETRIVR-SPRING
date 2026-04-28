@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
+import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.service.admin.item.AdminItemService;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.domain.entity.item.Item;
@@ -48,6 +50,8 @@ class AdminItemServiceTest {
   @Mock private ItemBorrowerFieldRepository itemBorrowerFieldRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
+  @Mock private PublicIdGenerator publicIdGenerator;
+  @Mock private AdminCodeVerificationService adminCodeVerificationService;
 
   @InjectMocks
   private AdminItemService adminItemService;
@@ -109,7 +113,7 @@ class AdminItemServiceTest {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> {
+    when(itemRepository.saveAndFlush(any(Item.class))).thenAnswer(invocation -> {
       Item saved = invocation.getArgument(0);
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
@@ -119,6 +123,7 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(savedUnits.get(0), "id", 101L);
       return savedUnits;
     });
+    when(publicIdGenerator.generateItemId(any())).thenAnswer(invocation -> "public-id");
 
     AdminItemCreateResponse response = adminItemService.createItem(
         organizationId,
@@ -141,6 +146,7 @@ class AdminItemServiceTest {
     setQuantities(item, 1, 1);
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -167,6 +173,7 @@ class AdminItemServiceTest {
     ItemUnit firstUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
     ItemUnit lastUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit));
@@ -194,6 +201,7 @@ class AdminItemServiceTest {
     setQuantities(item, 2, 2);
     List<ItemUnit> savedUnits = new ArrayList<>();
 
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of()).thenAnswer(invocation -> new ArrayList<>(savedUnits));
@@ -233,6 +241,7 @@ class AdminItemServiceTest {
     ItemUnit firstUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
     ItemUnit secondUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId))
@@ -261,6 +270,7 @@ class AdminItemServiceTest {
     setQuantities(item, 1, 1);
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
@@ -316,7 +326,8 @@ class AdminItemServiceTest {
         "student id",
         unitChanges,
         List.of(new BorrowerRequirementRequest("name", true)),
-        true
+        true,
+        "token"
     );
   }
 
