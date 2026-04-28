@@ -70,7 +70,7 @@ public class PhoneVerification extends BaseTimeEntity {
   private LocalDateTime requestLockExpiration;
 
   private static final int MAX_REQUEST_ATTEMPTS = 3;
-  private static final int EXPIRATION_TIME_MINUTES = 10;
+  public static final int EXPIRATION_TIME_MINUTES = 3;
   private static final int LOCK_TIME = 5; // 분
 
   public static PhoneVerification create(

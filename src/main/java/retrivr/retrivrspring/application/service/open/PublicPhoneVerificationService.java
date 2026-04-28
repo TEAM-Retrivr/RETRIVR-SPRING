@@ -3,15 +3,19 @@ package retrivr.retrivrspring.application.service.open;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.port.message.MessageSender;
+import retrivr.retrivrspring.application.port.message.NotificationRecipient;
+import retrivr.retrivrspring.application.port.message.NotificationRequest;
 import retrivr.retrivrspring.domain.entity.organization.PhoneVerification;
 import retrivr.retrivrspring.domain.entity.organization.PhoneVerificationToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PhoneVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
+import retrivr.retrivrspring.domain.message.MessageType;
+import retrivr.retrivrspring.domain.message.PhoneVerificationCodeContent;
 import retrivr.retrivrspring.domain.repository.auth.PhoneVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PhoneVerificationTokenRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
@@ -22,7 +26,6 @@ import retrivr.retrivrspring.presentation.open.auth.res.PhoneVerificationSendRes
 import retrivr.retrivrspring.presentation.open.auth.res.PhoneVerificationVerifyResponse;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PublicPhoneVerificationService {
 
@@ -31,6 +34,18 @@ public class PublicPhoneVerificationService {
   private final PasswordEncoder passwordEncoder;
   private final MessageSender messageSender;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+  public PublicPhoneVerificationService(
+      PhoneVerificationRepository phoneVerificationRepository,
+      PhoneVerificationTokenRepository phoneVerificationTokenRepository,
+      PasswordEncoder passwordEncoder,
+      @Qualifier("alimTalkMessageSender") MessageSender messageSender
+  ) {
+    this.phoneVerificationRepository = phoneVerificationRepository;
+    this.phoneVerificationTokenRepository = phoneVerificationTokenRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.messageSender = messageSender;
+  }
 
   @Transactional
   public PhoneVerificationSendResponse sendVerificationCode(PhoneVerificationSendRequest request) {
@@ -55,7 +70,11 @@ public class PublicPhoneVerificationService {
     verification.clearToken();
     phoneVerificationRepository.save(verification);
 
-    // Message Send
+    messageSender.send(new NotificationRequest(
+        MessageType.PHONE_VERIFICATION,
+        new NotificationRecipient(null, normalizedPhone.getPhone()),
+        new PhoneVerificationCodeContent(rawCode, PhoneVerification.EXPIRATION_TIME_MINUTES)
+    ));
 
     return new PhoneVerificationSendResponse(verification.getId());
   }
