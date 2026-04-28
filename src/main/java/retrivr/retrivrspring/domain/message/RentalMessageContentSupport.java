@@ -48,14 +48,23 @@ abstract class RentalMessageContentSupport extends MessageContent {
   }
 
   protected String formatDateTime(LocalDateTime value) {
+    if (value == null) {
+      return "";
+    }
     return value.format(DATE_TIME_FORMATTER);
   }
 
   protected String formatDate(LocalDate value) {
+    if (value == null) {
+      return "";
+    }
     return value.format(DATE_FORMATTER);
   }
 
   protected String formatDate(LocalDateTime value) {
+    if (value == null) {
+      return "";
+    }
     return value.toLocalDate().format(DATE_FORMATTER);
   }
 }
