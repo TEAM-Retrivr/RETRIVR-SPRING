@@ -99,6 +99,19 @@ public class PublicPhoneVerificationService {
       throw new ApplicationException(ErrorCode.EXPIRED_PHONE_VERIFICATION);
     }
 
+    if (!passwordEncoder.matches(request.rawCode(), phoneVerification.getCodeHash())) {
+      int failedAttempts = phoneVerification.incrementFailedAttempts();
+      if (failedAttempts >= PhoneVerification.MAX_FAILED_VERIFICATION_ATTEMPTS) {
+        phoneVerification.lockVerification(now);
+      }
+      phoneVerificationRepository.save(phoneVerification);
+
+      if (phoneVerification.isVerificationLocked(now)) {
+        throw new ApplicationException(ErrorCode.TOO_MANY_PHONE_VERIFICATION_ATTEMPTS);
+      }
+      throw new ApplicationException(ErrorCode.PHONE_VERIFICATION_CODE_MISMATCH);
+    }
+
     phoneVerification.markVerified(now);
     return issueVerificationToken(phoneVerification, now);
   }
