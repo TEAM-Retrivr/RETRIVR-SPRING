@@ -2,6 +2,7 @@ package retrivr.retrivrspring.presentation.open.auth.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PhoneVerificationPurpose;
 
@@ -17,6 +18,7 @@ public record PhoneVerificationSendRequest(
         message = "전화번호 형식이 올바르지 않습니다."
     )
     String phoneNumber,
+    @NotNull(message = "purpose는 필수입니다.")
     PhoneVerificationPurpose purpose
 ) {
 
