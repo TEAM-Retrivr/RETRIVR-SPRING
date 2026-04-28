@@ -11,6 +11,8 @@ import retrivr.retrivrspring.domain.message.RentalApprovedContent;
 import retrivr.retrivrspring.domain.message.RentalRejectedContent;
 import retrivr.retrivrspring.domain.message.RequestCompletedContent;
 import retrivr.retrivrspring.domain.message.ReturnConfirmedContent;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Component
 public class RentalNotificationFactory implements NotificationFactory {
@@ -29,6 +31,10 @@ public class RentalNotificationFactory implements NotificationFactory {
 
   private MessageContent createContent(MessageType messageType, Rental rental) {
     return switch (messageType) {
+      case PHONE_VERIFICATION -> throw new ApplicationException(
+          ErrorCode.UNSUPPORTED_NOTIFICATION_MESSAGE_TYPE,
+          "Unsupported message type for rental notification: " + messageType
+      );
       case REQUEST_COMPLETED -> new RequestCompletedContent(
           rental.getOrganization().getName(),
           rental.getItem().getName(),
