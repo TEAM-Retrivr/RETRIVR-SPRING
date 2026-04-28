@@ -22,6 +22,7 @@ public enum ErrorCode {
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
     SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
     BAD_REQUEST_EXCEPTION(HttpStatus.BAD_REQUEST, 2008, "잘못된 요청입니다."),
+    UNSUPPORTED_NOTIFICATION_MESSAGE_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, 2009, "지원하지 않는 알림 메시지 타입입니다."),
 
     // 3000: Organization Error
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
@@ -88,6 +89,18 @@ public enum ErrorCode {
     EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7303, "관리자 코드 인증 토큰이 만료되었습니다."),
     ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7304, "관리자 코드 인증 토큰이 일치하지 않습니다."),
     ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7305, "이미 사용된 관리자 코드 인증 토큰입니다."),
+
+    // 7400: Phone Verification Error
+    TOO_MANY_PHONE_VERIFICATION_REQUEST(HttpStatus.TOO_MANY_REQUESTS, 7400, "핸드폰 번호 인증 요청이 너무 많습니다."),
+    NOT_FOUND_PHONE_VERIFICATION(HttpStatus.NOT_FOUND, 7401, "핸드폰 번호 인증 객체가 없습니다."),
+    PHONE_VERIFICATION_PURPOSE_MISMATCH(HttpStatus.BAD_REQUEST, 7402, "핸드폰 번호 인증 목적이 일치하지 않습니다."),
+    EXPIRED_PHONE_VERIFICATION(HttpStatus.BAD_REQUEST, 7403, "핸드폰 번호 인증 시간이 만료되었습니다."),
+    PHONE_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7404, "인증번호가 일치하지 않습니다."),
+    NOT_FOUND_PHONE_VERIFICATION_TOKEN(HttpStatus.NOT_FOUND, 7405, "핸드폰 번호 인증 토큰이 없습니다."),
+    PHONE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7406, "인증 토큰이 일치하지 않습니다."),
+    EXPIRED_PHONE_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, 7407, "인증 토큰이 만료되었습니다."),
+
+    TOO_MANY_PHONE_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, 7408, "핸드폰 번호 인증 시도가 너무 많습니다."),
 
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
