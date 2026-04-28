@@ -17,7 +17,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
 @RestController
@@ -54,7 +54,7 @@ public class EmailVerificationController {
     @ApiResponse(
             responseCode = "200",
             description = "이메일 인증 성공",
-            content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))
+            content = @Content(schema = @Schema(implementation = EmailCodeVerifyTokenResponse.class))
     )
     @ApiErrorCodeExamples({
             ErrorCode.EMAIL_VERIFICATION_NOT_FOUND,
@@ -63,7 +63,7 @@ public class EmailVerificationController {
             ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH
     })
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyEmail(
+    public ResponseEntity<EmailCodeVerifyTokenResponse> verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request
     ) {
         return ResponseEntity.ok(emailVerificationService.verify(request));

@@ -90,6 +90,9 @@ public class Rental extends BaseTimeEntity {
   @Column(name = "returned_at")
   private LocalDateTime returnedAt;
 
+  @Column(name = "request_note", length = 100, nullable = true)
+  private String requestNote;
+
   private RentalState state() {
     return switch (this.status) {
       case REQUESTED -> RequestedState.INSTANCE;
@@ -100,12 +103,20 @@ public class Rental extends BaseTimeEntity {
   }
 
   public static Rental request(Item item, @Nullable ItemUnit itemUnit, Borrower borrower, String publicId) {
+    return request(item, itemUnit, borrower, publicId, null);
+  }
+
+  public static Rental request(
+      Item item, @Nullable ItemUnit itemUnit, Borrower borrower, String publicId,
+      @Nullable String requestNote
+  ) {
     Rental newRental = Rental.builder()
         .organization(item.getOrganization())
         .publicId(publicId)
         .borrower(borrower)
         .status(RentalStatus.REQUESTED)
         .requestedAt(LocalDateTime.now())
+        .requestNote(requestNote)
         .build();
 
     item.onRentalRequested(itemUnit);

@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import retrivr.retrivrspring.global.error.DomainException;
 
 @ExtendWith(MockitoExtension.class)
 class AdminProfileServiceTest {
@@ -150,5 +151,37 @@ class AdminProfileServiceTest {
         assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, ex.getErrorCode());
         verify(passwordEncoder, times(1)).encode("NewPassword123!");
         verify(passwordEncoder, times(1)).encode("new-admin-code");
+    }
+
+    @Test
+    @DisplayName("disallowed special character in password throws INVALID_VALUE_EXCEPTION")
+    void updateProfile_passwordWithDisallowedSpecialCharacter_throws() {
+        Organization org = Organization.builder()
+                .id(1L)
+                .email("old@retrivr.com")
+                .passwordHash("old-password")
+                .name("old")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("old-code")
+                .build();
+
+        given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> adminProfileService.updateProfile(
+                        1L,
+                        new AdminProfileUpdateRequest(
+                                "new@retrivr.com",
+                                "NewPassword123?",
+                                "NewPassword123?",
+                                "New Org",
+                                "new-admin-code",
+                                "token"
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
     }
 }

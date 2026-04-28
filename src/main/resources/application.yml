@@ -36,6 +36,10 @@ spring:
 
 app:
   base-url: ${SERVER_BASE_URL}
+  alim-talk:
+    host: ${ALIM_TALK_HOST}
+    user-id: ${ALIM_TALK_USER_ID}
+    profile-key: ${ALIM_TALK_PROFILE_KEY}
   email-verification:
     expires-seconds: ${EMAIL_VERIFICATION_EXPIRES_SECONDS:600}
     resend-block-seconds: ${EMAIL_VERIFICATION_RESEND_BLOCK_SECONDS:60}
