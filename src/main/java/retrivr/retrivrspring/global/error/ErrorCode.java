@@ -120,7 +120,14 @@ public enum ErrorCode {
     // 11100: S3 Storage Error
     S3_STORAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 11100, "S3 스토리지 오류입니다."),
     EXTENSION_MUST_NOT_BE_BLANK(HttpStatus.BAD_REQUEST, 11101, "저장할 이미지의 확장자가 없습니다."),
-    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다.");
+    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다."),
+
+    // 11200: BizMsg Infra Error
+    BIZMSG_API_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 11200, "비즈엠 API 요청에 실패했습니다."),
+    BIZMSG_API_EMPTY_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, 11201, "비즈엠 API 응답이 비어 있습니다."),
+    BIZMSG_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 11202, "비즈엠 알림톡 발송에 실패했습니다."),
+    BIZMSG_TEMPLATE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, 11203, "비즈엠 알림톡 템플릿 정보가 올바르지 않습니다."),
+    MESSAGE_SENDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, 11204, "메시지 채널 발송기를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

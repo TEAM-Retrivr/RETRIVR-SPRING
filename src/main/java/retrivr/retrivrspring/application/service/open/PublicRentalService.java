@@ -78,7 +78,13 @@ public class PublicRentalService {
 
     // 5. Rental 생성 및 저장
     String publicId = publicIdGenerator.generateRentalId(targetItem.getOrganization().getId());
-    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower, publicId);
+    Rental requestedRental = Rental.request(
+        targetItem,
+        targetItemUnit,
+        borrower,
+        publicId,
+        request.requestNote()
+    );
 
     trySaveRental(requestedRental, targetItem.getOrganization().getId());
 
