@@ -70,6 +70,7 @@ public class PhoneVerification extends BaseTimeEntity {
   private LocalDateTime requestLockExpiration;
 
   private static final int MAX_REQUEST_ATTEMPTS = 3;
+  private static final int EXPIRATION_TIME_MINUTES = 10;
   private static final int LOCK_TIME = 5; // 분
 
   public static PhoneVerification create(
@@ -82,7 +83,7 @@ public class PhoneVerification extends BaseTimeEntity {
         .phone(phone)
         .purpose(purpose)
         .codeHash(codeHash)
-        .expiresAt(now.plusMinutes(10))
+        .expiresAt(now.plusMinutes(EXPIRATION_TIME_MINUTES))
         .requestAttempts(1)
         .build();
   }
@@ -96,7 +97,7 @@ public class PhoneVerification extends BaseTimeEntity {
     }
 
     this.codeHash = codeHash;
-    this.expiresAt = now.plusMinutes(15);
+    this.expiresAt = now.plusMinutes(EXPIRATION_TIME_MINUTES);
     this.verifiedAt = null;
     this.requestAttempts++;
     lastAttemptAt = now;
