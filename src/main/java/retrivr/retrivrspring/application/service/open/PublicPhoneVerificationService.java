@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.application.service.open;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class PublicPhoneVerificationService {
   private final PhoneVerificationTokenRepository phoneVerificationTokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final MessageSender messageSender;
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   @Transactional
   public PhoneVerificationSendResponse sendVerificationCode(PhoneVerificationSendRequest request) {
@@ -133,7 +135,7 @@ public class PublicPhoneVerificationService {
   }
 
   private String generateCode() {
-    int code = (int) (Math.random() * 900000) + 100000;
+    int code = SECURE_RANDOM.nextInt(900000) + 100000;
     return String.valueOf(code);
   }
 
