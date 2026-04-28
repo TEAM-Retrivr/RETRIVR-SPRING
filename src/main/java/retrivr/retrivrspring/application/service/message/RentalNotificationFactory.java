@@ -31,26 +31,46 @@ public class RentalNotificationFactory implements NotificationFactory {
     return switch (messageType) {
       case REQUEST_COMPLETED -> new RequestCompletedContent(
           rental.getOrganization().getName(),
-          rental.getItem().getName()
+          rental.getItem().getName(),
+          resolveItemDetailName(rental),
+          rental.getRequestedAt()
       );
       case RENTAL_APPROVED -> new RentalApprovedContent(
           rental.getOrganization().getName(),
           rental.getItem().getName(),
-          rental.getDueDate()
+          resolveItemDetailName(rental),
+          rental.getDecidedAt(),
+          rental.getDueDate(),
+          rental.getItem().getRentalDuration()
       );
       case RENTAL_REJECTED -> new RentalRejectedContent(
           rental.getOrganization().getName(),
-          rental.getItem().getName()
+          rental.getItem().getName(),
+          resolveItemDetailName(rental),
+          rental.getRequestedAt()
       );
       case RETURN_CONFIRMED -> new ReturnConfirmedContent(
           rental.getOrganization().getName(),
-          rental.getItem().getName()
+          rental.getItem().getName(),
+          resolveItemDetailName(rental),
+          rental.getDecidedAt(),
+          rental.getReturnedAt()
       );
       case OVERDUE_REMINDER -> new OverdueReminderContent(
           rental.getOrganization().getName(),
           rental.getItem().getName(),
-          rental.getOverdueDays()
+          resolveItemDetailName(rental),
+          rental.getDecidedAt(),
+          rental.getDueDate(),
+          rental.getItem().getRentalDuration()
       );
     };
+  }
+
+  private String resolveItemDetailName(Rental rental) {
+    if (rental.hasItemUnit() && rental.getItemUnit() != null) {
+      return rental.getItemUnit().getLabel();
+    }
+    return rental.getItem().getName();
   }
 }
