@@ -50,7 +50,15 @@ public record PublicRentalCreateRequest(
         String,
 
         @NotBlank(message = "rentalFields의 value 는 공백일 수 없습니다.")
-        String> renterFields
+        String> renterFields,
+
+    @Schema(
+        description = "요청 사항",
+        example = "대여기간 3주로 바꿔주세요",
+        nullable = true
+    )
+    @Size(max = 100, message = "요청 사항은 100자 이하로 입력해주세요.")
+    String requestNote
 ) {
 
 }

@@ -3,6 +3,6 @@ package retrivr.retrivrspring.domain.message;
 public class SendAllOverdueReminderPolicy {
 
   public static boolean shouldSend(long overdueDays) {
-    return overdueDays > 0 && (overdueDays == 1 || overdueDays == 3 || overdueDays % 7 == 0);
+    return overdueDays > 0 && (overdueDays == 1 || overdueDays % 7 == 0);
   }
 }
