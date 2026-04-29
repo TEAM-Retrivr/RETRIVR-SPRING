@@ -63,6 +63,10 @@ dependencies {
 
     // Excel
     implementation 'org.apache.poi:poi-ooxml:5.5.1'
+
+    // Flyway
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 }
 
 tasks.named('test') {
