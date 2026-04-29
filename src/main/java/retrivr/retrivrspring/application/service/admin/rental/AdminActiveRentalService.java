@@ -17,6 +17,9 @@ import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
+import retrivr.retrivrspring.domain.message.MessageSendStatus;
+import retrivr.retrivrspring.domain.message.MessageType;
+import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -43,6 +46,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminReturnItemUnitLi
 public class AdminActiveRentalService {
 
   private final RentalRepository rentalRepository;
+  private final MessageHistoryRepository messageHistoryRepository;
   private final OrganizationRepository organizationRepository;
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
@@ -70,8 +74,23 @@ public class AdminActiveRentalService {
       nextCursor = offset + page.size();
     }
 
+    Map<Long, LocalDate> lastSentOverdueReminderDateByRentalId =
+        messageHistoryRepository.findByRentalInAndMessageTypeAndStatusOrderBySentDateDesc(
+                page,
+                MessageType.OVERDUE_REMINDER,
+                MessageSendStatus.SUCCESS
+            ).stream()
+            .collect(Collectors.toMap(
+                messageHistory -> messageHistory.getRental().getId(),
+                messageHistory -> messageHistory.getSentDate(),
+                (existing, ignored) -> existing
+            ));
+
     List<OverdueRentalItemSummary> rows = page.stream()
-        .map(OverdueRentalItemSummary::from)
+        .map(rental -> OverdueRentalItemSummary.from(
+            rental,
+            lastSentOverdueReminderDateByRentalId.get(rental.getId())
+        ))
         .toList();
 
     return new AdminOverdueRentalItemPageResponse(rows, nextCursor);

@@ -24,11 +24,11 @@ public record AdminOverdueRentalItemPageResponse(
       LocalDate rentalDate,
       LocalDate dueDate,
       Integer overdueDays,
-      List<LocalDate> sendOverdueSmsDates,
+      LocalDate lastSentOverdueReminderDate,
       Boolean canSendOverdueSms
   ) {
 
-    public static OverdueRentalItemSummary from(Rental rental) {
+    public static OverdueRentalItemSummary from(Rental rental, LocalDate lastSentOverdueReminderDate) {
       Item item = rental.getItem();
       ItemUnit itemUnit = rental.getItemUnit();
       Borrower borrower = rental.getBorrower();
@@ -44,7 +44,7 @@ public record AdminOverdueRentalItemPageResponse(
           rental.getDecidedAt().toLocalDate(),
           rental.getDueDate(),
           rental.getOverdueDays(),
-          List.of(),
+          lastSentOverdueReminderDate,
           rental.canSendOverdueMessage()
       );
     }
