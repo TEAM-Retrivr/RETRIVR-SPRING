@@ -25,6 +25,7 @@ import retrivr.retrivrspring.application.event.RentalReturnedEvent;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
+import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
@@ -42,6 +43,8 @@ class AdminActiveRentalServiceTest {
 
   @Mock
   RentalRepository rentalRepository;
+  @Mock
+  MessageHistoryRepository messageHistoryRepository;
   @Mock
   OrganizationRepository organizationRepository;
   @Mock
@@ -63,9 +66,11 @@ class AdminActiveRentalServiceTest {
 
     when(rentalRepository.searchOverduePageVerified(eq(10L), eq(4L), eq(3), any(LocalDate.class)))
         .thenReturn(List.of(r1, r2, r3));
+    when(messageHistoryRepository.findByRentalInAndMessageTypeAndStatusOrderBySentDateDesc(any(), any(), any()))
+        .thenReturn(List.of());
 
     try (MockedStatic<OverdueRentalItemSummary> mocked = mockStatic(OverdueRentalItemSummary.class)) {
-      mocked.when(() -> OverdueRentalItemSummary.from(any(Rental.class)))
+      mocked.when(() -> OverdueRentalItemSummary.from(any(Rental.class), any()))
           .thenReturn(mock(OverdueRentalItemSummary.class));
 
       AdminOverdueRentalItemPageResponse response = service.getOverdueItemList(10L, 4L, 2);
@@ -84,9 +89,11 @@ class AdminActiveRentalServiceTest {
 
     when(rentalRepository.searchOverduePageVerified(eq(10L), isNull(), eq(3), any(LocalDate.class)))
         .thenReturn(List.of(r1, r2));
+    when(messageHistoryRepository.findByRentalInAndMessageTypeAndStatusOrderBySentDateDesc(any(), any(), any()))
+        .thenReturn(List.of());
 
     try (MockedStatic<OverdueRentalItemSummary> mocked = mockStatic(OverdueRentalItemSummary.class)) {
-      mocked.when(() -> OverdueRentalItemSummary.from(any(Rental.class)))
+      mocked.when(() -> OverdueRentalItemSummary.from(any(Rental.class), any()))
           .thenReturn(mock(OverdueRentalItemSummary.class));
 
       AdminOverdueRentalItemPageResponse response = service.getOverdueItemList(10L, null, 2);

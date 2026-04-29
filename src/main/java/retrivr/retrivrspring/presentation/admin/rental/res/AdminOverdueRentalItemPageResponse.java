@@ -19,14 +19,16 @@ public record AdminOverdueRentalItemPageResponse(
       Long itemUnitId,
       String itemUnitLabel,
       String borrowerName,
+      String contact,
+      Integer rentalDuration,
       LocalDate rentalDate,
       LocalDate dueDate,
       Integer overdueDays,
-      List<LocalDate> sendOverdueSmsDates,
+      LocalDate lastSentOverdueReminderDate,
       Boolean canSendOverdueSms
   ) {
 
-    public static OverdueRentalItemSummary from(Rental rental) {
+    public static OverdueRentalItemSummary from(Rental rental, LocalDate lastSentOverdueReminderDate) {
       Item item = rental.getItem();
       ItemUnit itemUnit = rental.getItemUnit();
       Borrower borrower = rental.getBorrower();
@@ -37,10 +39,12 @@ public record AdminOverdueRentalItemPageResponse(
           itemUnit != null ? itemUnit.getId() : null,
           itemUnit != null ? itemUnit.getLabel() : null,
           borrower.getName(),
+          borrower.getPhoneNumber(),
+          item.getRentalDuration(),
           rental.getDecidedAt().toLocalDate(),
           rental.getDueDate(),
           rental.getOverdueDays(),
-          List.of(),
+          lastSentOverdueReminderDate,
           rental.canSendOverdueMessage()
       );
     }

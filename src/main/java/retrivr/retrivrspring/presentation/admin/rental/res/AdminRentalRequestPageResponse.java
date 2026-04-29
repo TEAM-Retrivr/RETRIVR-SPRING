@@ -22,6 +22,7 @@ public record AdminRentalRequestPageResponse(
       Integer totalQuantity,
       Integer availableQuantity,
       String borrowerName,
+      String contact,
       String guaranteedGoods,
       LocalDateTime requestedAt
   ) {
@@ -45,6 +46,7 @@ public record AdminRentalRequestPageResponse(
           item.getTotalQuantity(),
           item.getAvailableQuantity(),
           borrower.getName(),
+          borrower.getPhoneNumber(),
           item.getGuaranteedGoods(),
           rental.getRequestedAt()
       );
