@@ -17,6 +17,7 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PhoneVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -25,7 +26,6 @@ import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateApproveRequest;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateRejectRequest;
@@ -50,6 +50,7 @@ public class PublicRentalService {
   private final ApplicationEventPublisher applicationEventPublisher;
   private final PublicIdGenerator publicIdGenerator;
   private final AdminCodeVerificationService adminCodeVerificationService;
+  private final PublicPhoneVerificationService publicPhoneVerificationService;
 
   private static final int MAX_PUBLIC_ID_RETRY = 5;
 
@@ -58,6 +59,8 @@ public class PublicRentalService {
     // 1. 대여할 Item 조회
     Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+
+    publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
 
     // 2. ItemUnit 조회
     ItemUnit targetItemUnit = null;

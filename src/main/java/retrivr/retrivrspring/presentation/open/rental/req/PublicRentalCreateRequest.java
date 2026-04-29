@@ -58,7 +58,19 @@ public record PublicRentalCreateRequest(
         nullable = true
     )
     @Size(max = 100, message = "요청 사항은 100자 이하로 입력해주세요.")
-    String requestNote
+    String requestNote,
+
+    @Schema(
+        description = "핸드폰 인증을 완료한 후 받은 토큰 ID"
+    )
+    @NotBlank
+    String tokenId,
+
+    @Schema(
+        description = "핸드폰 인증을 완료한 후 받은 토큰"
+    )
+    @NotBlank
+    String rawToken
 ) {
 
 }

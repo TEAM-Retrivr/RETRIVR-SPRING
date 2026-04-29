@@ -32,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
+import retrivr.retrivrspring.application.service.open.PublicPhoneVerificationService;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -61,6 +62,7 @@ class PublicRentalServiceTest {
   @Mock private ApplicationEventPublisher applicationEventPublisher;
   @Mock private PublicIdGenerator publicIdGenerator;
   @Mock private AdminCodeVerificationService adminCodeVerificationService;
+  @Mock private PublicPhoneVerificationService publicPhoneVerificationService;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -72,7 +74,8 @@ class PublicRentalServiceTest {
         itemUnitRepository,
         applicationEventPublisher,
         publicIdGenerator,
-        adminCodeVerificationService
+        adminCodeVerificationService,
+        publicPhoneVerificationService
     );
   }
 
