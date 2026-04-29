@@ -16,6 +16,14 @@ public abstract class MessageContent {
     return buildTemplateCode();
   }
 
+  public final String getTemplateTitle() {
+    return buildTemplateTitle();
+  }
+
+  public final String getTemplateMessage() {
+    return buildTemplateBody();
+  }
+
   public final Map<String, String> getTemplateVariables() {
     return buildTemplateVariables();
   }
@@ -30,8 +38,16 @@ public abstract class MessageContent {
     return null;
   }
 
+  protected String buildTemplateTitle() {
+    return null;
+  }
+
   protected Map<String, String> buildTemplateVariables() {
     return Map.of();
+  }
+
+  protected String buildTemplateBody() {
+    return buildBody();
   }
 
   protected abstract String buildBody();

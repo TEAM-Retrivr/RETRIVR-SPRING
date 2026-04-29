@@ -22,6 +22,7 @@ public enum ErrorCode {
     ALREADY_EXIST_EXCEPTION(HttpStatus.BAD_REQUEST, 2006, "이미 존재하는 리소스입니다."),
     SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
     BAD_REQUEST_EXCEPTION(HttpStatus.BAD_REQUEST, 2008, "잘못된 요청입니다."),
+    UNSUPPORTED_NOTIFICATION_MESSAGE_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, 2009, "지원하지 않는 알림 메시지 타입입니다."),
 
     // 3000: Organization Error
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
@@ -89,6 +90,18 @@ public enum ErrorCode {
     ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7304, "관리자 코드 인증 토큰이 일치하지 않습니다."),
     ALREADY_USED_ADMIN_CODE_VERIFICATION_TOKEN(HttpStatus.FORBIDDEN, 7305, "이미 사용된 관리자 코드 인증 토큰입니다."),
 
+    // 7400: Phone Verification Error
+    TOO_MANY_PHONE_VERIFICATION_REQUEST(HttpStatus.TOO_MANY_REQUESTS, 7400, "핸드폰 번호 인증 요청이 너무 많습니다."),
+    NOT_FOUND_PHONE_VERIFICATION(HttpStatus.NOT_FOUND, 7401, "핸드폰 번호 인증 객체가 없습니다."),
+    PHONE_VERIFICATION_PURPOSE_MISMATCH(HttpStatus.BAD_REQUEST, 7402, "핸드폰 번호 인증 목적이 일치하지 않습니다."),
+    EXPIRED_PHONE_VERIFICATION(HttpStatus.BAD_REQUEST, 7403, "핸드폰 번호 인증 시간이 만료되었습니다."),
+    PHONE_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, 7404, "인증번호가 일치하지 않습니다."),
+    NOT_FOUND_PHONE_VERIFICATION_TOKEN(HttpStatus.NOT_FOUND, 7405, "핸드폰 번호 인증 토큰이 없습니다."),
+    PHONE_VERIFICATION_TOKEN_MISMATCH(HttpStatus.BAD_REQUEST, 7406, "인증 토큰이 일치하지 않습니다."),
+    EXPIRED_PHONE_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, 7407, "인증 토큰이 만료되었습니다."),
+
+    TOO_MANY_PHONE_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, 7408, "핸드폰 번호 인증 시도가 너무 많습니다."),
+
     // 8000: Password Reset Error
     PASSWORD_RESET_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, 8000, "비밀번호 재설정 토큰이 존재하지 않습니다."),
     PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8001, "비밀번호 재설정 토큰이 유효하지 않습니다."),
@@ -110,7 +123,14 @@ public enum ErrorCode {
     // 11100: S3 Storage Error
     S3_STORAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 11100, "S3 스토리지 오류입니다."),
     EXTENSION_MUST_NOT_BE_BLANK(HttpStatus.BAD_REQUEST, 11101, "저장할 이미지의 확장자가 없습니다."),
-    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다.");
+    UNSUPPORTED_EXTENSION(HttpStatus.BAD_REQUEST, 11102, "해당 확장자를 가진 이미지 저장이 불가합니다."),
+
+    // 11200: BizMsg Infra Error
+    BIZMSG_API_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 11200, "비즈엠 API 요청에 실패했습니다."),
+    BIZMSG_API_EMPTY_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, 11201, "비즈엠 API 응답이 비어 있습니다."),
+    BIZMSG_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 11202, "비즈엠 알림톡 발송에 실패했습니다."),
+    BIZMSG_TEMPLATE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, 11203, "비즈엠 알림톡 템플릿 정보가 올바르지 않습니다."),
+    MESSAGE_SENDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, 11204, "메시지 채널 발송기를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
