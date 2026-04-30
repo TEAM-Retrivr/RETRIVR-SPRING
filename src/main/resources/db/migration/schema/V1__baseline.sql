@@ -197,6 +197,7 @@ create table rental
     decided_by      varchar(255),
     public_id       varchar(255) not null
         unique,
+    request_note varchar(100),
     received_by     varchar(255)
 );
 
