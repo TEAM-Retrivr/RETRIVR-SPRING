@@ -26,9 +26,11 @@ public record AdminReturnItemUnitListPageResponse(
       boolean isOverdue,
       Long unitId,
       String borrowedItemName,
+      String itemUnitLabel,
       String borrowerName,
       String borrowerPhone,
       Map<String, String> borrowerFields,
+      String requestNote,
       LocalDate rentalDate,
       LocalDate expectedReturnDueDate
   ) {
@@ -48,9 +50,11 @@ public record AdminReturnItemUnitListPageResponse(
           rental.isOverdue(),
           unitId,
           borrowedItemName,
+          unitId != null ? borrowedItemName : null,
           borrower.getName(),
           borrower.getPhone() != null ? borrower.getPhone().getPhone() : null,
           extractBorrowerFields(borrower),
+          rental.getRequestNote(),
           rental.getDecidedAt().toLocalDate(),
           rental.getDueDate()
       );
