@@ -9,6 +9,7 @@ public record PublicRentalDetailResponse(
     String itemName,
     String itemUnitLabel,
     Map<String, String> borrowerField,
+    String requestNote,
     LocalDateTime requestedAt
 ) {
 
@@ -23,6 +24,7 @@ public record PublicRentalDetailResponse(
         itemName,
         itemUnitLabel,
         borrowerField,
+        rental.getRequestNote(),
         rental.getRequestedAt()
     );
   }

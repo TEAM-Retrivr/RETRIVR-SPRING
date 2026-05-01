@@ -218,6 +218,7 @@ class PublicRentalServiceTest {
     when(rental.getStatus()).thenReturn(RentalStatus.REQUESTED);
     when(rental.getDecidedAt()).thenReturn((LocalDateTime) null);
     when(rental.getDueDate()).thenReturn((LocalDate) null);
+    when(rental.getRequestNote()).thenReturn("문 앞 수령");
 
     Item item = mock(Item.class);
     when(item.getName()).thenReturn("카메라");
@@ -242,6 +243,7 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("카메라");
     assertThat(res.itemUnitLabel()).isNull();
     assertThat(res.borrowerField()).containsEntry("학과", "컴공");
+    assertThat(res.requestNote()).isEqualTo("문 앞 수령");
   }
 
   @Test
@@ -252,6 +254,7 @@ class PublicRentalServiceTest {
     when(rental.getStatus()).thenReturn(RentalStatus.RENTED);
     when(rental.getDecidedAt()).thenReturn(LocalDateTime.now());
     when(rental.getDueDate()).thenReturn(LocalDate.now().plusDays(7));
+    when(rental.getRequestNote()).thenReturn("충전기 같이 요청");
 
     Item item = mock(Item.class);
     when(item.getName()).thenReturn("노트북");
@@ -283,6 +286,7 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("노트북");
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
     assertThat(res.borrowerField()).containsEntry("학번", "20251234");
+    assertThat(res.requestNote()).isEqualTo("충전기 같이 요청");
   }
   private void setRentalId(Rental rental, Long rentalId) {
     try {
