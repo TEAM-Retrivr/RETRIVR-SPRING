@@ -9,6 +9,8 @@ public record AdminHomeResponse(
         @Schema(description = "단체명", example = "건국대학교 도서관자치위원회")
         String organizationName,
 
+        Long organizationId,
+
         @Schema(
                 description = "단체 프로필 이미지 URL",
                 example = "https://cdn.retrivr.com/organizations/5/profile/uuid.png"

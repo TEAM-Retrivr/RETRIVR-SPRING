@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 public class PasswordHash {
 
     private static final Pattern PASSWORD_POLICY_PATTERN = Pattern.compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*\\p{Punct})(?!.*\\s).{8,}$"
+            "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*])[A-Za-z\\d!@#$%^&*]{8,}$"
     );
 
     @Column(name = "password_hash", nullable = false, length = 255)

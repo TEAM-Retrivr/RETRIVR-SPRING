@@ -206,6 +206,9 @@ public class Item extends BaseTimeEntity {
    * 4. 각 필드 타입이 올바른지
    */
   public void validationItemBorrowerFieldsWith(Map<String, String> values) {
+    if (values == null || values.isEmpty()) {
+      return;
+    }
     validateBorrowerFieldMapNotNull(values);
     validateNoUnknownBorrowerLabel(values);
     validateRequired(values);

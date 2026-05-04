@@ -56,12 +56,12 @@ class SendMessageServiceTest {
   @Test
   @DisplayName("dispatch: request completed uses email recipient and saves success history")
   void dispatch_requestCompleted_success() {
-    Rental rental = mockRental("user@test.com", "01012345678");
+    Rental rental = mockRental();
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(
         java.util.List.of(new NotificationDispatchAttempt(
-            NotificationChannel.EMAIL,
-            "user@test.com",
+            NotificationChannel.ALIM_TALK,
+            "01012345678",
             MessageSendStatus.SUCCESS
         ))
     );
@@ -78,9 +78,9 @@ class SendMessageServiceTest {
   }
 
   @Test
-  @DisplayName("dispatch: request completed skips when email is missing")
-  void dispatch_requestCompleted_skipWhenEmailMissing() {
-    Rental rental = mockRental(null, "01012345678");
+  @DisplayName("dispatch: request completed skips when phone number is missing")
+  void dispatch_requestCompleted_skipWhenPhoneMissing() {
+    Rental rental = mockRental();
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(java.util.List.of());
 
@@ -96,12 +96,12 @@ class SendMessageServiceTest {
   @Test
   @DisplayName("sendRentalRejected: dispatches rejected notification")
   void sendRentalRejected_dispatch() {
-    Rental rental = mock(Rental.class);
+    Rental rental = mockRental();
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(
         java.util.List.of(new NotificationDispatchAttempt(
-            NotificationChannel.EMAIL,
-            "user@test.com",
+            NotificationChannel.ALIM_TALK,
+            "01012345678",
             MessageSendStatus.SUCCESS
         ))
     );
@@ -117,26 +117,26 @@ class SendMessageServiceTest {
   }
 
   @Test
-  @DisplayName("dispatch: overdue reminder throws when email is missing")
-  void dispatch_overdueReminder_throwWhenEmailMissing() {
-    Rental rental = mockRental(null, "01012345678");
+  @DisplayName("dispatch: overdue reminder throws when phone number is missing")
+  void dispatch_overdueReminder_throwWhenPhoneMissing() {
+    Rental rental = mockRental();
     NotificationRequest request = mock(NotificationRequest.class);
 
     when(notificationFactory.create(MessageType.OVERDUE_REMINDER, rental)).thenReturn(request);
-    doThrow(new ApplicationException(ErrorCode.EMAIL_NOT_FOUND))
+    doThrow(new ApplicationException(ErrorCode.INVALID_PHONE_NUMBER_EXCEPTION))
         .when(notificationDispatcher)
         .dispatch(request, rental);
 
     assertThatThrownBy(() -> service().dispatch(MessageType.OVERDUE_REMINDER, rental))
         .isInstanceOf(ApplicationException.class)
         .satisfies(exception -> assertThat(((ApplicationException) exception).getErrorCode())
-            .isEqualTo(ErrorCode.EMAIL_NOT_FOUND));
+            .isEqualTo(ErrorCode.INVALID_PHONE_NUMBER_EXCEPTION));
 
     verify(notificationHistoryRecorder, never())
         .record(any(Rental.class), any(NotificationRequest.class), any(), any(LocalDate.class));
   }
 
-  private Rental mockRental(String email, String phoneNumber) {
+  private Rental mockRental() {
     return mock(Rental.class);
   }
 }

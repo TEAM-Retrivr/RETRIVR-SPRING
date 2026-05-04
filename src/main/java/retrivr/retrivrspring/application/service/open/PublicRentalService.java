@@ -17,6 +17,7 @@ import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PhoneVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -25,7 +26,6 @@ import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalDecisionResponse;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalCreateRequest;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateApproveRequest;
 import retrivr.retrivrspring.presentation.open.rental.req.PublicRentalImmediateRejectRequest;
@@ -50,6 +50,7 @@ public class PublicRentalService {
   private final ApplicationEventPublisher applicationEventPublisher;
   private final PublicIdGenerator publicIdGenerator;
   private final AdminCodeVerificationService adminCodeVerificationService;
+  private final PublicPhoneVerificationService publicPhoneVerificationService;
 
   private static final int MAX_PUBLIC_ID_RETRY = 5;
 
@@ -58,6 +59,8 @@ public class PublicRentalService {
     // 1. 대여할 Item 조회
     Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+
+    publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
 
     // 2. ItemUnit 조회
     ItemUnit targetItemUnit = null;
@@ -78,7 +81,13 @@ public class PublicRentalService {
 
     // 5. Rental 생성 및 저장
     String publicId = publicIdGenerator.generateRentalId(targetItem.getOrganization().getId());
-    Rental requestedRental = Rental.request(targetItem, targetItemUnit, borrower, publicId);
+    Rental requestedRental = Rental.request(
+        targetItem,
+        targetItemUnit,
+        borrower,
+        publicId,
+        request.requestNote()
+    );
 
     trySaveRental(requestedRental, targetItem.getOrganization().getId());
 
@@ -96,12 +105,16 @@ public class PublicRentalService {
         rental.getOrganization(), AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, token);
 
     //todo: 장바구니? 기능 이후 name List 를 넘기도록 수정
-    String itemName = rental.getItem().getName();
+    Item item = rental.getItem();
+    String itemName = item.getName();
+    Integer rentalDuration = item.getRentalDuration();
+    String guaranteedGoods = item.getGuaranteedGoods();
     String itemUnitLabel = null;
     if (rental.hasItemUnit()) {
       itemUnitLabel = rental.getItemUnit().getLabel();
     }
 
+    String contact = rental.getBorrower().getPhoneNumber();
     Map<String, String> borrowerField = new HashMap<>();
     if (rental.getBorrower().hasAdditionalInfo()) {
       borrowerField = objectMapper.convertValue(
@@ -110,7 +123,15 @@ public class PublicRentalService {
       );
     }
 
-    return PublicRentalDetailResponse.from(rental, itemName, itemUnitLabel, borrowerField);
+    return PublicRentalDetailResponse.from(
+        rental,
+        itemName,
+        rentalDuration,
+        itemUnitLabel,
+        contact,
+        guaranteedGoods,
+        borrowerField
+    );
   }
 
   private void trySaveRental(Rental rental, Long organizationId) {

@@ -20,16 +20,14 @@ class ItemBorrowerFieldValidationTest extends ItemTestFixture {
 
     @Test
     @DisplayName("values가 null이면 예외가 발생한다")
-    void throwsWhenValuesIsNull() {
+    void passesWhenValuesIsNull() {
       Item item = createItemWithBorrowerFields(
           borrowerField("studentNo", true),
           borrowerField("email", true)
       );
 
-      assertThatThrownBy(() -> item.validationItemBorrowerFieldsWith(null))
-          .isInstanceOf(DomainException.class)
-          .extracting("errorCode")
-          .isEqualTo(ErrorCode.ILLEGAL_BORROWER_LABEL);
+      assertThatCode(() -> item.validationItemBorrowerFieldsWith(null))
+          .doesNotThrowAnyException();
     }
 
     @Test

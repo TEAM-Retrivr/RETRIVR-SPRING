@@ -37,8 +37,9 @@ public class SendMessageService {
     Organization organization = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    Rental rental = rentalRepository.findById(rentalId)
+    Rental rental = rentalRepository.findFetchBorrowerRentalItemAndOrganizationById(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
+    rental = loadRentalWithItemUnits(rental);
 
     rental.validateRentalOwner(organization);
 
@@ -57,6 +58,7 @@ public class SendMessageService {
     LocalDate today = LocalDate.now();
 
     List<Rental> rentals = rentalRepository.findOverdueReminderTargets(today);
+    rentals = loadRentalsWithItemUnits(rentals);
 
     for (Rental rental : rentals) {
       if (!SendAllOverdueReminderPolicy.shouldSend(rental.getOverdueDays())) {
@@ -105,5 +107,18 @@ public class SendMessageService {
     NotificationDispatchResult result = notificationDispatcher.dispatch(notification, rental);
     notificationHistoryRecorder.record(rental, notification, result, sentDate);
     return result.hasSuccess();
+  }
+
+  private Rental loadRentalWithItemUnits(Rental rental) {
+    rentalRepository.findFetchRentalItemUnitsByRentalIn(List.of(rental));
+    return rental;
+  }
+
+  private List<Rental> loadRentalsWithItemUnits(List<Rental> rentals) {
+    if (rentals.isEmpty()) {
+      return rentals;
+    }
+    rentalRepository.findFetchRentalItemUnitsByRentalIn(rentals);
+    return rentals;
   }
 }

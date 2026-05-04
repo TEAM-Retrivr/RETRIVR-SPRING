@@ -19,7 +19,6 @@ import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
-import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
 import java.security.SecureRandom;
@@ -88,7 +87,7 @@ public class EmailVerificationService {
     }
 
     @Transactional(noRollbackFor = ApplicationException.class)
-    public Object verify(EmailVerificationRequest request) {
+    public EmailCodeVerifyTokenResponse verify(EmailVerificationRequest request) {
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         EmailVerificationPurpose purpose = request.purpose();
@@ -176,12 +175,7 @@ public class EmailVerificationService {
             );
         }
 
-        // 그 외 purpose는 일반 인증 응답
-        return new EmailVerificationResponse(
-                email,
-                true,
-                verification.getVerifiedAt()
-        );
+        throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
 
     private String generateCode() {

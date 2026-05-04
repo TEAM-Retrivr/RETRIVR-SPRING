@@ -16,11 +16,14 @@ public record AdminRentalRequestPageResponse(
       Long rentalId,
       Long itemId,
       String itemName,
+      Integer rentalDuration,
       Long itemUnitId,
       String itemUnitLabel,
+      String requestNote,
       Integer totalQuantity,
       Integer availableQuantity,
       String borrowerName,
+      String contact,
       String guaranteedGoods,
       LocalDateTime requestedAt
   ) {
@@ -38,11 +41,14 @@ public record AdminRentalRequestPageResponse(
           rental.getId(),
           item.getId(),
           item.getName(),
+          item.getRentalDuration(),
           itemUnit != null? itemUnit.getId() : null,
           itemUnit != null? itemUnit.getLabel() : null,
+          rental.getRequestNote(),
           item.getTotalQuantity(),
           item.getAvailableQuantity(),
           borrower.getName(),
+          borrower.getPhoneNumber(),
           item.getGuaranteedGoods(),
           rental.getRequestedAt()
       );

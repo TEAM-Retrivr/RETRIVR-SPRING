@@ -7,6 +7,8 @@ public record AdminProfileResponse(
         @Schema(description = "단체 명", example = "건국대학교 전산원")
         String organizationName,
 
+        Long organizationId,
+
         @Schema(
                 description = "단체 이미지 URL",
                 example = "https://cdn.retrivr.com/organizations/5/profile/uuid.png"

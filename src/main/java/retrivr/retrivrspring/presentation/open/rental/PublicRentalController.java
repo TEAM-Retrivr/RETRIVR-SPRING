@@ -40,7 +40,7 @@ public class PublicRentalController {
       description = "대여 요청 생성 성공",
       content = @Content(schema = @Schema(implementation = PublicRentalCreateResponse.class))
   )
-  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.NOT_FOUND_ITEM_UNIT, ErrorCode.ILLEGAL_BORROWER_LABEL})
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.NOT_FOUND_ITEM_UNIT, ErrorCode.ILLEGAL_BORROWER_LABEL, ErrorCode.NOT_FOUND_PHONE_VERIFICATION_TOKEN, ErrorCode.PHONE_VERIFICATION_TOKEN_MISMATCH, ErrorCode.PHONE_VERIFICATION_PURPOSE_MISMATCH, ErrorCode.EXPIRED_PHONE_VERIFICATION_TOKEN})
   public PublicRentalCreateResponse createRental(
       @PathVariable("itemId") Long itemId,
       @Valid @RequestBody PublicRentalCreateRequest request

@@ -27,10 +27,18 @@ public class NotificationHistoryRecorder {
               attempt.recipient(),
               request.messageType(),
               attempt.status(),
-              request.content().getMessage(),
+              resolveContent(request, attempt),
               sentDate
           )
       );
     }
+  }
+
+  //todo -- 구조 개선 가능할거 같은데 getMessage()와 getTemplateMessage()를 분리하지 않는 방법 생각
+  private String resolveContent(NotificationRequest request, NotificationDispatchAttempt attempt) {
+    return switch (attempt.channel()) {
+      case EMAIL -> request.content().getMessage();
+      case ALIM_TALK -> request.content().getTemplateMessage();
+    };
   }
 }

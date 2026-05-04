@@ -13,12 +13,13 @@ import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.error.InfraException;
 
 @Component
 @Slf4j
 public class NotificationDispatcher {
 
-  private static final NotificationChannel DEFAULT_CHANNEL = NotificationChannel.EMAIL;
+  private static final NotificationChannel DEFAULT_CHANNEL = NotificationChannel.ALIM_TALK;
 
   private final Map<NotificationChannel, MessageSender> messageSenders;
 
@@ -27,28 +28,36 @@ public class NotificationDispatcher {
   }
 
   public NotificationDispatchResult dispatch(NotificationRequest request, Rental rental) {
-    if (!request.supports(DEFAULT_CHANNEL)) {
-      handleMissingRecipient(request.messageType(), rental, DEFAULT_CHANNEL);
+    NotificationChannel channel = DEFAULT_CHANNEL;
+
+    if (!request.supports(channel)) {
+      handleMissingRecipient(request.messageType(), rental, channel);
       return new NotificationDispatchResult(List.of());
     }
 
-    String recipient = request.resolveRecipient(DEFAULT_CHANNEL);
-    MessageSender sender = getMessageSender(DEFAULT_CHANNEL);
+    String recipient = request.resolveRecipient(channel);
+    MessageSender sender = getMessageSender(channel);
     try {
       sender.send(request);
       return new NotificationDispatchResult(List.of(
           new NotificationDispatchAttempt(
-              DEFAULT_CHANNEL,
+              channel,
               recipient,
               MessageSendStatus.SUCCESS
           )
       ));
-    } catch (ApplicationException e) {
-      log.error("Notification send failed. rentalId={}, messageType={}, channel={}",
-          rental.getId(), request.messageType(), DEFAULT_CHANNEL, e);
+    } catch (ApplicationException | InfraException e) {
+      if (e instanceof InfraException infraException) {
+        log.error("Notification send failed. rentalId={}, messageType={}, channel={}, errorCode={}, detail={}",
+            rental.getId(), request.messageType(), channel,
+            infraException.getErrorCode(), infraException.getDetail(), e);
+      } else {
+        log.error("Notification send failed. rentalId={}, messageType={}, channel={}",
+            rental.getId(), request.messageType(), channel, e);
+      }
       return new NotificationDispatchResult(List.of(
           new NotificationDispatchAttempt(
-              DEFAULT_CHANNEL,
+              channel,
               recipient,
               MessageSendStatus.FAIL
           )
@@ -59,7 +68,10 @@ public class NotificationDispatcher {
   private MessageSender getMessageSender(NotificationChannel channel) {
     MessageSender sender = messageSenders.get(channel);
     if (sender == null) {
-      throw new IllegalStateException("No MessageSender for channel " + channel);
+      throw new InfraException(
+          ErrorCode.MESSAGE_SENDER_NOT_FOUND,
+          "channel=" + channel
+      );
     }
     return sender;
   }
@@ -77,11 +89,18 @@ public class NotificationDispatcher {
       Rental rental,
       NotificationChannel channel
   ) {
-    if (messageType == MessageType.OVERDUE_REMINDER && channel == NotificationChannel.EMAIL) {
-      throw new ApplicationException(ErrorCode.EMAIL_NOT_FOUND);
+    if (messageType == MessageType.OVERDUE_REMINDER) {
+      throw new ApplicationException(resolveMissingRecipientError(channel));
     }
 
     log.info("Skip notification. rentalId={}, messageType={}, channel={}, reason=no recipient",
         rental.getId(), messageType, channel);
+  }
+
+  private ErrorCode resolveMissingRecipientError(NotificationChannel channel) {
+    return switch (channel) {
+      case EMAIL -> ErrorCode.EMAIL_NOT_FOUND;
+      case ALIM_TALK -> ErrorCode.INVALID_PHONE_NUMBER_EXCEPTION;
+    };
   }
 }

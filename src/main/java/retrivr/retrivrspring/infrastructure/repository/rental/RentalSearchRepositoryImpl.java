@@ -321,7 +321,7 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
                 where r.organization_id = :organizationId
                   and r.status = 'RENTED'
                   and :keyword is not null
-                  and :trim(:keyword) != ''
+                  and trim(:keyword) != ''
                   and (     
                         b.name ilike concat('%', :keyword, '%')
                         or i.name ilike concat('%', :keyword, '%')
@@ -364,7 +364,7 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
                 where r.organization_id = :organizationId
                   and r.status = 'RENTED'
                   and :keyword is not null
-                  and :trim(:keyword) != ''
+                  and trim(:keyword) != ''
                   and (               
                         b.name ilike concat('%', :keyword, '%')
                         or i.name ilike concat('%', :keyword, '%')
