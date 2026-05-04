@@ -105,12 +105,16 @@ public class PublicRentalService {
         rental.getOrganization(), AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, token);
 
     //todo: 장바구니? 기능 이후 name List 를 넘기도록 수정
-    String itemName = rental.getItem().getName();
+    Item item = rental.getItem();
+    String itemName = item.getName();
+    Integer rentalDuration = item.getRentalDuration();
+    String guaranteedGoods = item.getGuaranteedGoods();
     String itemUnitLabel = null;
     if (rental.hasItemUnit()) {
       itemUnitLabel = rental.getItemUnit().getLabel();
     }
 
+    String contact = rental.getBorrower().getPhoneNumber();
     Map<String, String> borrowerField = new HashMap<>();
     if (rental.getBorrower().hasAdditionalInfo()) {
       borrowerField = objectMapper.convertValue(
@@ -119,7 +123,15 @@ public class PublicRentalService {
       );
     }
 
-    return PublicRentalDetailResponse.from(rental, itemName, itemUnitLabel, borrowerField);
+    return PublicRentalDetailResponse.from(
+        rental,
+        itemName,
+        rentalDuration,
+        itemUnitLabel,
+        contact,
+        guaranteedGoods,
+        borrowerField
+    );
   }
 
   private void trySaveRental(Rental rental, Long organizationId) {
