@@ -127,8 +127,8 @@ class PublicRentalServiceTest {
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
-    when(req.renterFields()).thenReturn(Map.of("학과", "컴공"));
-    when(req.name()).thenReturn("홍길동");
+    when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
+    when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
 
     doThrow(new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "bad fields"))
@@ -147,8 +147,8 @@ class PublicRentalServiceTest {
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
-    when(req.renterFields()).thenReturn(Map.of("학과", "컴공"));
-    when(req.name()).thenReturn("홍길동");
+    when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
+    when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
@@ -180,8 +180,8 @@ class PublicRentalServiceTest {
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(99L);
-    when(req.renterFields()).thenReturn(Map.of("학과", "컴공"));
-    when(req.name()).thenReturn("홍길동");
+    when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
+    when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
@@ -218,10 +218,12 @@ class PublicRentalServiceTest {
     when(rental.getStatus()).thenReturn(RentalStatus.REQUESTED);
     when(rental.getDecidedAt()).thenReturn((LocalDateTime) null);
     when(rental.getDueDate()).thenReturn((LocalDate) null);
-    when(rental.getRequestNote()).thenReturn("문 앞 수령");
+    when(rental.getRequestNote()).thenReturn("need charger");
 
     Item item = mock(Item.class);
-    when(item.getName()).thenReturn("카메라");
+    when(item.getName()).thenReturn("camera");
+    when(item.getRentalDuration()).thenReturn(3);
+    when(item.getGuaranteedGoods()).thenReturn("student-id");
     RentalItem rentalItem = mock(RentalItem.class);
     when(rentalItem.getItem()).thenReturn(item);
     when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
@@ -229,21 +231,24 @@ class PublicRentalServiceTest {
     when(rental.getItem()).thenReturn(item);
     when(rental.hasItemUnit()).thenReturn(false);
 
-
     Borrower borrower = mock(Borrower.class);
-    JsonNode info = objectMapper.valueToTree(Map.of("학과", "컴공"));
+    JsonNode info = objectMapper.valueToTree(Map.of("department", "engineering"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
+    when(borrower.getPhoneNumber()).thenReturn("01000000000");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(1L)).thenReturn(Optional.of(rental));
 
     PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(1L, "token");
 
-    assertThat(res.itemName()).isEqualTo("카메라");
+    assertThat(res.itemName()).isEqualTo("camera");
+    assertThat(res.rentalDuration()).isEqualTo(3);
     assertThat(res.itemUnitLabel()).isNull();
-    assertThat(res.borrowerField()).containsEntry("학과", "컴공");
-    assertThat(res.requestNote()).isEqualTo("문 앞 수령");
+    assertThat(res.contact()).isEqualTo("01000000000");
+    assertThat(res.guaranteedGoods()).isEqualTo("student-id");
+    assertThat(res.borrowerField()).containsEntry("department", "engineering");
+    assertThat(res.requestNote()).isEqualTo("need charger");
   }
 
   @Test
@@ -254,15 +259,16 @@ class PublicRentalServiceTest {
     when(rental.getStatus()).thenReturn(RentalStatus.RENTED);
     when(rental.getDecidedAt()).thenReturn(LocalDateTime.now());
     when(rental.getDueDate()).thenReturn(LocalDate.now().plusDays(7));
-    when(rental.getRequestNote()).thenReturn("충전기 같이 요청");
+    when(rental.getRequestNote()).thenReturn("need adapter too");
 
     Item item = mock(Item.class);
-    when(item.getName()).thenReturn("노트북");
+    when(item.getName()).thenReturn("laptop");
+    when(item.getRentalDuration()).thenReturn(7);
+    when(item.getGuaranteedGoods()).thenReturn("government-id");
     RentalItem rentalItem = mock(RentalItem.class);
     when(rentalItem.getItem()).thenReturn(item);
     when(rental.getRentalItems()).thenReturn(List.of(rentalItem));
     when(rental.getItem()).thenReturn(item);
-
 
     ItemUnit unit = mock(ItemUnit.class);
     when(unit.getLabel()).thenReturn("unit-001");
@@ -272,22 +278,26 @@ class PublicRentalServiceTest {
     when(rental.getItemUnit()).thenReturn(unit);
     when(rental.hasItemUnit()).thenReturn(true);
 
-
     Borrower borrower = mock(Borrower.class);
-    JsonNode info = objectMapper.valueToTree(Map.of("학번", "20251234"));
+    JsonNode info = objectMapper.valueToTree(Map.of("studentNo", "20251234"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
+    when(borrower.getPhoneNumber()).thenReturn("01012345678");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(2L)).thenReturn(Optional.of(rental));
 
     PublicRentalDetailResponse res = service().checkRentalStatusAndDetail(2L, "token");
 
-    assertThat(res.itemName()).isEqualTo("노트북");
+    assertThat(res.itemName()).isEqualTo("laptop");
+    assertThat(res.rentalDuration()).isEqualTo(7);
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
-    assertThat(res.borrowerField()).containsEntry("학번", "20251234");
-    assertThat(res.requestNote()).isEqualTo("충전기 같이 요청");
+    assertThat(res.contact()).isEqualTo("01012345678");
+    assertThat(res.guaranteedGoods()).isEqualTo("government-id");
+    assertThat(res.borrowerField()).containsEntry("studentNo", "20251234");
+    assertThat(res.requestNote()).isEqualTo("need adapter too");
   }
+
   private void setRentalId(Rental rental, Long rentalId) {
     try {
       java.lang.reflect.Field idField = Rental.class.getDeclaredField("id");
