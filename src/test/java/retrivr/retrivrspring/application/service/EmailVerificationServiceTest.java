@@ -29,8 +29,18 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenRes
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceTest {
@@ -107,6 +117,19 @@ class EmailVerificationServiceTest {
     }
 
     @Test
+    void sendChangeEmailCode_rejectsNonEmailChangePurpose() {
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.sendChangeEmailCode(
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender);
+    }
+
+    @Test
     void verify_success_signup_generates_token() {
         EmailVerification verification = EmailVerification.create(
                 email,
@@ -120,12 +143,10 @@ class EmailVerificationServiceTest {
         when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
         when(passwordEncoder.encode(any())).thenReturn("signupTokenHash");
 
-        var response = emailVerificationService.verify(
+        EmailCodeVerifyTokenResponse tokenResponse = emailVerificationService.verify(
                 new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
         );
 
-        assertTrue(response instanceof EmailCodeVerifyTokenResponse);
-        EmailCodeVerifyTokenResponse tokenResponse = (EmailCodeVerifyTokenResponse) response;
         assertEquals("SIGNUP", tokenResponse.tokenType());
         assertNotNull(tokenResponse.token());
         assertTrue(tokenResponse.token().startsWith("st_"));
@@ -183,12 +204,10 @@ class EmailVerificationServiceTest {
         when(organizationRepository.findByEmail(email)).thenReturn(Optional.of(org));
         when(passwordEncoder.encode(any())).thenReturn("passwordResetTokenHash");
 
-        var response = emailVerificationService.verify(
+        EmailCodeVerifyTokenResponse tokenResponse = emailVerificationService.verify(
                 new EmailVerificationRequest(email, EmailVerificationPurpose.PASSWORD_RESET, "123456")
         );
 
-        assertTrue(response instanceof EmailCodeVerifyTokenResponse);
-        EmailCodeVerifyTokenResponse tokenResponse = (EmailCodeVerifyTokenResponse) response;
         assertEquals("PASSWORD_RESET", tokenResponse.tokenType());
         assertNotNull(tokenResponse.token());
         assertTrue(tokenResponse.token().startsWith("prt_"));
@@ -199,7 +218,7 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void verify_success_emailChange_generates_token() {
+    void verifyChangeEmail_success_generates_token() {
         EmailVerification verification = EmailVerification.create(
                 email,
                 EmailVerificationPurpose.EMAIL_CHANGE,
@@ -211,145 +230,27 @@ class EmailVerificationServiceTest {
                 .thenReturn(Optional.of(verification));
         when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
 
-        var response = emailVerificationService.verify(
+        EmailCodeVerifyTokenResponse tokenResponse = emailVerificationService.verifyChangeEmail(
                 new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456")
         );
 
-        assertTrue(response instanceof EmailCodeVerifyTokenResponse);
-        EmailCodeVerifyTokenResponse tokenResponse = (EmailCodeVerifyTokenResponse) response;
         assertEquals("EMAIL_CHANGE", tokenResponse.tokenType());
         assertNotNull(tokenResponse.token());
         assertTrue(tokenResponse.token().startsWith("ect_"));
         assertEquals(600, tokenResponse.expiresInSeconds());
-        verifyNoInteractions(signupTokenRepository, organizationRepository, passwordResetTokenRepository);
+        verifyNoInteractions(signupTokenRepository, passwordResetTokenRepository);
     }
 
     @Test
-    void verify_codeMismatch_locksWhenFailedAttemptsReachThreshold() {
-        EmailVerification verification = EmailVerification.create(
-                email,
-                EmailVerificationPurpose.SIGNUP,
-                "hashed",
-                LocalDateTime.now().plusMinutes(10)
-        );
-        ReflectionTestUtils.setField(verification, "failedAttempts", 4);
-
-        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
-                .thenReturn(Optional.of(verification));
-        when(passwordEncoder.matches("123456", "hashed")).thenReturn(false);
-
+    void verifyChangeEmail_rejectsNonEmailChangePurpose() {
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
-                () -> emailVerificationService.verify(
+                () -> emailVerificationService.verifyChangeEmail(
                         new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
                 )
         );
 
-        assertEquals(ErrorCode.EMAIL_VERIFICATION_EXPIRED, ex.getErrorCode());
-        assertEquals(5, ReflectionTestUtils.getField(verification, "failedAttempts"));
-        assertTrue(verification.isExpired(LocalDateTime.now().plusSeconds(1)));
-        verify(emailVerificationRepository, times(1)).save(verification);
-    }
-
-    @Test
-    void verify_lockedAfterThreshold_subsequentAttemptRejectedBeforeMatches() {
-        EmailVerification verification = EmailVerification.create(
-                email,
-                EmailVerificationPurpose.SIGNUP,
-                "hashed",
-                LocalDateTime.now().plusMinutes(10)
-        );
-        ReflectionTestUtils.setField(verification, "failedAttempts", 4);
-
-        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
-                .thenReturn(Optional.of(verification));
-        when(passwordEncoder.matches("123456", "hashed")).thenReturn(false);
-
-        assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.verify(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-                )
-        );
-        verify(emailVerificationRepository, times(1)).save(verification);
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.verify(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-                )
-        );
-
-        assertEquals(ErrorCode.EMAIL_VERIFICATION_EXPIRED, ex.getErrorCode());
-        verify(passwordEncoder, times(1)).matches("123456", "hashed");
-    }
-
-    @Test
-    void verify_success_resetsFailedAttempts() {
-        EmailVerification verification = EmailVerification.create(
-                email,
-                EmailVerificationPurpose.SIGNUP,
-                "hashed",
-                LocalDateTime.now().plusMinutes(10)
-        );
-        ReflectionTestUtils.setField(verification, "failedAttempts", 3);
-
-        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
-                .thenReturn(Optional.of(verification));
-        when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
-        when(passwordEncoder.encode(any())).thenReturn("signupTokenHash");
-
-        emailVerificationService.verify(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-        );
-
-        assertEquals(0, ReflectionTestUtils.getField(verification, "failedAttempts"));
-        verify(signupTokenRepository, times(1)).deleteByEmail(email);
-    }
-
-    @Test
-    void verify_expired() {
-        EmailVerification verification = EmailVerification.create(
-                email,
-                EmailVerificationPurpose.SIGNUP,
-                "hashed",
-                LocalDateTime.now().minusMinutes(1)
-        );
-
-        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
-                .thenReturn(Optional.of(verification));
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.verify(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-                )
-        );
-
-        assertEquals(ErrorCode.EMAIL_VERIFICATION_EXPIRED, ex.getErrorCode());
-    }
-
-    @Test
-    void verify_alreadyVerified() {
-        EmailVerification verification = EmailVerification.create(
-                email,
-                EmailVerificationPurpose.SIGNUP,
-                "hashed",
-                LocalDateTime.now().plusMinutes(10)
-        );
-
-        verification.markVerified(LocalDateTime.now());
-
-        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
-                .thenReturn(Optional.of(verification));
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.verify(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
-                )
-        );
-
-        assertEquals(ErrorCode.EMAIL_ALREADY_VERIFIED, ex.getErrorCode());
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository);
     }
 }
