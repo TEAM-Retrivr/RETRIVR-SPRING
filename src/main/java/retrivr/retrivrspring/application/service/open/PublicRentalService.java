@@ -114,6 +114,7 @@ public class PublicRentalService {
       itemUnitLabel = rental.getItemUnit().getLabel();
     }
 
+    String borrowerName = rental.getBorrower().getName();
     String contact = rental.getBorrower().getPhoneNumber();
     Map<String, String> borrowerField = new HashMap<>();
     if (rental.getBorrower().hasAdditionalInfo()) {
@@ -128,6 +129,7 @@ public class PublicRentalService {
         itemName,
         rentalDuration,
         itemUnitLabel,
+        borrowerName,
         contact,
         guaranteedGoods,
         borrowerField
