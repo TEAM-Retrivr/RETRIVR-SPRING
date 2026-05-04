@@ -9,6 +9,7 @@ public record PublicRentalDetailResponse(
     String itemName,
     Integer rentalDuration,
     String itemUnitLabel,
+    String borrowerName,
     String contact,
     String guaranteedGoods,
     Map<String, String> borrowerField,
@@ -21,6 +22,7 @@ public record PublicRentalDetailResponse(
       String itemName,
       Integer rentalDuration,
       String itemUnitLabel,
+      String borrowerName,
       String contact,
       String guaranteedGoods,
       Map<String, String> borrowerField
@@ -30,6 +32,7 @@ public record PublicRentalDetailResponse(
         itemName,
         rentalDuration,
         itemUnitLabel,
+        borrowerName,
         contact,
         guaranteedGoods,
         borrowerField,
