@@ -18,6 +18,14 @@ spring:
         format_sql: true
         default_batch_fetch_size: 100
 
+  flyway:
+    enabled: ${FLYWAY_ENABLE}
+    locations: ${FLYWAY_LOCATION}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE}
+    baseline-version: ${FLYWAY_BASELINE_VERSION}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT:587}

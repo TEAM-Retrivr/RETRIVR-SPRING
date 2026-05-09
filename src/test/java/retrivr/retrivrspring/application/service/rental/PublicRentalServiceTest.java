@@ -235,6 +235,7 @@ class PublicRentalServiceTest {
     JsonNode info = objectMapper.valueToTree(Map.of("department", "engineering"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
+    when(borrower.getName()).thenReturn("tester");
     when(borrower.getPhoneNumber()).thenReturn("01000000000");
     when(rental.getBorrower()).thenReturn(borrower);
 
@@ -245,6 +246,7 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("camera");
     assertThat(res.rentalDuration()).isEqualTo(3);
     assertThat(res.itemUnitLabel()).isNull();
+    assertThat(res.borrowerName()).isEqualTo("tester");
     assertThat(res.contact()).isEqualTo("01000000000");
     assertThat(res.guaranteedGoods()).isEqualTo("student-id");
     assertThat(res.borrowerField()).containsEntry("department", "engineering");
@@ -282,6 +284,7 @@ class PublicRentalServiceTest {
     JsonNode info = objectMapper.valueToTree(Map.of("studentNo", "20251234"));
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
+    when(borrower.getName()).thenReturn("kim");
     when(borrower.getPhoneNumber()).thenReturn("01012345678");
     when(rental.getBorrower()).thenReturn(borrower);
 
@@ -292,6 +295,7 @@ class PublicRentalServiceTest {
     assertThat(res.itemName()).isEqualTo("laptop");
     assertThat(res.rentalDuration()).isEqualTo(7);
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
+    assertThat(res.borrowerName()).isEqualTo("kim");
     assertThat(res.contact()).isEqualTo("01012345678");
     assertThat(res.guaranteedGoods()).isEqualTo("government-id");
     assertThat(res.borrowerField()).containsEntry("studentNo", "20251234");
