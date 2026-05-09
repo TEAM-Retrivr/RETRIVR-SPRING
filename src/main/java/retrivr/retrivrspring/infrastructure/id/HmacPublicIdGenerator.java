@@ -31,6 +31,14 @@ public class HmacPublicIdGenerator implements PublicIdGenerator {
     return "ITM-" + orgToken(organizationId) + "-" + randomBase62(10);
   }
 
+  @Override
+  public String generateCouponCode() {
+    String rawCode = randomBase62(4) + "-" +
+        randomBase62(4) + "-" +
+        randomBase62(4);
+    return rawCode.toUpperCase();
+  }
+
   // ===== org hash =====
   private String orgToken(Long organizationId) {
     try {
