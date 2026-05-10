@@ -13,8 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.internal.InternalCouponService;
 import retrivr.retrivrspring.global.auth.manager.ValidManager;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.internal.req.InternalCouponCreateRequest;
-import retrivr.retrivrspring.presentation.admin.coupon.res.CouponRegistrationResponse;
 import retrivr.retrivrspring.presentation.internal.res.InternalCouponCreateResponse;
 
 @RestController
@@ -37,6 +38,10 @@ public class InternalCouponController {
       description = "쿠폰 생성 성공",
       content = @Content(schema = @Schema(implementation = InternalCouponCreateResponse.class))
   )
+  @ApiErrorCodeExamples({
+      ErrorCode.INVALID_COUPON_EXPIRE_TIME,
+      ErrorCode.COUPON_CODE_GENERATE_FAILED
+  })
   @ValidManager
   public InternalCouponCreateResponse createCoupon(
       @Valid @RequestBody InternalCouponCreateRequest request

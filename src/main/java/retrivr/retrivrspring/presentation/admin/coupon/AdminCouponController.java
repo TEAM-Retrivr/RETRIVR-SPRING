@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.membership.coupon.CouponRegistrationService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExample;
+import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.coupon.res.AdminCouponCodeCheckResponse;
 import retrivr.retrivrspring.presentation.admin.coupon.res.CouponRegistrationResponse;
 
@@ -41,6 +44,13 @@ public class AdminCouponController {
       description = "쿠폰 등록 성공",
       content = @Content(schema = @Schema(implementation = CouponRegistrationResponse.class))
   )
+  @ApiErrorCodeExamples({
+      ErrorCode.NOT_FOUND_ORGANIZATION,
+      ErrorCode.NOT_FOUND_COUPON,
+      ErrorCode.NOT_AVAILABLE_COUPON,
+      ErrorCode.COUPON_AVAILABLE_QUANTITY_OVERFLOW,
+      ErrorCode.ALREADY_REGISTERED_COUPON
+  })
   public CouponRegistrationResponse registerCoupon(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
       @Valid @PathVariable("couponId") String couponId
@@ -60,6 +70,9 @@ public class AdminCouponController {
       description = "쿠폰 조회 성공",
       content = @Content(schema = @Schema(implementation = AdminCouponCodeCheckResponse.class))
   )
+  @ApiErrorCodeExamples({
+      ErrorCode.NOT_FOUND_ORGANIZATION
+  })
   public AdminCouponCodeCheckResponse checkCouponCode(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
       @Valid @PathVariable("couponCode") String couponCode
