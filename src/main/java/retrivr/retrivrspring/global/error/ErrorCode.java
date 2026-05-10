@@ -140,7 +140,7 @@ public enum ErrorCode {
     COUPON_CODE_GENERATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12103, "쿠폰 코드 생성에 실패했습니다."),
     COUPON_AVAILABLE_QUANTITY_OVERFLOW(HttpStatus.CONFLICT, 12104, "쿠폰 수량이 모두 소진되었습니다."),
     COUPON_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12105, "쿠폰 소유자와 로그인 사용자가 일치하지 않습니다."),
-    INVALID_COUPON_EXPIRE_TIME(HttpStatus.BAD_REQUEST, 12106, ""),
+    INVALID_COUPON_EXPIRE_TIME(HttpStatus.BAD_REQUEST, 12106, "쿠폰 만료 시간이 시작 시간보다 빠를 수 없습니다."),
 
     // 12200: MembershipPass Error
     MEMBERSHIP_PASS_CONFLICT(HttpStatus.CONFLICT, 12200, "중복된 정보를 가진 이용권이 존재합니다."),
