@@ -8,11 +8,11 @@ import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
-import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
-import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
-import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
 
-//todo email 인증을 redis 기반으로 바꿀 수 있을지도
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -51,53 +50,62 @@ public class EmailVerificationService {
         EmailVerification verification = emailVerificationRepository
                 .findByEmailAndPurpose(email, purpose)
                 .map(existing -> {
-                    // 재전송 제한
-                    if (existing.getUpdatedAt() != null && existing.getUpdatedAt().isAfter(now.minusSeconds(emailVerificationProperties.getResendBlockSeconds()))) {
+                    if (existing.getUpdatedAt() != null
+                            && existing.getUpdatedAt().isAfter(now.minusSeconds(emailVerificationProperties.getResendBlockSeconds()))) {
                         throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS);
                     }
 
                     existing.refresh(hashedCode, now.plusSeconds(emailVerificationProperties.getExpiresSeconds()));
                     return existing;
                 })
-                .orElseGet(() ->
-                        EmailVerification.create(
-                                email,
-                                purpose,
-                                hashedCode,
-                                now.plusSeconds(emailVerificationProperties.getExpiresSeconds())
-                        )
-                );
+                .orElseGet(() -> EmailVerification.create(
+                        email,
+                        purpose,
+                        hashedCode,
+                        now.plusSeconds(emailVerificationProperties.getExpiresSeconds())
+                ));
 
-        switch(verification.getPurpose()) {
+        switch (verification.getPurpose()) {
             case SIGNUP:
                 signupTokenRepository.deleteByEmail(email);
                 break;
             case PASSWORD_RESET:
                 Organization organization = organizationRepository.findByEmail(email)
-                    .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+                        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
                 passwordResetTokenRepository.deleteByOrganization(organization);
                 break;
             case EMAIL_CHANGE:
-                // todo: Email 변경은 기획에서 사라짐
                 break;
         }
+
         emailVerificationRepository.save(verification);
-        emailVerificationCodeSender.sendVerificationCode(email, rawCode, purpose, emailVerificationProperties.getExpiresSeconds());
-        return new EmailVerificationSendResponse(email, purpose.name(), emailVerificationProperties.getExpiresSeconds());
+        emailVerificationCodeSender.sendVerificationCode(
+                email,
+                rawCode,
+                purpose,
+                emailVerificationProperties.getExpiresSeconds()
+        );
+        return new EmailVerificationSendResponse(
+                email,
+                purpose.name(),
+                emailVerificationProperties.getExpiresSeconds()
+        );
+    }
+
+    public EmailVerificationSendResponse sendChangeEmailCode(EmailVerificationSendRequest request) {
+        validateEmailChangePurpose(request.purpose());
+        return sendCode(request);
     }
 
     @Transactional(noRollbackFor = ApplicationException.class)
     public EmailCodeVerifyTokenResponse verify(EmailVerificationRequest request) {
-
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         EmailVerificationPurpose purpose = request.purpose();
         String code = request.code();
 
         EmailVerification verification = emailVerificationRepository
                 .findByEmailAndPurpose(email, purpose)
-                .orElseThrow(() ->
-                        new ApplicationException(ErrorCode.EMAIL_VERIFICATION_NOT_FOUND)
-                );
+                .orElseThrow(() -> new ApplicationException(ErrorCode.EMAIL_VERIFICATION_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -124,7 +132,6 @@ public class EmailVerificationService {
 
         verification.markVerified(now);
 
-        // SIGNUP이면 signupToken 생성
         if (purpose == EmailVerificationPurpose.SIGNUP) {
             String rawSignupToken = "st_" + UUID.randomUUID();
             String signupTokenHash = passwordEncoder.encode(rawSignupToken);
@@ -138,10 +145,12 @@ public class EmailVerificationService {
                     .build();
 
             token.markCodeVerified(now);
-
             signupTokenRepository.save(token);
 
-            return EmailCodeVerifyTokenResponse.signupToken(rawSignupToken, emailVerificationProperties.getExpiresSeconds());
+            return EmailCodeVerifyTokenResponse.signupToken(
+                    rawSignupToken,
+                    emailVerificationProperties.getExpiresSeconds()
+            );
         }
 
         if (purpose == EmailVerificationPurpose.PASSWORD_RESET) {
@@ -178,9 +187,21 @@ public class EmailVerificationService {
         throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
 
+    @Transactional(noRollbackFor = ApplicationException.class)
+    public EmailCodeVerifyTokenResponse verifyChangeEmail(EmailVerificationRequest request) {
+        validateEmailChangePurpose(request.purpose());
+        return verify(request);
+    }
+
     private String generateCode() {
         SecureRandom random = new SecureRandom();
         int number = random.nextInt(900000) + 100000;
         return String.valueOf(number);
+    }
+
+    private void validateEmailChangePurpose(EmailVerificationPurpose purpose) {
+        if (purpose != EmailVerificationPurpose.EMAIL_CHANGE) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
     }
 }
