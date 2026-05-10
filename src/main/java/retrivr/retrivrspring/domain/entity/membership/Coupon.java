@@ -9,9 +9,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -21,6 +18,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.CouponStatus;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Entity
 @Getter
@@ -73,6 +72,13 @@ public class Coupon extends BaseTimeEntity {
 
   public static Coupon create(String code, String name, String guideline, String description,
       int totalQuantity, int durationDays, LocalDate activeStartAt, LocalDate expiresAt) {
+    if (durationDays <= 0) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "durationDays 는 양수여야 합니다.");
+    }
+    if (activeStartAt.isAfter(expiresAt)) {
+      throw new DomainException(ErrorCode.INVALID_COUPON_EXPIRE_TIME);
+    }
+
     return Coupon.builder()
         .code(code)
         .name(name)

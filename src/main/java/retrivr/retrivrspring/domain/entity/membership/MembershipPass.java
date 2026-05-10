@@ -12,8 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -80,6 +80,11 @@ public class MembershipPass {
       int durationDays,
       Long sequence
   ) {
+    Objects.requireNonNull(couponRegistration, "couponRegistration must not be null");
+    if (durationDays <= 0) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION,
+          "durationDays must be greater than 0");
+    }
     return MembershipPass.builder()
         .organization(organization)
         .status(MembershipPassStatus.REGISTERED)
@@ -100,6 +105,10 @@ public class MembershipPass {
       int durationDays,
       Long sequence
   ) {
+    Objects.requireNonNull(subscription, "subscription must not be null");
+    if (durationDays <= 0) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "durationDays must be greater than 0");
+    }
     return MembershipPass.builder()
         .organization(organization)
         .level(level)
