@@ -52,7 +52,7 @@ public class AdminCouponController {
   })
   public CouponRegistrationResponse registerCoupon(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
-      @Valid @PathVariable("couponId") String couponId
+      @PathVariable("couponId") String couponId
   ) {
     return couponRegistrationService.registerCoupon(loginUser.organizationId(), couponId);
   }
@@ -74,7 +74,7 @@ public class AdminCouponController {
   })
   public AdminCouponCodeCheckResponse checkCouponCode(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
-      @Valid @PathVariable("couponCode") String couponCode
+      @PathVariable("couponCode") String couponCode
   ) {
     return couponRegistrationService.checkCouponCode(loginUser.organizationId(), couponCode);
   }
