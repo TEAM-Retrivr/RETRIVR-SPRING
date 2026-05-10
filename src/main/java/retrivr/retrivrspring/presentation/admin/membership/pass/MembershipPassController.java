@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.membership;
+package retrivr.retrivrspring.presentation.admin.membership.pass;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +15,7 @@ import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
-import retrivr.retrivrspring.presentation.admin.membership.res.MembershipStatusSummaryResponse;
+import retrivr.retrivrspring.presentation.admin.membership.pass.res.MembershipStatusSummaryResponse;
 
 @RestController
 @RequiredArgsConstructor

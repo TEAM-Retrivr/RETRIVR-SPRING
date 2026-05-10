@@ -17,8 +17,8 @@ import retrivr.retrivrspring.domain.repository.membership.coupon.CouponRepositor
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.coupon.res.AdminCouponCodeCheckResponse;
-import retrivr.retrivrspring.presentation.admin.coupon.res.CouponRegistrationResponse;
+import retrivr.retrivrspring.presentation.admin.membership.coupon.res.AdminCouponCodeCheckResponse;
+import retrivr.retrivrspring.presentation.admin.membership.coupon.res.CouponRegistrationResponse;
 
 @Service
 @RequiredArgsConstructor

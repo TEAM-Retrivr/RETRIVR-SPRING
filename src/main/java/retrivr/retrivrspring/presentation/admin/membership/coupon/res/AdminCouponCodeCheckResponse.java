@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.coupon.res;
+package retrivr.retrivrspring.presentation.admin.membership.coupon.res;
 
 import java.time.LocalDate;
 import retrivr.retrivrspring.domain.entity.membership.Coupon;

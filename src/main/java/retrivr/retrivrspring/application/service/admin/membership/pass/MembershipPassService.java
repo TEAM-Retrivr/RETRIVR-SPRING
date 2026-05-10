@@ -16,7 +16,7 @@ import retrivr.retrivrspring.domain.repository.membership.subscription.Subscript
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.membership.res.MembershipStatusSummaryResponse;
+import retrivr.retrivrspring.presentation.admin.membership.pass.res.MembershipStatusSummaryResponse;
 
 @Service
 @RequiredArgsConstructor

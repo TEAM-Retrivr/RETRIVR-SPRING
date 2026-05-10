@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.coupon.res;
+package retrivr.retrivrspring.presentation.admin.membership.coupon.res;
 
 
 public record CouponRegistrationResponse(

@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.presentation.admin.coupon;
+package retrivr.retrivrspring.presentation.admin.membership.coupon;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,10 +17,9 @@ import retrivr.retrivrspring.application.service.admin.membership.coupon.CouponR
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExample;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
-import retrivr.retrivrspring.presentation.admin.coupon.res.AdminCouponCodeCheckResponse;
-import retrivr.retrivrspring.presentation.admin.coupon.res.CouponRegistrationResponse;
+import retrivr.retrivrspring.presentation.admin.membership.coupon.res.AdminCouponCodeCheckResponse;
+import retrivr.retrivrspring.presentation.admin.membership.coupon.res.CouponRegistrationResponse;
 
 @RestController
 @RequiredArgsConstructor
