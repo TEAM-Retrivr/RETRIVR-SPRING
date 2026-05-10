@@ -64,7 +64,7 @@ public class MembershipPassService {
     );
 
     if (pass.isActivable(now)) {
-      pass.activate();
+      pass.activate(now);
     }
 
     try {
@@ -111,7 +111,7 @@ public class MembershipPassService {
     );
 
     if (pass.isActivable(now)) {
-      pass.activate();
+      pass.activate(now);
     }
 
     try {
