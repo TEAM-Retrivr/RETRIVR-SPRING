@@ -58,12 +58,7 @@ public record InternalCouponCreateRequest(
         example = "2026-12-31"
     )
     @NotNull
-    LocalDate expiresAt,
-
-    @Schema(
-       description = "등록 허용할 조직 id. blank 일 경우 모두 허용"
-    )
-    List<Long> allowedOrganizationIds
+    LocalDate expiresAt
 ) {
 
 }
