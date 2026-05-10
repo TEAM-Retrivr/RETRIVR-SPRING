@@ -140,14 +140,17 @@ public enum ErrorCode {
     COUPON_CODE_GENERATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12103, "쿠폰 코드 생성에 실패했습니다."),
     COUPON_AVAILABLE_QUANTITY_OVERFLOW(HttpStatus.CONFLICT, 12104, "쿠폰 수량이 모두 소진되었습니다."),
     COUPON_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12105, "쿠폰 소유자와 로그인 사용자가 일치하지 않습니다."),
+    INVALID_COUPON_EXPIRE_TIME(HttpStatus.BAD_REQUEST, 12106, ""),
 
     // 12200: MembershipPass Error
     MEMBERSHIP_PASS_CONFLICT(HttpStatus.CONFLICT, 12200, "중복된 정보를 가진 이용권이 존재합니다."),
+    DO_NOT_GET_COUPON_REGISTRATION(HttpStatus.BAD_REQUEST, 12201, "이용권에서 쿠폰 정보를 가져올 수 없습니다."),
+    DO_NOT_GET_SUBSCRIPTION(HttpStatus.BAD_REQUEST, 12202, "이용권에서 구독 정보를 가져올 수 없습니다." ),
+    DO_NOT_ACTIVE_MEMBERSHIP_PASS(HttpStatus.CONFLICT, 12203, "이용권을 활성화 할 수 없는 상태입니다."),
 
     // 12300: Subscription Error
     SUBSCRIPTION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12300, "구독자와 로그인 사용자가 일치하지 않습니다."),
-    INVALID_SUBSCRIPTION_PLAN(HttpStatus.INTERNAL_SERVER_ERROR, 12301, "알 수 없는 구독 플랜입니다.")
-    ;
+    INVALID_SUBSCRIPTION_PLAN(HttpStatus.INTERNAL_SERVER_ERROR, 12301, "알 수 없는 구독 플랜입니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;
