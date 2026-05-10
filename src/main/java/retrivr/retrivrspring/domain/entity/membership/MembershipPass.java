@@ -23,6 +23,8 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Entity
 @Getter
@@ -110,7 +112,10 @@ public class MembershipPass {
         .build();
   }
 
-  public void activate() {
+  public void activate(LocalDateTime now) {
+    if (!isActivable(now)) {
+      throw new DomainException(ErrorCode.DO_NOT_ACTIVE_MEMBERSHIP_PASS);
+    }
     this.status = MembershipPassStatus.ACTIVE;
   }
 
@@ -131,5 +136,19 @@ public class MembershipPass {
 
   public boolean isSubscriptionPass() {
     return this.sourceType == MembershipPassType.SUBSCRIPTION;
+  }
+
+  public CouponRegistration getCouponRegistrationOrThrow() {
+    if (this.couponRegistration == null) {
+      throw new DomainException(ErrorCode.DO_NOT_GET_COUPON_REGISTRATION);
+    }
+    return this.couponRegistration;
+  }
+
+  public Subscription getSubscriptionOrThrow() {
+    if (this.subscription == null) {
+      throw new DomainException(ErrorCode.DO_NOT_GET_SUBSCRIPTION);
+    }
+    return this.subscription;
   }
 }

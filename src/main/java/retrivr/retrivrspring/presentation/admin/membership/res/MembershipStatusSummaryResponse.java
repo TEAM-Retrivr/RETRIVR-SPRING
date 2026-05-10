@@ -5,7 +5,6 @@ import retrivr.retrivrspring.domain.entity.membership.Coupon;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 
 public record MembershipStatusSummaryResponse(
@@ -48,7 +47,7 @@ public record MembershipStatusSummaryResponse(
   public static MembershipStatusSummaryResponse subscribedPlan(
       MembershipPass membershipPass
   ) {
-    Subscription subscription = membershipPass.getSubscription();
+    Subscription subscription = membershipPass.getSubscriptionOrThrow();
 
     String subscriptionName = "";
     String passType = "";
@@ -77,7 +76,9 @@ public record MembershipStatusSummaryResponse(
       MembershipPass membershipPass,
       Subscription subscription
   ) {
-    Coupon coupon = membershipPass.getCouponRegistration().getCoupon();
+    Coupon coupon = membershipPass.getCouponRegistrationOrThrow()
+        .getCoupon();
+
     return new MembershipStatusSummaryResponse(
         subscription.isActive(),
         membershipPass.getLevel(),
