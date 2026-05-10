@@ -12,9 +12,11 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
+import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.presentation.admin.membership.res.MembershipStatusSummaryResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class MembershipPassService {
 
   private final OrganizationRepository organizationRepository;
   private final MembershipPassRepository membershipPassRepository;
+  private final SubscriptionRepository subscriptionRepository;
 
   @Transactional
   public MembershipPass generateCouponMembershipPass(Long loginOrganizationId,
@@ -135,5 +138,30 @@ public class MembershipPassService {
     }
 
     return membershipPass.getLevel();
+  }
+
+  public MembershipStatusSummaryResponse getMembershipStatusSummary(Long organizationId) {
+    Organization organization = organizationRepository.findById(organizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    MembershipPass membershipPass = membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization, MembershipPassStatus.ACTIVE)
+        .orElse(null);
+
+    if (membershipPass == null) {
+      return MembershipStatusSummaryResponse.freePlan();
+    }
+
+    if (membershipPass.isSubscriptionPass()) {
+      return MembershipStatusSummaryResponse.subscribedPlan(membershipPass);
+    }
+
+    Subscription subscription = subscriptionRepository.findByOrganization(organization)
+        .orElse(null);
+    if (subscription == null) {
+      return MembershipStatusSummaryResponse.couponPlanWithoutSubscription(membershipPass);
+    }
+
+    return MembershipStatusSummaryResponse.couponPlanWithSubscription(membershipPass, subscription);
   }
 }
