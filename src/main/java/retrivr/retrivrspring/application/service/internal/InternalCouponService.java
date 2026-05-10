@@ -23,30 +23,31 @@ public class InternalCouponService {
 
   @Transactional
   public InternalCouponCreateResponse createCoupon(InternalCouponCreateRequest request) {
-    if (request.activeStartAt().isAfter(request.expiresAt())) {
-      throw new ApplicationException(ErrorCode.INVALID_COUPON_EXPIRE_TIME);
-    }
+    String code = "";
 
     for (int i = 0; i < MAX_CODE_GENERATE_RETRY; i++) {
-      String code = publicIdGenerator.generateCouponCode();
-
-      Coupon coupon = Coupon.create(
-          code,
-          request.name(),
-          request.guideline(),
-          request.description(),
-          request.totalQuantity(),
-          request.durationDays(),
-          request.activeStartAt(),
-          request.expiresAt()
-      );
-
-      try {
-        Coupon savedCoupon = couponRepository.saveAndFlush(coupon);
-        return InternalCouponCreateResponse.from(savedCoupon);
-      } catch (DataIntegrityViolationException ignored) {
+      code = publicIdGenerator.generateCouponCode();
+      if (!couponRepository.existsByCode(code)) {
+        break;
       }
     }
-    throw new ApplicationException(ErrorCode.COUPON_CODE_GENERATE_FAILED);
+
+    Coupon coupon = Coupon.create(
+        code,
+        request.name(),
+        request.guideline(),
+        request.description(),
+        request.totalQuantity(),
+        request.durationDays(),
+        request.activeStartAt(),
+        request.expiresAt()
+    );
+
+    try {
+      Coupon savedCoupon = couponRepository.saveAndFlush(coupon);
+      return InternalCouponCreateResponse.from(savedCoupon);
+    } catch (DataIntegrityViolationException ignored) {
+      throw new ApplicationException(ErrorCode.COUPON_CODE_GENERATE_FAILED);
+    }
   }
 }

@@ -15,7 +15,7 @@ public class HmacPublicIdGenerator implements PublicIdGenerator {
 
   private static final String HMAC_ALGORITHM = "HmacSHA256";
   private static final String BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
+  private static final String COUPON_CODE_BASE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   private final SecureRandom random = new SecureRandom();
 
   @Value("${public-id.secret}")
@@ -23,20 +23,19 @@ public class HmacPublicIdGenerator implements PublicIdGenerator {
 
   @Override
   public String generateRentalId(Long organizationId) {
-    return "RNT-" + orgToken(organizationId) + "-" + randomBase62(10);
+    return "RNT-" + orgToken(organizationId) + "-" + randomBase(10, BASE62);
   }
 
   @Override
   public String generateItemId(Long organizationId) {
-    return "ITM-" + orgToken(organizationId) + "-" + randomBase62(10);
+    return "ITM-" + orgToken(organizationId) + "-" + randomBase(10, BASE62);
   }
 
   @Override
   public String generateCouponCode() {
-    String rawCode = randomBase62(4) + "-" +
-        randomBase62(4) + "-" +
-        randomBase62(4);
-    return rawCode.toUpperCase();
+    return randomBase(4, COUPON_CODE_BASE) + "-" +
+        randomBase(4, COUPON_CODE_BASE) + "-" +
+        randomBase(4, COUPON_CODE_BASE);
   }
 
   // ===== org hash =====
@@ -55,10 +54,10 @@ public class HmacPublicIdGenerator implements PublicIdGenerator {
   }
 
   // ===== random =====
-  private String randomBase62(int length) {
+  private String randomBase(int length, String base) {
     StringBuilder sb = new StringBuilder(length);
     for (int i = 0; i < length; i++) {
-      sb.append(BASE62.charAt(random.nextInt(BASE62.length())));
+      sb.append(base.charAt(random.nextInt(base.length())));
     }
     return sb.toString();
   }
