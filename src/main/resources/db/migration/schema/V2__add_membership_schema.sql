@@ -1,10 +1,16 @@
 create table coupon
 (
     active_start_at date,
-    duration_days   integer      not null,
+    duration_days   integer      not null
+        constraint coupon_duration_days_positive
+            check (duration_days > 0),
     expires_at      date,
-    total_quantity  integer      not null,
-    used_quantity   integer      not null,
+    total_quantity  integer      not null
+        constraint coupon_total_quantity_range
+            check (total_quantity >= 0),
+    used_quantity   integer      not null
+        constraint coupon_used_quantity_range
+            check (used_quantity >= 0),
     created_at      timestamp(6) not null,
     updated_at      timestamp(6) not null,
     code            varchar(255) not null
@@ -92,5 +98,12 @@ create table membership_pass
                    ((ARRAY ['REGISTERED'::character varying, 'ACTIVE'::character varying, 'EXPIRED'::character varying])::text[])),
     subscription_id        varchar(255)
         constraint fk5lu2tyhh22qp130eik94jp1pg
-            references subscription
+            references subscription,
+
+        constraint membership_pass_source_fk_check
+            check (
+                (source_type = 'COUPON' and coupon_registration_id is not null and subscription_id is null)
+                or
+                (source_type = 'SUBSCRIPTION' and subscription_id is not null and coupon_registration_id is null)
+            )
 );
