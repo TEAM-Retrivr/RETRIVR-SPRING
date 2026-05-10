@@ -35,7 +35,7 @@ public class InternalCouponController {
   @ApiResponse(
       responseCode = "201",
       description = "쿠폰 생성 성공",
-      content = @Content(schema = @Schema(implementation = CouponRegistrationResponse.class))
+      content = @Content(schema = @Schema(implementation = InternalCouponCreateResponse.class))
   )
   @ValidManager
   public InternalCouponCreateResponse createCoupon(

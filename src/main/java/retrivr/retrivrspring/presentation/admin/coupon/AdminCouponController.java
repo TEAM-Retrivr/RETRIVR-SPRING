@@ -58,7 +58,7 @@ public class AdminCouponController {
   @ApiResponse(
       responseCode = "200",
       description = "쿠폰 조회 성공",
-      content = @Content(schema = @Schema(implementation = CouponRegistrationResponse.class))
+      content = @Content(schema = @Schema(implementation = AdminCouponCodeCheckResponse.class))
   )
   public AdminCouponCodeCheckResponse checkCouponCode(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
