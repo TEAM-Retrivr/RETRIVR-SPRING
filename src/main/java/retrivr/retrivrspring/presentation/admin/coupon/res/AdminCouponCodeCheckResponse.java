@@ -26,8 +26,8 @@ public record AdminCouponCodeCheckResponse(
         coupon.getName(),
         coupon.getDescription(),
         coupon.getDurationDays(),
-        LocalDate.from(coupon.getActiveStartAt()),
-        LocalDate.from(coupon.getExpiresAt()),
+        coupon.getActiveStartAt(),
+        coupon.getExpiresAt(),
         coupon.getGuideline()
     );
   }
