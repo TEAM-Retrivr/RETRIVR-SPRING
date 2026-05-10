@@ -23,11 +23,12 @@ public class InternalCouponService {
 
   @Transactional
   public InternalCouponCreateResponse createCoupon(InternalCouponCreateRequest request) {
+    if (request.activeStartAt().isAfter(request.expiresAt())) {
+      throw new ApplicationException(ErrorCode.INVALID_COUPON_EXPIRE_TIME);
+    }
+
     for (int i = 0; i < MAX_CODE_GENERATE_RETRY; i++) {
-      String code;
-      do {
-        code = publicIdGenerator.generateCouponCode();
-      } while (couponRepository.existsByCode(code));
+      String code = publicIdGenerator.generateCouponCode();
 
       Coupon coupon = Coupon.create(
           code,
