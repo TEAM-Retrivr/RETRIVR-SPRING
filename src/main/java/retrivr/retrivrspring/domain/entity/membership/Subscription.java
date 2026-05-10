@@ -81,4 +81,15 @@ public class Subscription extends BaseTimeEntity {
     }
     throw new DomainException(ErrorCode.INVALID_SUBSCRIPTION_PLAN);
   }
+
+  public boolean isActive() {
+    return this.status == SubscriptionStatus.ACTIVE;
+  }
+
+  public LocalDateTime getNextBillingAt() {
+    if (!isActive()) {
+      return null;
+    }
+    return this.nextBillingAt;
+  }
 }

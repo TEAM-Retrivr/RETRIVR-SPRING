@@ -128,4 +128,8 @@ public class MembershipPass {
   public boolean isExpired(LocalDateTime now) {
     return this.status == MembershipPassStatus.EXPIRED;
   }
+
+  public boolean isSubscriptionPass() {
+    return this.sourceType == MembershipPassType.SUBSCRIPTION;
+  }
 }
