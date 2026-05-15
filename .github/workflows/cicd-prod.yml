@@ -68,6 +68,8 @@ jobs:
             --output text \
             --parameters commands='[
               "set -e",
+              "cd /home/ec2-user/retrivr/postgres",
+              "./dump.bash",
               "cd /home/ec2-user/retrivr",
               "sh -lc '\''grep -q \"^APP_IMAGE=\" .env && sed -i \"s|^APP_IMAGE=.*|APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:${{ github.sha }}|\" .env || echo \"APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY}}:${{ github.sha }}\" >> .env'\''",
               "docker stop ${{ secrets.DOCKERHUB_REPOSITORY }} || true",

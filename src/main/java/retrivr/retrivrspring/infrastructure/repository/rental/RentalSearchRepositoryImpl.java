@@ -272,8 +272,9 @@ public class RentalSearchRepositoryImpl implements RentalSearchRepository {
             rental.dueDate.before(today),
             borrower.phone.phone.isNotNull(),
             borrower.phone.phone.ne(""),
-            rental.status.eq(RentalStatus.RENTED),
-            item.useMessageAlarmService.isTrue()
+            rental.status.eq(RentalStatus.RENTED)
+            // todo: item.useMessageAlarmService.isTrue()
+            // 임시 삭제
         )
         .fetch();
   }

@@ -87,3 +87,5 @@ scheduler:
 
 public-id:
   secret: ${PUBLIC_ID_SECRET}
+
+manager-secret: ${MANAGER_SECRET}

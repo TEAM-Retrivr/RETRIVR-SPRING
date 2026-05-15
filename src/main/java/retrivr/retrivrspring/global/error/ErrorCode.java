@@ -130,7 +130,27 @@ public enum ErrorCode {
     BIZMSG_API_EMPTY_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, 11201, "비즈엠 API 응답이 비어 있습니다."),
     BIZMSG_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 11202, "비즈엠 알림톡 발송에 실패했습니다."),
     BIZMSG_TEMPLATE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, 11203, "비즈엠 알림톡 템플릿 정보가 올바르지 않습니다."),
-    MESSAGE_SENDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, 11204, "메시지 채널 발송기를 찾을 수 없습니다.");
+    MESSAGE_SENDER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, 11204, "메시지 채널 발송기를 찾을 수 없습니다."),
+
+    // 12000: Membership Error
+    // 12100: Coupon Error
+    NOT_FOUND_COUPON(HttpStatus.NOT_FOUND, 12100, "쿠폰을 찾을 수 없습니다."),
+    NOT_AVAILABLE_COUPON(HttpStatus.CONFLICT, 12101, "이용 불가능한 쿠폰입니다."),
+    ALREADY_REGISTERED_COUPON(HttpStatus.CONFLICT, 12102, "이미 등록한 쿠폰입니다." ),
+    COUPON_CODE_GENERATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12103, "쿠폰 코드 생성에 실패했습니다."),
+    COUPON_AVAILABLE_QUANTITY_OVERFLOW(HttpStatus.CONFLICT, 12104, "쿠폰 수량이 모두 소진되었습니다."),
+    COUPON_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12105, "쿠폰 소유자와 로그인 사용자가 일치하지 않습니다."),
+    INVALID_COUPON_EXPIRE_TIME(HttpStatus.BAD_REQUEST, 12106, "쿠폰 만료 시간이 시작 시간보다 빠를 수 없습니다."),
+
+    // 12200: MembershipPass Error
+    MEMBERSHIP_PASS_CONFLICT(HttpStatus.CONFLICT, 12200, "중복된 정보를 가진 이용권이 존재합니다."),
+    DO_NOT_GET_COUPON_REGISTRATION(HttpStatus.BAD_REQUEST, 12201, "이용권에서 쿠폰 정보를 가져올 수 없습니다."),
+    DO_NOT_GET_SUBSCRIPTION(HttpStatus.BAD_REQUEST, 12202, "이용권에서 구독 정보를 가져올 수 없습니다." ),
+    DO_NOT_ACTIVE_MEMBERSHIP_PASS(HttpStatus.CONFLICT, 12203, "이용권을 활성화 할 수 없는 상태입니다."),
+
+    // 12300: Subscription Error
+    SUBSCRIPTION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12300, "구독자와 로그인 사용자가 일치하지 않습니다."),
+    INVALID_SUBSCRIPTION_PLAN(HttpStatus.INTERNAL_SERVER_ERROR, 12301, "알 수 없는 구독 플랜입니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

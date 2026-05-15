@@ -5,4 +5,6 @@ public interface PublicIdGenerator {
   String generateRentalId(Long organizationId);
 
   String generateItemId(Long organizationId);
+
+  String generateCouponCode();
 }
