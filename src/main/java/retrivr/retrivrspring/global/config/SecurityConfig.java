@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.global.config;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,15 +14,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.auth.JwtAuthenticationFilter;
-
-import java.util.List;
+import retrivr.retrivrspring.global.web.CorsPolicyProperties;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final OrganizationRepository organizationRepository;
+    private final CorsPolicyProperties corsPolicyProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -36,6 +39,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/api/admin/v1/auth/login",
+                                "/api/admin/v1/auth/refresh",
+                                "/api/admin/v1/auth/logout",
                                 "/api/admin/v1/auth/password",
                                 "/api/admin/v1/auth/signup/**",
                                 "/api/public/**"
@@ -46,21 +51,19 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        new JwtAuthenticationFilter(jwtTokenProvider, organizationRepository),
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .build();
     }
 
-    // (개발용) CORS 전체 허용
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedOrigins(corsPolicyProperties.getAllowedOrigins());
+        configuration.setAllowedMethods(corsPolicyProperties.getAllowedMethods());
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
