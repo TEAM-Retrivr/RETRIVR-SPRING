@@ -39,6 +39,9 @@ public class Organization extends BaseTimeEntity {
   @Column(name = "last_login_at")
   private LocalDateTime lastLoginAt;
 
+  @Column(name = "withdrawn_at")
+  private LocalDateTime withdrawnAt;
+
   @Column(name = "search_key", unique = true, length = 255)
   private String searchKey;
 
@@ -56,6 +59,7 @@ public class Organization extends BaseTimeEntity {
           String name,
           OrganizationStatus status,
           LocalDateTime lastLoginAt,
+          LocalDateTime withdrawnAt,
           String searchKey,
           String adminCodeHash,
           String profileImageKey
@@ -66,6 +70,7 @@ public class Organization extends BaseTimeEntity {
     this.name = name;
     this.status = status;
     this.lastLoginAt = lastLoginAt;
+    this.withdrawnAt = withdrawnAt;
     this.searchKey = searchKey;
     this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(adminCodeHash, "adminCodeHash"));
     this.profileImageKey = profileImageKey;
@@ -95,6 +100,14 @@ public class Organization extends BaseTimeEntity {
     this.profileImageKey = (profileImageKey == null || profileImageKey.isBlank()) ? null : profileImageKey;
   }
 
+  public void withdraw(LocalDateTime time) {
+    if (this.status == OrganizationStatus.WITHDRAWN) {
+      throw new DomainException(ErrorCode.ACCOUNT_WITHDRAWN);
+    }
+    this.status = OrganizationStatus.WITHDRAWN;
+    this.withdrawnAt = time;
+  }
+
   public String getPasswordHash() {
     return password == null ? null : password.getValue();
   }
@@ -104,6 +117,10 @@ public class Organization extends BaseTimeEntity {
   }
 
   public void assertLoginAllowed() {
+    if (this.status == OrganizationStatus.WITHDRAWN) {
+      throw new DomainException(ErrorCode.ACCOUNT_WITHDRAWN);
+    }
+
     if (this.status == OrganizationStatus.SUSPENDED) {
       throw new DomainException(ErrorCode.ACCOUNT_SUSPENDED);
     }

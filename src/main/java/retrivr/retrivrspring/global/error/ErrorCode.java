@@ -62,6 +62,10 @@ public enum ErrorCode {
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, 6001, "정지된 계정입니다."),
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, 6002, "계정을 찾을 수 없습니다."),
     ACCOUNT_NOT_APPROVED(HttpStatus.NOT_FOUND, 6003, "계정이 비활성 상태입니다."),
+    ACCOUNT_WITHDRAWN(HttpStatus.FORBIDDEN, 6004, "탈퇴한 계정입니다."),
+    WITHDRAW_REASON_REQUIRED(HttpStatus.BAD_REQUEST, 6005, "탈퇴 사유를 하나 이상 선택해야 합니다."),
+    WITHDRAW_OTHER_REASON_REQUIRED(HttpStatus.BAD_REQUEST, 6006, "기타 사유를 입력해야 합니다."),
+    PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, 6007, "비밀번호가 일치하지 않습니다."),
 
     // 7000: Email Verification Error
     EMAIL_VERIFICATION_NOT_FOUND(HttpStatus.BAD_REQUEST, 7000, "인증 요청이 존재하지 않습니다."),
