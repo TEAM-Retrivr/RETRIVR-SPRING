@@ -60,6 +60,11 @@ jwt:
   refresh-token:
     expire-time: ${JWT_REFRESH_EXPIRE_MS:259200000}
 
+auth:
+  refresh-token:
+    cookie-secure: ${AUTH_REFRESH_TOKEN_COOKIE_SECURE:true}
+    cookie-same-site: ${AUTH_REFRESH_TOKEN_COOKIE_SAME_SITE:None}
+
 springdoc:
   api-docs:
     enabled: ${SWAGGER_ENABLED:true}
