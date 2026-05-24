@@ -1,32 +1,33 @@
 package retrivr.retrivrspring.application.service.admin.auth;
 
+import java.time.LocalDateTime;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.AdminAuthCodeHash;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
-import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.PasswordHash;
+import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.RefreshToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
-import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminLoginResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminSignupResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.PasswordResetSuccessResponse;
-
-import java.time.LocalDateTime;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -36,9 +37,10 @@ public class AdminAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SignupTokenRepository signupTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional
-    public AdminLoginResponse login(AdminLoginRequest request) {
+    public AdminLoginResult login(AdminLoginRequest request) {
         // 1. 이메일로 Organization 조회
         Organization org = organizationRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_CREDENTIALS));
@@ -56,15 +58,47 @@ public class AdminAuthService {
 
         // 5. JWT 토큰 생성
         String accessToken = jwtTokenProvider.generateAccessToken(org.getId(), org.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(org.getId(), org.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(org.getId());
+
+        refreshTokenRepository.save(RefreshToken.builder()
+                .email(org.getEmail())
+                .tokenValue(refreshToken)
+                .expiresAt(jwtTokenProvider.getExpiration(refreshToken))
+                .build());
 
         // 6. 응답 반환
-        return new AdminLoginResponse(org.getId(), org.getEmail(), accessToken, refreshToken);
+        return new AdminLoginResult(org.getId(), org.getEmail(), accessToken, refreshToken);
+    }
+
+    @Transactional
+    public AdminRefreshResult refresh(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new ApplicationException(ErrorCode.UNAUTHORIZED_EXCEPTION);
+        }
+
+        if (!jwtTokenProvider.validateToken(refreshTokenValue)) {
+            refreshTokenRepository.deleteByTokenValue(refreshTokenValue);
+            throw new ApplicationException(ErrorCode.UNAUTHORIZED_EXCEPTION);
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenValue(refreshTokenValue)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.UNAUTHORIZED_EXCEPTION));
+
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new ApplicationException(ErrorCode.UNAUTHORIZED_EXCEPTION);
+        }
+
+        Organization organization = organizationRepository.findByEmail(refreshToken.getEmail())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND));
+        organization.assertLoginAllowed();
+
+        String newAccessToken = jwtTokenProvider.generateAccessToken(organization.getId(), organization.getEmail());
+        return new AdminRefreshResult(organization.getId(), organization.getEmail(), newAccessToken);
     }
 
     @Transactional
     public AdminSignupResponse signup(AdminSignupRequest request) {
-
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         LocalDateTime now = LocalDateTime.now();
 
@@ -140,15 +174,11 @@ public class AdminAuthService {
         }
 
         Organization organization = organizationRepository.findByEmail(request.email())
-                .orElseThrow(() ->
-                        new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND)
-                );
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         PasswordResetToken token = passwordResetTokenRepository
                 .findTopByOrganizationOrderByCreatedAtDesc(organization)
-                .orElseThrow(() ->
-                        new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND)
-                );
+                .orElseThrow(() -> new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND));
 
         if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
@@ -167,4 +197,15 @@ public class AdminAuthService {
 
         return PasswordResetSuccessResponse.ok();
     }
+
+    @Transactional
+    public AdminLogoutResult logout(String refreshTokenValue) {
+        if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
+            refreshTokenRepository.deleteByTokenValue(refreshTokenValue);
+        }
+
+        SecurityContextHolder.clearContext();
+        return new AdminLogoutResult(true);
+    }
+
 }
