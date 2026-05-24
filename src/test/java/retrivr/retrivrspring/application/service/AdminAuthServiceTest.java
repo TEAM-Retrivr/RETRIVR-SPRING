@@ -1,5 +1,16 @@
 package retrivr.retrivrspring.application.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,12 +21,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.application.service.admin.auth.AdminAuthService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
+import retrivr.retrivrspring.domain.entity.organization.RefreshToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
-import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -23,15 +36,6 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminLoginRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminSignupRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.PasswordResetRequest;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AdminAuthServiceTest {
@@ -41,6 +45,7 @@ class AdminAuthServiceTest {
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private SignupTokenRepository signupTokenRepository;
+    @Mock private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private AdminAuthService adminAuthService;
@@ -63,18 +68,50 @@ class AdminAuthServiceTest {
         given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
         given(passwordEncoder.matches(rawPassword, hashedPassword)).willReturn(true);
         given(jwtTokenProvider.generateAccessToken(1L, email)).willReturn("access");
-        given(jwtTokenProvider.generateRefreshToken(1L, email)).willReturn("refresh");
+        given(jwtTokenProvider.generateRefreshToken(1L)).willReturn("refresh");
+        given(jwtTokenProvider.getExpiration("refresh")).willReturn(LocalDateTime.now().plusDays(3));
 
         var res = adminAuthService.login(new AdminLoginRequest(email, rawPassword));
 
+        assertEquals(1L, res.organizationId());
+        assertEquals(email, res.email());
         assertEquals("access", res.accessToken());
         assertEquals("refresh", res.refreshToken());
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
+    }
+
+    @Test
+    @DisplayName("refresh success")
+    void refresh_success() {
+        Organization org = Organization.builder()
+                .id(1L)
+                .email(email)
+                .passwordHash(hashedPassword)
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("encoded-admin-code")
+                .build();
+
+        RefreshToken refreshToken = RefreshToken.builder()
+                .email(email)
+                .tokenValue("refresh")
+                .expiresAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        given(jwtTokenProvider.validateToken("refresh")).willReturn(true);
+        given(refreshTokenRepository.findByTokenValue("refresh")).willReturn(Optional.of(refreshToken));
+        given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
+        given(jwtTokenProvider.generateAccessToken(1L, email)).willReturn("new-access");
+
+        var res = adminAuthService.refresh("refresh");
+
+        assertEquals(1L, res.organizationId());
+        assertEquals(email, res.email());
+        assertEquals("new-access", res.accessToken());
     }
 
     @Test
     @DisplayName("signup success")
     void signup_success() {
-
         String rawSignupToken = "st_xxx";
         String hashedSignupToken = "$2a$10$signupHash";
 
@@ -217,7 +254,6 @@ class AdminAuthServiceTest {
     @Test
     @DisplayName("resetPassword success")
     void resetPassword_success() {
-
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
@@ -233,8 +269,7 @@ class AdminAuthServiceTest {
                 .build();
 
         given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
-        given(passwordResetTokenRepository
-                .findTopByOrganizationOrderByCreatedAtDesc(org))
+        given(passwordResetTokenRepository.findTopByOrganizationOrderByCreatedAtDesc(org))
                 .willReturn(Optional.of(token));
         given(passwordEncoder.matches("token", "$2a$10$hash")).willReturn(true);
         given(passwordEncoder.encode("NewPassword123!")).willReturn("encoded");
@@ -272,7 +307,6 @@ class AdminAuthServiceTest {
 
     @Test
     void resetPassword_withAllowedSpecialCharacter_succeeds() {
-
         Organization org = Organization.builder()
                 .id(1L)
                 .email(email)
@@ -288,8 +322,7 @@ class AdminAuthServiceTest {
                 .build();
 
         given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
-        given(passwordResetTokenRepository
-                .findTopByOrganizationOrderByCreatedAtDesc(org))
+        given(passwordResetTokenRepository.findTopByOrganizationOrderByCreatedAtDesc(org))
                 .willReturn(Optional.of(token));
         given(passwordEncoder.matches("token", "$2a$10$hash")).willReturn(true);
         given(passwordEncoder.encode("NewPassword123*")).willReturn("encoded");
@@ -299,5 +332,14 @@ class AdminAuthServiceTest {
         );
 
         assertTrue(res.success());
+    }
+
+    @Test
+    @DisplayName("logout success")
+    void logout_success() {
+        var res = adminAuthService.logout("refresh");
+
+        assertTrue(res.success());
+        verify(refreshTokenRepository).deleteByTokenValue("refresh");
     }
 }
