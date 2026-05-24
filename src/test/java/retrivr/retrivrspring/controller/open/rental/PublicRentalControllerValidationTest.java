@@ -2,14 +2,17 @@ package retrivr.retrivrspring.controller.open.rental;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
+import retrivr.retrivrspring.global.web.CorsPolicyProperties;
 import retrivr.retrivrspring.presentation.open.rental.PublicRentalController;
 
 @WebMvcTest(PublicRentalController.class)
@@ -33,6 +37,15 @@ public class PublicRentalControllerValidationTest {
 
   @MockitoBean
   private PublicRentalService publicRentalService;
+
+  @MockitoBean
+  private CorsPolicyProperties corsPolicyProperties;
+
+  @BeforeEach
+  void setUpCors() {
+    given(corsPolicyProperties.getAllowedOrigins()).willReturn(List.of("http://localhost"));
+    given(corsPolicyProperties.getAllowedMethods()).willReturn(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+  }
 
   @Nested
   @DisplayName("공개 대여 생성 요청 검증")
