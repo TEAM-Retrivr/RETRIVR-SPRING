@@ -132,6 +132,13 @@ public class MembershipPass {
     return this.status == MembershipPassStatus.REGISTERED && !this.startAt.isAfter(now);
   }
 
+  public void expire(LocalDateTime now) {
+    if (!isActive()) {
+      throw new DomainException(ErrorCode.DO_NOT_EXPIRE_MEMBERSHIP_PASS);
+    }
+    this.status = MembershipPassStatus.EXPIRED;
+  }
+
   public boolean isActive() {
     return this.status == MembershipPassStatus.ACTIVE;
   }
