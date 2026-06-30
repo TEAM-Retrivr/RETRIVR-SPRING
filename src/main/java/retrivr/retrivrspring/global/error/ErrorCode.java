@@ -147,10 +147,17 @@ public enum ErrorCode {
     DO_NOT_GET_COUPON_REGISTRATION(HttpStatus.BAD_REQUEST, 12201, "이용권에서 쿠폰 정보를 가져올 수 없습니다."),
     DO_NOT_GET_SUBSCRIPTION(HttpStatus.BAD_REQUEST, 12202, "이용권에서 구독 정보를 가져올 수 없습니다." ),
     DO_NOT_ACTIVE_MEMBERSHIP_PASS(HttpStatus.CONFLICT, 12203, "이용권을 활성화 할 수 없는 상태입니다."),
+    DO_NOT_EXPIRE_MEMBERSHIP_PASS(HttpStatus.CONFLICT, 12204, "이용권을 만료시킬 수 없는 상태입니다."),
 
     // 12300: Subscription Error
     SUBSCRIPTION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, 12300, "구독자와 로그인 사용자가 일치하지 않습니다."),
-    INVALID_SUBSCRIPTION_PLAN(HttpStatus.INTERNAL_SERVER_ERROR, 12301, "알 수 없는 구독 플랜입니다.");
+    INVALID_SUBSCRIPTION_PLAN(HttpStatus.INTERNAL_SERVER_ERROR, 12301, "알 수 없는 구독 플랜입니다."),
+    ALREADY_SUBSCRIPTION_STARTED(HttpStatus.CONFLICT, 12302, "이미 구독 중입니다."),
+    NOT_FOUND_ACTIVE_SUBSCRIPTION(HttpStatus.NOT_FOUND, 12303, "활성화된 구독 정보를 찾을 수 없습니다."),
+    SUBSCRIPTION_STATUS_CONFLICT(HttpStatus.CONFLICT, 12304, "구독 상태를 전환할 수 없습니다."),
+    PAYMENT_FAILED(HttpStatus.PAYMENT_REQUIRED, 12305, "결제가 실패했습니다."),
+    PAYMENT_TOKEN_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12306, "결제 인증 토큰 발급에 실패했습니다."),
+    ;
 
     private final HttpStatus httpStatus;
     private final Integer code;
