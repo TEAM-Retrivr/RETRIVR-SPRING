@@ -82,15 +82,17 @@ public class AdminAuthController {
             ErrorCode.ACCOUNT_SUSPENDED,
             ErrorCode.ACCOUNT_NOT_APPROVED
     })
-    public AdminLoginResponse refresh(HttpServletRequest request) {
+    public ResponseEntity<AdminLoginResponse> refresh(HttpServletRequest request) {
         adminAuthOriginValidator.validate(request);
         String refreshToken = refreshTokenCookieManager.extract(request);
         AdminRefreshResult refreshResult = adminAuthService.refresh(refreshToken);
-        return AdminLoginResponse.of(
-                refreshResult.organizationId(),
-                refreshResult.email(),
-                refreshResult.accessToken()
-        );
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieManager.create(refreshResult.refreshToken()).toString())
+                .body(AdminLoginResponse.of(
+                        refreshResult.organizationId(),
+                        refreshResult.email(),
+                        refreshResult.accessToken()
+                ));
     }
 
     @PostMapping("/signup")

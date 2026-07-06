@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,14 +72,17 @@ class AdminAuthControllerOriginValidationTest {
     void refresh_allowsConfiguredOrigin() throws Exception {
         given(refreshTokenCookieManager.extract(any())).willReturn("refresh-token");
         given(adminAuthService.refresh("refresh-token"))
-                .willReturn(new AdminRefreshResult(1L, "admin@retrivr.com", "new-access-token"));
+                .willReturn(new AdminRefreshResult(1L, "admin@retrivr.com", "new-access-token", "new-refresh-token"));
+        given(refreshTokenCookieManager.create("new-refresh-token"))
+                .willReturn(ResponseCookie.from("refreshToken", "new-refresh-token").path("/").build());
 
         mockMvc.perform(post("/api/admin/v1/auth/refresh")
                         .header(HttpHeaders.ORIGIN, "https://retrivr-web.vercel.app")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.organizationId").value(1L))
-                .andExpect(jsonPath("$.accessToken").value("new-access-token"));
+                .andExpect(jsonPath("$.accessToken").value("new-access-token"))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("refreshToken=new-refresh-token")));
     }
 
     @Test

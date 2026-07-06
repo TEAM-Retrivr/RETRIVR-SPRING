@@ -94,7 +94,13 @@ public class AdminAuthService {
         organization.assertLoginAllowed();
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(organization.getId(), organization.getEmail());
-        return new AdminRefreshResult(organization.getId(), organization.getEmail(), newAccessToken);
+
+        // Refresh token rotation: 재발급 시마다 기존 refresh token을 새 값으로 교체하고 만료시각을 연장한다.
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(organization.getId());
+        refreshToken.rotate(newRefreshToken, jwtTokenProvider.getExpiration(newRefreshToken));
+        refreshTokenRepository.save(refreshToken);
+
+        return new AdminRefreshResult(organization.getId(), organization.getEmail(), newAccessToken, newRefreshToken);
     }
 
     @Transactional

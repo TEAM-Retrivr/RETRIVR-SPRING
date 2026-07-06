@@ -101,12 +101,17 @@ class AdminAuthServiceTest {
         given(refreshTokenRepository.findByTokenValue("refresh")).willReturn(Optional.of(refreshToken));
         given(organizationRepository.findByEmail(email)).willReturn(Optional.of(org));
         given(jwtTokenProvider.generateAccessToken(1L, email)).willReturn("new-access");
+        given(jwtTokenProvider.generateRefreshToken(1L)).willReturn("new-refresh");
+        given(jwtTokenProvider.getExpiration("new-refresh")).willReturn(LocalDateTime.now().plusDays(3));
 
         var res = adminAuthService.refresh("refresh");
 
         assertEquals(1L, res.organizationId());
         assertEquals(email, res.email());
         assertEquals("new-access", res.accessToken());
+        assertEquals("new-refresh", res.refreshToken());
+        assertEquals("new-refresh", refreshToken.getTokenValue());
+        verify(refreshTokenRepository).save(refreshToken);
     }
 
     @Test
