@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
@@ -66,6 +67,13 @@ public class Subscription extends BaseTimeEntity {
 
   private LocalDateTime paymentFailedAt; // 마지막 결제 실패 시각
 
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "payment_method_id", unique = true)
+  private PaymentMethod paymentMethod;
+
+  @Column(length = 255)
+  private String paymentScheduleId;
+
   private long paymentFailCount;
 
   private static final int MAX_PAYMENT_FAIL_COUNT = 3;
@@ -96,6 +104,42 @@ public class Subscription extends BaseTimeEntity {
       throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
     }
     this.nextBillingAt = nextBillingAt;
+  }
+
+  public void changePaymentMethod(PaymentMethod paymentMethod) {
+    if (paymentMethod == null) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "paymentMethod must not be null");
+    }
+    paymentMethod.validateOwner(this.organization);
+    paymentMethod.validateActive();
+    this.paymentMethod = paymentMethod;
+  }
+
+  public void clearPaymentMethod() {
+    if (isActive()) {
+      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
+    }
+    this.paymentMethod = null;
+  }
+
+  public void schedulePayment(String paymentScheduleId, LocalDateTime nextBillingAt) {
+    if (paymentScheduleId == null || paymentScheduleId.isBlank()) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "paymentScheduleId must not be blank");
+    }
+    scheduleNextBillingAt(nextBillingAt);
+    this.paymentScheduleId = paymentScheduleId;
+  }
+
+  public void clearScheduledPayment() {
+    this.paymentScheduleId = null;
+  }
+
+  public PaymentMethod getPaymentMethodOrThrow() {
+    if (this.paymentMethod == null) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "paymentMethod must not be null");
+    }
+    this.paymentMethod.validateActive();
+    return this.paymentMethod;
   }
 
   private void retryableFailedPayment(LocalDateTime failedAt) {
@@ -197,6 +241,7 @@ public class Subscription extends BaseTimeEntity {
     this.plan = null;
     this.paymentFailedAt = null;
     this.nextBillingAt = null;
+    this.paymentScheduleId = null;
   }
 
   public void validateOwner(Organization owner) {
@@ -206,13 +251,7 @@ public class Subscription extends BaseTimeEntity {
   }
 
   public int getDurationDays() {
-    if (this.plan == SubscriptionPlan.MONTHLY) {
-      return 30;
-    }
-    if (this.plan == SubscriptionPlan.YEARLY) {
-      return 365;
-    }
-    throw new DomainException(ErrorCode.INVALID_SUBSCRIPTION_PLAN);
+    return this.plan.getDuration();
   }
 
   public boolean isActive() {
