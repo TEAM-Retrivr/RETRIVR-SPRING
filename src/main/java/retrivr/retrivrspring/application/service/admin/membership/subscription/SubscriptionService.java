@@ -12,9 +12,11 @@ import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.PaymentMethod;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentMethodRepository;
+import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
 import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
@@ -33,6 +35,7 @@ public class SubscriptionService {
   private final SubscriptionRepository subscriptionRepository;
   private final MembershipPassRepository membershipPassRepository;
   private final PaymentMethodRepository paymentMethodRepository;
+  private final PaymentRepository paymentRepository;
   private final MembershipPassService membershipPassService;
   private final PortOnePaymentService paymentService;
   private final PaymentMethodService paymentMethodService;
@@ -95,7 +98,7 @@ public class SubscriptionService {
 
     if (lastRegisteredPass != null) {
       // 결제 예약
-      paymentService.scheduleBillingPayment(subscription, now);
+      paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
       subscription.scheduleNextBillingAt(lastRegisteredPass.getEndAt());
       return new SubscriptionStartResponse(
           subscription.getId(),
@@ -121,12 +124,15 @@ public class SubscriptionService {
       throw new ApplicationException(ErrorCode.PAYMENT_FAILED);
     }
 
-    subscription.completeSuccessfulPayment();
+    subscription.completeSuccessfulPayment(now);
 
     MembershipPass membershipPass = membershipPassService.generateSubscriptionMembershipPass(
         loginOrganizationId,
         subscription
     );
+
+    // 결제 예약
+    paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
     subscription.scheduleNextBillingAt(membershipPass.getEndAt());
 
     return new SubscriptionStartResponse(
@@ -156,7 +162,12 @@ public class SubscriptionService {
     }
 
     // 만약 예약결제가 적용되어 있다면 취소
-    paymentService.cancelScheduledPayment(subscription);
+
+    Payment pendingPayment = paymentRepository.findByOrganizationAndStatus(organization,
+        PaymentStatus.SCHEDULED)
+            .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SCHEDULED_PAYMENT));
+
+    paymentService.cancelScheduledPayment(pendingPayment);
     subscription.cancel(organization, now);
 
     MembershipPass membershipPass = membershipPassRepository

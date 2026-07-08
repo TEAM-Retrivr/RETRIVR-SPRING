@@ -4,11 +4,7 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
-import retrivr.retrivrspring.application.service.admin.membership.pay.PaymentService;
 import retrivr.retrivrspring.application.vo.BillingResult;
-import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
-import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
@@ -19,8 +15,6 @@ import retrivr.retrivrspring.domain.repository.membership.subscription.Subscript
 public class SubscriptionBillingService {
 
   private final SubscriptionRepository subscriptionRepository;
-  private final PaymentService paymentService;
-  private final MembershipPassService membershipPassService;
 
   @Transactional
   public BillingResult billIfAvailable(Organization organization, LocalDateTime now) {
@@ -31,9 +25,7 @@ public class SubscriptionBillingService {
     if (subscription == null || !subscription.isActive()) {
       return BillingResult.NOT_SUBSCRIBED;
     }
-
-    Payment payment = paymentService.autoPayment(subscription, now);
-
+/*
     if (payment.isSuccess()) {
       subscription.completeSuccessfulPayment();
       MembershipPass membershipPass = membershipPassService.generateSubscriptionMembershipPass(
@@ -43,6 +35,8 @@ public class SubscriptionBillingService {
       subscription.scheduleNextBillingAt(membershipPass.getEndAt());
       return BillingResult.PAYMENT_SUCCEEDED;
     }
+
+ */
 
     subscription.failPayment(now);
 

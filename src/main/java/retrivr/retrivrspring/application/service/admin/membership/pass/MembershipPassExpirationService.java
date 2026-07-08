@@ -2,14 +2,21 @@ package retrivr.retrivrspring.application.service.admin.membership.pass;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import retrivr.retrivrspring.application.service.admin.membership.subscription.SubscriptionBillingService;
-import retrivr.retrivrspring.application.vo.BillingResult;
+import retrivr.retrivrspring.application.event.ScheduledPaymentReconcileRequestedEvent;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
+import retrivr.retrivrspring.domain.entity.membership.Payment;
+import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
+import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
+import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -17,7 +24,10 @@ import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRep
 public class MembershipPassExpirationService {
 
   private final MembershipPassRepository membershipPassRepository;
-  private final SubscriptionBillingService subscriptionBillingService;
+  private final SubscriptionRepository subscriptionRepository;
+  private final PaymentRepository paymentRepository;
+  private final MembershipPassService membershipPassService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public void processExpiredPass(MembershipPass expiredPass, LocalDateTime now) {
@@ -37,10 +47,39 @@ public class MembershipPassExpirationService {
       return;
     }
 
-    // 결제 성공 혹은 했다면 기존 패스 만료시킴
-    BillingResult result = subscriptionBillingService.billIfAvailable(organization, now);
-    if (result != BillingResult.PAYMENT_RETRYABLE_FAILED) {
-      expiredPass.expire(now);
-    }
+    expiredPass.expire(now);
+
+    paymentRepository.findByOrganizationAndStatus(organization,
+        PaymentStatus.SCHEDULED)
+        .ifPresent(
+        pendingPayment -> eventPublisher.publishEvent(
+            new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())
+        )
+        );
+
+  }
+
+  @Transactional
+  public Subscription processExpireCurrentPassWhenPaymentSuccess(Organization organization, Payment payment, LocalDateTime now) {
+    MembershipPass currentPass = membershipPassRepository
+        .findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization,
+            MembershipPassStatus.ACTIVE
+        )
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_PASS));
+
+    Subscription subscription = subscriptionRepository.findByOrganization(organization)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SUBSCRIPTION));
+
+    currentPass.expire(now);
+
+    MembershipPass membershipPass = membershipPassService.generateSubscriptionMembershipPassWithPayment(
+        organization.getId(),
+        payment,
+        subscription
+    );
+
+    subscription.scheduleNextBillingAt(membershipPass.getEndAt());
+    return subscription;
   }
 }
