@@ -1,0 +1,56 @@
+package retrivr.retrivrspring.application.service.admin.membership.pay;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassExpirationService;
+import retrivr.retrivrspring.domain.entity.membership.Payment;
+import retrivr.retrivrspring.domain.entity.membership.Subscription;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
+import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOnePaymentResponse;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PortOneWebhookService {
+
+  private final PaymentRepository paymentRepository;
+  private final PortOnePaymentService paymentService;
+  private final MembershipPassExpirationService membershipPassExpirationService;
+
+  // 자동결제 완료 시
+  public void handleScheduledPaymentSuccess(String paymentId) {
+    LocalDateTime now = LocalDateTime.now();
+    // 스케쥴러에 의해 작업이 이루어졌는지 체크
+    Optional<Payment> opPayment = paymentRepository.findByIdAndStatus(paymentId,
+        PaymentStatus.SCHEDULED);
+
+    if (opPayment.isEmpty()) {
+      return;
+    }
+    Payment payment = opPayment.get();
+
+    // 실제로 결제가 이루어졌는지 체크
+    PortOnePaymentResponse portOnePaymentResponse = paymentService.verifyPaidPayment(paymentId,
+        payment.getAmount());
+
+    // Payment 히스토리에 기록
+    payment.scheduledPaymentSuccess(
+        portOnePaymentResponse.channel().resolveProvider(),
+        portOnePaymentResponse.transactionId(),
+        portOnePaymentResponse.paidAt().toLocalDateTime()
+    );
+
+    // 기존 멤버십 패스 만료 후 새로운 패스 생성
+    Subscription subscription = membershipPassExpirationService.processExpireCurrentPassIfPaymentSuccess(
+        payment.getOrganization(),
+        payment,
+        now
+    );
+
+    paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
+  }
+}

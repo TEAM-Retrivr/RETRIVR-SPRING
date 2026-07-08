@@ -8,16 +8,15 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 
 public interface PaymentService {
 
-  Payment manualPayment(
+  Payment charge(
       Organization organization,
       Subscription subscription,
       SubscriptionPlan plan,
       LocalDateTime now
   );
 
-  Payment autoPayment(Subscription subscription, LocalDateTime now);
-
   Payment fail(
+      String paymentId,
       Organization organization,
       Subscription subscription,
       SubscriptionPlan plan,

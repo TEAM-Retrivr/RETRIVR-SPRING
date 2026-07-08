@@ -9,6 +9,7 @@ public record PortOnePaymentResponse(
     String id,
     String transactionId,
     String storeId,
+    PortOneSelectedChannelResponse channel,
     String orderName,
     PortOnePaymentAmountResponse amount,
     String currency,

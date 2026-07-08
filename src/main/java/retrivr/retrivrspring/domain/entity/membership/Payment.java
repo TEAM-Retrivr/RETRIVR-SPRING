@@ -11,8 +11,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -24,6 +24,8 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 
 @Entity
 @Getter
@@ -43,17 +45,13 @@ public class Payment extends BaseTimeEntity {
   @JoinColumn(name = "organization_id", nullable = false)
   private Organization organization;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscription_id")
-  private Subscription subscription;
-
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private SubscriptionPlan plan;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private PaymentStatus status; // SUCCESS, FAILED
+  private PaymentStatus status; // SUCCESS, FAILED, SCHEDULED, SCHEDULE_CANCELED
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -77,45 +75,116 @@ public class Payment extends BaseTimeEntity {
   @Column
   private LocalDateTime failedAt;
 
+  @Column
+  private LocalDateTime scheduledAt;
+
+  @Column
+  private LocalDateTime canceledAt;
+
   public static Payment success(
-      Organization organization,
-      Subscription subscription,
+      String paymentId,
       SubscriptionPlan plan,
+      Organization organization,
+      Long amount,
       PaymentProvider provider,
+      String providerPaymentKey,
       LocalDateTime paidAt
   ) {
     return Payment.builder()
+        .id(paymentId)
         .organization(organization)
-        .subscription(subscription)
         .plan(plan)
         .status(PaymentStatus.SUCCESS)
         .provider(provider)
-        .amount((long) plan.getPrice())
-        .providerPaymentKey(provider.name().toLowerCase() + "_" + UUID.randomUUID())
+        .amount(amount)
+        .providerPaymentKey(
+            providerPaymentKey == null || providerPaymentKey.isBlank()
+                ? provider.name().toLowerCase() + "_" + UUID.randomUUID()
+                : providerPaymentKey
+        )
         .paidAt(paidAt)
         .build();
   }
 
   public static Payment fail(
-      Organization organization,
-      Subscription subscription,
+      String paymentId,
       SubscriptionPlan plan,
+      Organization organization,
+      Long amount,
       PaymentProvider provider,
       String failureCode,
       String failureReason,
       LocalDateTime failedAt
   ) {
     return Payment.builder()
+        .id(paymentId)
         .organization(organization)
-        .subscription(subscription)
         .plan(plan)
         .status(PaymentStatus.FAILED)
         .provider(provider)
-        .amount((long) plan.getPrice())
+        .amount(amount)
         .failureCode(failureCode)
         .failureReason(failureReason)
         .failedAt(failedAt)
         .build();
+  }
+
+  public static Payment schedule(
+      String paymentId,
+      SubscriptionPlan plan,
+      Organization organization,
+      Long amount,
+      PaymentProvider provider,
+      LocalDateTime scheduledAt
+  ) {
+    return Payment.builder()
+        .id(paymentId)
+        .organization(organization)
+        .plan(plan)
+        .status(PaymentStatus.SCHEDULED)
+        .provider(provider)
+        .amount(amount)
+        .scheduledAt(scheduledAt)
+        .build();
+  }
+
+  public void scheduledCancel(LocalDateTime canceledAt) {
+    if (!isScheduled()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.SCHEDULE_CANCELED;
+    this.canceledAt = canceledAt;
+  }
+
+  public void scheduledPaymentSuccess(
+      PaymentProvider provider,
+      String providerPaymentKey,
+      LocalDateTime paidAt
+  ) {
+    if (!isScheduled()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.SUCCESS;
+    this.provider = provider;
+    this.providerPaymentKey = providerPaymentKey;
+    this.paidAt = paidAt;
+  }
+
+  public void scheduledPaymentFail(
+      PaymentProvider provider,
+      String failureCode,
+      String failureReason,
+      LocalDateTime failedAt
+  ) {
+    if (!isScheduled()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.FAILED;
+    this.provider = provider;
+    this.failureCode = failureCode;
+    this.failureReason = failureReason;
+    this.failedAt = failedAt;
   }
 
   public boolean isSuccess() {
@@ -124,5 +193,15 @@ public class Payment extends BaseTimeEntity {
 
   public boolean isFailed() {
     return this.status == PaymentStatus.FAILED;
+  }
+
+  public boolean isScheduled() { return this.status == PaymentStatus.SCHEDULED; }
+
+  public boolean isCanceled() {return this.status == PaymentStatus.SCHEDULE_CANCELED; }
+
+  public void validateOwner(Organization owner) {
+    if (!Objects.equals(owner.getId(), organization.getId())) {
+      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);//PAYMENT_OWNER_MISMATCH);
+    }
   }
 }
