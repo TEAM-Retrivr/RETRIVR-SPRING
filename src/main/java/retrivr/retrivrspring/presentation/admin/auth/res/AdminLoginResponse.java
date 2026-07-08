@@ -11,8 +11,9 @@ public record AdminLoginResponse(
         String email,
 
         @Schema(example = "mock-access-token")
-        String accessToken,
-
-        @Schema(example = "mock-refresh-token")
-        String refreshToken
-) {}
+        String accessToken
+) {
+    public static AdminLoginResponse of(Long organizationId, String email, String accessToken) {
+        return new AdminLoginResponse(organizationId, email, accessToken);
+    }
+}

@@ -4,19 +4,22 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.config.JwtTokenProvider;
-
-import java.io.IOException;
-import java.util.Collections;
+import retrivr.retrivrspring.global.error.DomainException;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final OrganizationRepository organizationRepository;
 
     @Override
     protected void doFilterInternal(
@@ -25,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-
         String path = request.getRequestURI();
 
         // 로그인/회원가입은 필터 통과
@@ -33,14 +35,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
                 || path.equals("/api/admin/v1/auth/login")
+                || path.equals("/api/admin/v1/auth/refresh")
+                || path.equals("/api/admin/v1/auth/logout")
                 || path.equals("/api/admin/v1/auth/password")
                 || path.equals("/api/admin/v1/auth/signup")
-                || path.startsWith("/api/admin/v1/auth/signup/")
-                ) {
+                || path.startsWith("/api/admin/v1/auth/signup/")) {
             filterChain.doFilter(request, response);
             return;
         }
-
 
         String bearerToken = request.getHeader("Authorization");
         String token = jwtTokenProvider.resolveToken(bearerToken);
@@ -51,15 +53,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         AuthUser authUser = jwtTokenProvider.getAuthUser(token);
+        Organization organization = organizationRepository.findById(authUser.organizationId()).orElse(null);
+        if (organization == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        try {
+            organization.assertLoginAllowed();
+        } catch (DomainException e) {
+            response.setStatus(e.getErrorCode().getHttpStatus().value());
+            return;
+        }
 
         request.setAttribute("authUser", authUser);
 
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        authUser,
-                        null,
-                        Collections.emptyList()
-                );
+                new UsernamePasswordAuthenticationToken(authUser, null, Collections.emptyList());
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
