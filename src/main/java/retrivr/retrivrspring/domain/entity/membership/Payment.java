@@ -5,12 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
@@ -35,11 +35,21 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @Table(
     name = "payment"
 )
-public class Payment extends BaseTimeEntity {
+public class Payment extends BaseTimeEntity implements Persistable<String> {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
+
+  @Override
+  public String getId() {
+    return id;
+  }
+
+  @Override
+  @Transient
+  public boolean isNew() {
+    return getCreatedAt() == null;
+  }
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "organization_id", nullable = false)
@@ -56,6 +66,9 @@ public class Payment extends BaseTimeEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private PaymentProvider provider; // MOCK, TOSS
+
+  @Column
+  private String portOneScheduleId;
 
   @Column(nullable = false)
   private Long amount;
@@ -85,6 +98,7 @@ public class Payment extends BaseTimeEntity {
       String paymentId,
       SubscriptionPlan plan,
       Organization organization,
+      String portOneScheduleId,
       Long amount,
       PaymentProvider provider,
       String providerPaymentKey,
@@ -96,6 +110,7 @@ public class Payment extends BaseTimeEntity {
         .plan(plan)
         .status(PaymentStatus.SUCCESS)
         .provider(provider)
+        .portOneScheduleId(portOneScheduleId)
         .amount(amount)
         .providerPaymentKey(
             providerPaymentKey == null || providerPaymentKey.isBlank()
@@ -133,6 +148,7 @@ public class Payment extends BaseTimeEntity {
       String paymentId,
       SubscriptionPlan plan,
       Organization organization,
+      String portOneScheduleId,
       Long amount,
       PaymentProvider provider,
       LocalDateTime scheduledAt
@@ -143,6 +159,7 @@ public class Payment extends BaseTimeEntity {
         .plan(plan)
         .status(PaymentStatus.SCHEDULED)
         .provider(provider)
+        .portOneScheduleId(portOneScheduleId)
         .amount(amount)
         .scheduledAt(scheduledAt)
         .build();

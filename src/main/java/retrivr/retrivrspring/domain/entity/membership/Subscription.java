@@ -78,25 +78,11 @@ public class Subscription extends BaseTimeEntity {
 
   private static final int MAX_PAYMENT_FAIL_COUNT = 3;
 
-  public void updateNextBillingAt(LocalDateTime paidAt) {
-    if (!isActive()) {
-      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
-    }
-
-    if (this.plan == SubscriptionPlan.MONTHLY) {
-      this.nextBillingAt = paidAt.plusMonths(1);
-      return;
-    }
-
-    if (this.plan == SubscriptionPlan.YEARLY) {
-      this.nextBillingAt = paidAt.plusYears(1);
-    }
-  }
-
-  public void completeSuccessfulPayment() {
+  public void completeSuccessfulPayment(LocalDateTime now) {
     this.status = SubscriptionStatus.ACTIVE;
     this.paymentFailedAt = null;
     this.paymentFailCount = 0;
+    scheduleNextBillingAt(now.plusDays(plan.getDuration()));
   }
 
   public void scheduleNextBillingAt(LocalDateTime nextBillingAt) {
@@ -130,9 +116,6 @@ public class Subscription extends BaseTimeEntity {
     this.paymentScheduleId = paymentScheduleId;
   }
 
-  public void clearScheduledPayment() {
-    this.paymentScheduleId = null;
-  }
 
   public PaymentMethod getPaymentMethodOrThrow() {
     if (this.paymentMethod == null) {
@@ -164,10 +147,6 @@ public class Subscription extends BaseTimeEntity {
 
   public boolean isPastDue() {
     return this.status == SubscriptionStatus.PAST_DUE;
-  }
-
-  public boolean isPaymentFailed() {
-    return this.status == SubscriptionStatus.PAYMENT_FAILED;
   }
 
   public static Subscription start(Organization organization, SubscriptionPlan plan,
