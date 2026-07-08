@@ -6,13 +6,14 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import retrivr.retrivrspring.global.auth.AuthUser;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
@@ -30,8 +31,7 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        this.secretKey =
-                Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(Long organizationId, String email) {
@@ -45,7 +45,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(Long organizationId, String email) {
+    public String generateRefreshToken(Long organizationId) {
         // Refresh token 생성 로직
         return Jwts.builder()
                 .setSubject(String.valueOf(organizationId))
@@ -77,10 +77,8 @@ public class JwtTokenProvider {
 
     public AuthUser getAuthUser(String token) {
         Claims claims = getClaims(token);
-
         Long organizationId = Long.valueOf(claims.getSubject());
         String email = claims.get("email", String.class);
-
         return new AuthUser(organizationId, email);
     }
 
@@ -91,4 +89,10 @@ public class JwtTokenProvider {
         return null;
     }
 
+    public LocalDateTime getExpiration(String token) {
+        return getClaims(token).getExpiration()
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+    }
 }
