@@ -36,7 +36,7 @@ import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneSchedule
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PortOnePaymentService implements PaymentService {
+public class PortOnePaymentService {
 
   private static final String CURRENCY_KRW = "KRW";
 
@@ -79,6 +79,7 @@ public class PortOnePaymentService implements PaymentService {
           paymentId,
           subscription.getPlan(),
           organization,
+          portOnePayment.scheduleId(),
           (long) plan.getPrice(),
           provider,
           providerPaymentKey(response),
@@ -100,7 +101,6 @@ public class PortOnePaymentService implements PaymentService {
     }
   }
 
-  @Override
   @Transactional
   public Payment fail(
       String paymentId,
@@ -157,6 +157,7 @@ public class PortOnePaymentService implements PaymentService {
         paymentId,
         subscription.getPlan(),
         subscription.getOrganization(),
+        response.schedule().id(),
         (long) subscription.getPlan().getPrice(),
         paymentMethod.getProvider(),
         timeToPay
@@ -167,21 +168,15 @@ public class PortOnePaymentService implements PaymentService {
   }
 
   @Transactional
-  public PortOneCancelScheduledPaymentResponse cancelScheduledPayment(Subscription subscription) {
-    if (subscription.getPaymentScheduleId() == null || subscription.getPaymentScheduleId().isBlank()) {
+  public PortOneCancelScheduledPaymentResponse cancelScheduledPayment(Payment payment) {
+    if (payment.getPortOneScheduleId() == null || payment.getPortOneScheduleId().isBlank()) {
       return new PortOneCancelScheduledPaymentResponse(List.of(), null);
     }
 
-    Payment payment = paymentRepository.findByIdAndStatus(subscription.getPaymentScheduleId(),
-            PaymentStatus.SCHEDULED)
-        .orElseThrow(
-            () -> new ApplicationException(ErrorCode.NOT_FOUND_EXCEPTION, "결제 예약건을 찾을 수 없습니다."));
-
     PortOneCancelScheduledPaymentResponse response = portOneClient.cancelScheduledPayment(
-        PortOneCancelScheduledPaymentRequest.byScheduleId(subscription.getPaymentScheduleId())
+        PortOneCancelScheduledPaymentRequest.byScheduleId(payment.getPortOneScheduleId())
     );
     payment.scheduledCancel(response.revokedAt().toLocalDateTime());
-    subscription.clearScheduledPayment();
 
     return response;
   }
