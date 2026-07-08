@@ -5,17 +5,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
-import retrivr.retrivrspring.application.service.admin.membership.pay.PaymentService;
+import retrivr.retrivrspring.application.service.admin.membership.pay.PaymentMethodService;
+import retrivr.retrivrspring.application.service.admin.membership.pay.PortOnePaymentService;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
 import retrivr.retrivrspring.domain.entity.membership.Payment;
+import retrivr.retrivrspring.domain.entity.membership.PaymentMethod;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
+import retrivr.retrivrspring.domain.repository.membership.payment.PaymentMethodRepository;
 import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionStartRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionCancelResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionStartResponse;
@@ -28,8 +32,10 @@ public class SubscriptionService {
   private final OrganizationRepository organizationRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final MembershipPassRepository membershipPassRepository;
+  private final PaymentMethodRepository paymentMethodRepository;
   private final MembershipPassService membershipPassService;
-  private final PaymentService paymentService;
+  private final PortOnePaymentService paymentService;
+  private final PaymentMethodService paymentMethodService;
 
   @Transactional
   public SubscriptionStartResponse startSubscription(
@@ -44,38 +50,74 @@ public class SubscriptionService {
     Organization organization = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
+    // 결제수단 정보 가져오기
+    PaymentMethod paymentMethod = paymentMethodRepository.findById(request.paymentMethodId())
+        .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION, "결제 수단을 찾을 수 없습니다."));
+
+    // 현재 마지막 등록(사용 대기중)된 패스.
+    // 대기중인 패스가 없다면 현재 활성화된 패스.
+    MembershipPass lastRegisteredPass = membershipPassRepository
+        .findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization,
+            MembershipPassStatus.REGISTERED
+        )
+        .orElse(
+            membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceAsc(
+                    organization,
+                    MembershipPassStatus.ACTIVE
+                )
+                .orElse(null)
+        );
+
     Subscription subscription = subscriptionRepository.findByOrganization(organization)
         .orElse(null);
 
-    MembershipPass currentPass = membershipPassRepository
-        .findFirstByOrganizationAndStatusOrderBySequenceAsc(
-            organization,
-            MembershipPassStatus.ACTIVE
-        )
-        .orElse(null);
-
+    // 구독 정보 생성
     if (subscription == null) {
+      // 구독정보가 없을 경우 생성
       subscription = Subscription.start(organization, request.plan(), now);
       subscriptionRepository.save(subscription);
     } else if (subscription.isPaused()) {
+      // 구독이 중단되었을 경우 재시작
       subscription.restart(
           organization,
           request.plan(),
           now,
-          currentPass != null ? currentPass.getEndAt() : null
+          lastRegisteredPass != null ? lastRegisteredPass.getEndAt() : null
       );
     } else if (subscription.isActive()) {
+      // 이미 구독중인 경우
       throw new ApplicationException(ErrorCode.ALREADY_SUBSCRIPTION_STARTED);
     }
 
-    Payment payment = paymentService.manualPayment(
+    // 결제수단 변경
+    paymentMethodService.changeDefaultPaymentMethod(loginOrganizationId, paymentMethod.getId());
+
+    if (lastRegisteredPass != null) {
+      // 결제 예약
+      paymentService.scheduleBillingPayment(subscription, now);
+      subscription.scheduleNextBillingAt(lastRegisteredPass.getEndAt());
+      return new SubscriptionStartResponse(
+          subscription.getId(),
+          subscription.getPlan(),
+          subscription.getStatus(),
+          subscription.getNextBillingAt(),
+          lastRegisteredPass.getId(),
+          lastRegisteredPass.getStartAt(),
+          lastRegisteredPass.getEndAt()
+      );
+    }
+
+    // 즉시 결제
+    Payment payment = paymentService.charge(
         organization,
         subscription,
         subscription.getPlan(),
         now
     );
+
+    // 결제 실패시 롤백 (결제 실패 정보는 저장됨 - paymentService.charge)
     if (!payment.isSuccess()) {
-      subscription.failPayment(now);
       throw new ApplicationException(ErrorCode.PAYMENT_FAILED);
     }
 
@@ -113,6 +155,8 @@ public class SubscriptionService {
       throw new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION);
     }
 
+    // 만약 예약결제가 적용되어 있다면 취소
+    paymentService.cancelScheduledPayment(subscription);
     subscription.cancel(organization, now);
 
     MembershipPass membershipPass = membershipPassRepository

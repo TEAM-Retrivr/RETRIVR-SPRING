@@ -23,7 +23,7 @@ import retrivr.retrivrspring.presentation.admin.membership.subscription.res.Subs
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/v1/subscriptions")
-@Tag(name = "Admin API / Subscription API", description = "조직의 구독 관리")
+@Tag(name = "Admin API / Subscription API", description = "조직 구독 관리")
 public class SubscriptionController {
 
   private final SubscriptionService subscriptionService;
@@ -33,8 +33,7 @@ public class SubscriptionController {
       summary = "구독 시작",
       description = """
           조직의 월간/연간 구독을 시작합니다.
-          첫 결제 성공 시 Subscription을 생성하거나 활성화하고,
-          MembershipPass를 생성합니다.
+          결제 성공 후 Subscription을 활성화하고 MembershipPass를 생성합니다.
           """
   )
   @ApiResponse(
@@ -54,8 +53,7 @@ public class SubscriptionController {
       summary = "구독 해지",
       description = """
           현재 조직의 구독을 해지합니다.
-          구독 해지는 자동 결제만 중단하며,
-          현재 사용 중인 MembershipPass는 만료 시점까지 유지됩니다.
+          구독 해지는 자동 결제만 중단하며 현재 사용 중인 MembershipPass는 만료 시점까지 유지합니다.
           """
   )
   @ApiResponse(
