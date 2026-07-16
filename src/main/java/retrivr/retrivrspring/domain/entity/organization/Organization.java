@@ -116,6 +116,16 @@ public class Organization extends BaseTimeEntity {
     return adminAuthCode == null ? null : adminAuthCode.getValue();
   }
 
+  /**
+   * 단체가 정상 운영 중인지 검증한다.
+   * 탈퇴/정지/승인대기 단체는 운영 중이 아니며, 존재 여부가 드러나지 않도록 NOT_FOUND 로 응답한다.
+   */
+  public void assertOperating() {
+    if (this.status != OrganizationStatus.ACTIVE) {
+      throw new DomainException(ErrorCode.NOT_FOUND_ORGANIZATION);
+    }
+  }
+
   public void assertLoginAllowed() {
     if (this.status == OrganizationStatus.WITHDRAWN) {
       throw new DomainException(ErrorCode.ACCOUNT_WITHDRAWN);

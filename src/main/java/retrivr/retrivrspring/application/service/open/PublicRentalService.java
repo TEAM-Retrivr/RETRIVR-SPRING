@@ -60,6 +60,9 @@ public class PublicRentalService {
     Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
 
+    // 탈퇴/비활성 단체의 물건에는 신규 대여를 요청할 수 없다. (인증 토큰이 소모되기 전에 검증)
+    targetItem.getOrganization().assertOperating();
+
     publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
 
     // 2. ItemUnit 조회

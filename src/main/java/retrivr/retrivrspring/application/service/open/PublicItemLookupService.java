@@ -32,6 +32,7 @@ public class PublicItemLookupService {
       Long cursor, int size) {
     Organization organization = organizationRepository.findById(organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+    organization.assertOperating();
 
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(size);
 
@@ -56,6 +57,8 @@ public class PublicItemLookupService {
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {
     Item item = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+    item.getOrganization().assertOperating();
+
     List<BorrowerRequirement> borrowerRequirements = item.getItemBorrowerFields().stream()
         .map(BorrowerRequirement::from)
         .toList();

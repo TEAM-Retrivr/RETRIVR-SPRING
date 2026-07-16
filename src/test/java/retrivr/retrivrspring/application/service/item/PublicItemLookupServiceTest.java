@@ -19,6 +19,7 @@ import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemDetailResponse;
 import retrivr.retrivrspring.presentation.open.item.res.PublicItemListPageResponse;
@@ -140,6 +141,8 @@ class PublicItemLookupServiceTest {
     when(item.isUnitType()).thenReturn(true);
     when(item.getItemManagementType()).thenReturn(ItemManagementType.UNIT);
     when(item.getItemBorrowerFields()).thenReturn(borrowerFields);
+    Organization org = mockOrganization(1, "조직1");
+    when(item.getOrganization()).thenReturn(org);
     when(itemRepository.findFetchItemBorrowerFieldsById(itemId)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(units);
 
@@ -150,5 +153,39 @@ class PublicItemLookupServiceTest {
     assertThat(res.borrowerRequirements()).hasSize(2);
     assertThat(res.borrowerRequirements().get(0).label()).isEqualTo("학번");
     assertThat(res.borrowerRequirements().get(0).required()).isTrue();
+  }
+
+  @Test
+  @DisplayName("IL-08: 탈퇴한 단체의 물건 목록은 조회되지 않는다")
+  void listLookup_withdrawnOrg_throw() {
+    Organization withdrawnOrg = mockOrganization(1, "탈퇴조직");
+    doThrow(new DomainException(ErrorCode.NOT_FOUND_ORGANIZATION))
+        .when(withdrawnOrg).assertOperating();
+    when(organizationRepository.findById(1L)).thenReturn(Optional.of(withdrawnOrg));
+
+    assertThatThrownBy(() -> publicItemLookupService.publicOrganizationItemListLookup(1L, null, 10))
+        .isInstanceOf(DomainException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.NOT_FOUND_ORGANIZATION);
+
+    verify(itemRepository, never()).findPageByOrganizationWithCursor(anyLong(), any(), anyInt());
+  }
+
+  @Test
+  @DisplayName("IL-09: 탈퇴한 단체의 물건 상세는 조회되지 않는다")
+  void detailLookup_withdrawnOrg_throw() {
+    Organization withdrawnOrg = mockOrganization(1, "탈퇴조직");
+    doThrow(new DomainException(ErrorCode.NOT_FOUND_ORGANIZATION))
+        .when(withdrawnOrg).assertOperating();
+    Item item = mock(Item.class);
+    when(item.getOrganization()).thenReturn(withdrawnOrg);
+    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+
+    assertThatThrownBy(() -> publicItemLookupService.publicOrganizationItemLookup(10L))
+        .isInstanceOf(DomainException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.NOT_FOUND_ORGANIZATION);
+
+    verify(itemUnitRepository, never()).findAllByItemId(anyLong());
   }
 }
