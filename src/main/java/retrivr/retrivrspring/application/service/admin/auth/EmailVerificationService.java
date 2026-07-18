@@ -18,6 +18,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -101,35 +102,9 @@ public class EmailVerificationService {
     public EmailCodeVerifyTokenResponse verify(EmailVerificationRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         EmailVerificationPurpose purpose = request.purpose();
-        String code = request.code();
-
-        EmailVerification verification = emailVerificationRepository
-                .findByEmailAndPurpose(email, purpose)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.EMAIL_VERIFICATION_NOT_FOUND));
-
         LocalDateTime now = LocalDateTime.now();
 
-        if (verification.isExpired(now)) {
-            throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
-        }
-
-        if (verification.isVerified()) {
-            throw new ApplicationException(ErrorCode.EMAIL_ALREADY_VERIFIED);
-        }
-
-        if (!passwordEncoder.matches(code, verification.getCode())) {
-            int failedAttempts = verification.increaseFailedAttempts();
-            if (failedAttempts >= emailVerificationProperties.getMaxFailedAttempts()) {
-                verification.expire(now);
-            }
-            emailVerificationRepository.save(verification);
-
-            if (failedAttempts >= emailVerificationProperties.getMaxFailedAttempts()) {
-                throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
-            }
-            throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH);
-        }
-
+        EmailVerification verification = verifyCodeOrThrow(email, purpose, request.code(), now);
         verification.markVerified(now);
 
         if (purpose == EmailVerificationPurpose.SIGNUP) {
@@ -176,21 +151,65 @@ public class EmailVerificationService {
             );
         }
 
-        if (purpose == EmailVerificationPurpose.EMAIL_CHANGE) {
-            String rawEmailChangeToken = "ect_" + UUID.randomUUID();
-            return EmailCodeVerifyTokenResponse.emailChangeToken(
-                    rawEmailChangeToken,
-                    emailVerificationProperties.getExpiresSeconds()
-            );
-        }
-
         throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
 
+    /**
+     * 이메일 인증 코드를 검증하고, 성공 시 로그인한 단체의 이메일을 즉시 변경한다.
+     * 별도의 인증 토큰을 발급하지 않고 인증 완료 시점에 이메일 변경을 반영한다.
+     */
     @Transactional(noRollbackFor = ApplicationException.class)
-    public EmailCodeVerifyTokenResponse verifyChangeEmail(EmailVerificationRequest request) {
+    public AdminEmailChangeResponse verifyChangeEmail(EmailVerificationRequest request, Long organizationId) {
         validateEmailChangePurpose(request.purpose());
-        return verify(request);
+
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        LocalDateTime now = LocalDateTime.now();
+
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+        // 다른 단체가 이미 사용 중인 이메일인지 검증 (코드 검증 이전에 확인하여, 인증 성공 후 실패로 인한 상태 불일치를 방지)
+        organizationRepository.findByEmail(email)
+                .filter(found -> !found.getId().equals(organizationId))
+                .ifPresent(found -> {
+                    throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
+                });
+
+        EmailVerification verification = verifyCodeOrThrow(email, request.purpose(), request.code(), now);
+        verification.markVerified(now);
+
+        organization.updateEmail(email);
+
+        return new AdminEmailChangeResponse(organization.getId(), organization.getEmail());
+    }
+
+    private EmailVerification verifyCodeOrThrow(String email, EmailVerificationPurpose purpose, String rawCode, LocalDateTime now) {
+        EmailVerification verification = emailVerificationRepository
+                .findByEmailAndPurpose(email, purpose)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.EMAIL_VERIFICATION_NOT_FOUND));
+
+        if (verification.isExpired(now)) {
+            throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
+        }
+
+        if (verification.isVerified()) {
+            throw new ApplicationException(ErrorCode.EMAIL_ALREADY_VERIFIED);
+        }
+
+        if (!passwordEncoder.matches(rawCode, verification.getCode())) {
+            int failedAttempts = verification.increaseFailedAttempts();
+            if (failedAttempts >= emailVerificationProperties.getMaxFailedAttempts()) {
+                verification.expire(now);
+            }
+            emailVerificationRepository.save(verification);
+
+            if (failedAttempts >= emailVerificationProperties.getMaxFailedAttempts()) {
+                throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
+            }
+            throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH);
+        }
+
+        return verification;
     }
 
     private String generateCode() {

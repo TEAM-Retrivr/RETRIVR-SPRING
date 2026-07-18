@@ -84,13 +84,15 @@ public class Organization extends BaseTimeEntity {
     this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
   }
 
+  public void updateEmail(String email) {
+    this.email = requireNonBlankEmail(email);
+  }
+
   public void updateProfile(
-          String email,
           String encodedPassword,
           String organizationName,
           String encodedAdminCode
   ) {
-    this.email = requireNonBlankEmail(email);
     this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
     this.name = organizationName;
     this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));

@@ -53,7 +53,8 @@ public class AdminProfileController {
     @PatchMapping
     @Operation(
             summary = "관리자 프로필 수정",
-            description = "newEmail, newPassword, confirmPassword, newOrganizationName, newAdminCode를 수정합니다."
+            description = "newPassword, confirmPassword, newOrganizationName, newAdminCode를 수정합니다. "
+                    + "이메일 변경은 이메일 인증(POST /api/admin/v1/email/verification/verify)으로 즉시 반영됩니다."
     )
     @ApiResponse(
             responseCode = "200",
@@ -63,8 +64,7 @@ public class AdminProfileController {
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
             ErrorCode.INVALID_VALUE_EXCEPTION,
-            ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH,
-            ErrorCode.ALREADY_EXIST_EXCEPTION
+            ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH
     })
     public AdminProfileResponse updateProfile(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,

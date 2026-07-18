@@ -7,7 +7,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
@@ -34,9 +33,6 @@ class AdminProfileServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private AdminCodeVerificationService adminCodeVerificationService;
-
     @InjectMocks
     private AdminProfileService adminProfileService;
 
@@ -53,68 +49,22 @@ class AdminProfileServiceTest {
                 .build();
 
         given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
-        given(organizationRepository.findByEmail("new@retrivr.com")).willReturn(Optional.empty());
         given(passwordEncoder.encode("NewPassword123!")).willReturn("encoded-password");
         given(passwordEncoder.encode("new-admin-code")).willReturn("encoded-admin-code");
 
         var response = adminProfileService.updateProfile(
                 1L,
                 new AdminProfileUpdateRequest(
-                        "new@retrivr.com",
                         "NewPassword123!",
                         "NewPassword123!",
                         "New Org",
-                        "new-admin-code",
-                    "token"
+                        "new-admin-code"
                 )
         );
 
-        assertEquals("new@retrivr.com", response.email());
+        // 이메일은 프로필 수정으로 변경되지 않고 기존 값을 유지한다
+        assertEquals("old@retrivr.com", response.email());
         assertEquals("New Org", response.organizationName());
-        verify(passwordEncoder, times(1)).encode("NewPassword123!");
-        verify(passwordEncoder, times(1)).encode("new-admin-code");
-    }
-
-    @Test
-    @DisplayName("duplicate email throws ALREADY_EXIST_EXCEPTION")
-    void updateProfile_duplicateEmail_throws() {
-        Organization org = Organization.builder()
-                .id(1L)
-                .email("old@retrivr.com")
-                .passwordHash("old-password")
-                .name("old")
-                .status(OrganizationStatus.ACTIVE)
-                .adminCodeHash("old-code")
-                .build();
-
-        Organization anotherOrg = Organization.builder()
-                .id(2L)
-                .email("new@retrivr.com")
-                .passwordHash("pw")
-                .name("org")
-                .status(OrganizationStatus.ACTIVE)
-                .adminCodeHash("code")
-                .build();
-
-        given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
-        given(organizationRepository.findByEmail("new@retrivr.com")).willReturn(Optional.of(anotherOrg));
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> adminProfileService.updateProfile(
-                        1L,
-                        new AdminProfileUpdateRequest(
-                                "new@retrivr.com",
-                                "NewPassword123!",
-                                "NewPassword123!",
-                                "New Org",
-                                "new-admin-code",
-                            "token"
-                        )
-                )
-        );
-
-        assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
         verify(passwordEncoder, times(1)).encode("NewPassword123!");
         verify(passwordEncoder, times(1)).encode("new-admin-code");
     }
@@ -138,12 +88,10 @@ class AdminProfileServiceTest {
                 () -> adminProfileService.updateProfile(
                         1L,
                         new AdminProfileUpdateRequest(
-                                "new@retrivr.com",
                                 "NewPassword123!",
                                 "DifferentPassword123!",
                                 "New Org",
-                                "new-admin-code",
-                            "token"
+                                "new-admin-code"
                         )
                 )
         );
@@ -172,12 +120,10 @@ class AdminProfileServiceTest {
                 () -> adminProfileService.updateProfile(
                         1L,
                         new AdminProfileUpdateRequest(
-                                "new@retrivr.com",
                                 "NewPassword123?",
                                 "NewPassword123?",
                                 "New Org",
-                                "new-admin-code",
-                                "token"
+                                "new-admin-code"
                         )
                 )
         );
