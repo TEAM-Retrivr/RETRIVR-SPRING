@@ -10,11 +10,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.port.image.PresignedUploadUrl;
 import retrivr.retrivrspring.application.port.image.ProfileImageKeyGeneratorPort;
-import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.AdminAuthCodeHash;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordHash;
-import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -26,8 +24,6 @@ import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpd
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
-import java.util.Locale;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,7 +33,6 @@ public class AdminProfileService {
     private final PasswordEncoder passwordEncoder;
     private final ProfileImageKeyGeneratorPort profileImageKeyGeneratorPort;
     private final ImageStoragePort imageStoragePort;
-    private final AdminCodeVerificationService adminCodeVerificationService;
 
     @Transactional(readOnly = true)
     public AdminProfileResponse getProfile(Long organizationId) {
@@ -57,11 +52,6 @@ public class AdminProfileService {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-        // 관리자 코드 인증 토큰 검증
-        adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
-            organization, AdminCodeVerificationPurpose.ORGANIZATION_UPDATE, request.adminCodeVerificationToken());
-
-        String normalizedEmail = request.newEmail().trim().toLowerCase(Locale.ROOT);
         String organizationName = request.newOrganizationName().trim();
         PasswordHash newPasswordHash = PasswordHash.fromRawOrThrow(
                 request.newPassword(),
@@ -81,14 +71,7 @@ public class AdminProfileService {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
         }
 
-        organizationRepository.findByEmail(normalizedEmail)
-                .filter(found -> !found.getId().equals(organizationId))
-                .ifPresent(found -> {
-                    throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
-                });
-
         organization.updateProfile(
-                normalizedEmail,
                 newPasswordHash.getValue(),
                 organizationName,
                 newAdminAuthCodeHash.getValue()

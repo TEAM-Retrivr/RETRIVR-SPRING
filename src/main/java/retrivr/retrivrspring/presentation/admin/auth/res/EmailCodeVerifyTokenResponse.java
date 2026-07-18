@@ -12,8 +12,4 @@ public record EmailCodeVerifyTokenResponse(
     public static EmailCodeVerifyTokenResponse passwordResetToken(String token, int expiresInSeconds) {
         return new EmailCodeVerifyTokenResponse("PASSWORD_RESET", token, expiresInSeconds);
     }
-
-    public static EmailCodeVerifyTokenResponse emailChangeToken(String token, int expiresInSeconds) {
-        return new EmailCodeVerifyTokenResponse("EMAIL_CHANGE", token, expiresInSeconds);
-    }
 }

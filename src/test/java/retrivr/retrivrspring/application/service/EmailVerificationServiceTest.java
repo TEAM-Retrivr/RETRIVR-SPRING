@@ -24,6 +24,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 
 import java.time.LocalDateTime;
@@ -218,7 +219,17 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void verifyChangeEmail_success_generates_token() {
+    void verifyChangeEmail_success_appliesEmailImmediately() {
+        Long organizationId = 1L;
+        Organization organization = Organization.builder()
+                .id(organizationId)
+                .email("old@test.com")
+                .passwordHash("pw")
+                .name("org")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("code")
+                .build();
+
         EmailVerification verification = EmailVerification.create(
                 email,
                 EmailVerificationPurpose.EMAIL_CHANGE,
@@ -226,19 +237,59 @@ class EmailVerificationServiceTest {
                 LocalDateTime.now().plusMinutes(10)
         );
 
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.EMAIL_CHANGE))
                 .thenReturn(Optional.of(verification));
         when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
 
-        EmailCodeVerifyTokenResponse tokenResponse = emailVerificationService.verifyChangeEmail(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456")
+        AdminEmailChangeResponse response = emailVerificationService.verifyChangeEmail(
+                new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                organizationId
         );
 
-        assertEquals("EMAIL_CHANGE", tokenResponse.tokenType());
-        assertNotNull(tokenResponse.token());
-        assertTrue(tokenResponse.token().startsWith("ect_"));
-        assertEquals(600, tokenResponse.expiresInSeconds());
+        assertEquals(organizationId, response.organizationId());
+        assertEquals(email, response.email());
+        assertEquals(email, organization.getEmail());
+        assertTrue(verification.isVerified());
         verifyNoInteractions(signupTokenRepository, passwordResetTokenRepository);
+    }
+
+    @Test
+    void verifyChangeEmail_duplicateEmail_throws() {
+        Long organizationId = 1L;
+        Organization organization = Organization.builder()
+                .id(organizationId)
+                .email("old@test.com")
+                .passwordHash("pw")
+                .name("org")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("code")
+                .build();
+
+        Organization anotherOrg = Organization.builder()
+                .id(2L)
+                .email(email)
+                .passwordHash("pw")
+                .name("other")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("code")
+                .build();
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.of(anotherOrg));
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.verifyChangeEmail(
+                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        organizationId
+                )
+        );
+
+        assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
+        assertEquals("old@test.com", organization.getEmail());
+        verifyNoInteractions(emailVerificationRepository);
     }
 
     @Test
@@ -246,11 +297,12 @@ class EmailVerificationServiceTest {
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
                 () -> emailVerificationService.verifyChangeEmail(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456")
+                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456"),
+                        1L
                 )
         );
 
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
-        verifyNoInteractions(emailVerificationRepository);
+        verifyNoInteractions(emailVerificationRepository, organizationRepository);
     }
 }

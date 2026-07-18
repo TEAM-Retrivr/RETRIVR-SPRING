@@ -20,6 +20,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -93,25 +94,27 @@ public class EmailVerificationController {
 
     @PostMapping("/admin/v1/email/verification/verify")
     @Operation(
-            summary = "admin 이메일 인증 코드 검증",
-            description = "로그인 정보, 이메일, 목적, 인증 코드를 검증하고 인증을 완료한다."
+            summary = "admin 이메일 인증 코드 검증 및 이메일 변경",
+            description = "이메일, 목적, 인증 코드를 검증하고, 성공 시 로그인한 단체의 이메일을 즉시 변경한다."
     )
     @ApiResponse(
             responseCode = "200",
-            description = "이메일 인증 성공",
-            content = @Content(schema = @Schema(implementation = EmailCodeVerifyTokenResponse.class))
+            description = "이메일 변경 성공",
+            content = @Content(schema = @Schema(implementation = AdminEmailChangeResponse.class))
     )
     @ApiErrorCodeExamples({
+            ErrorCode.NOT_FOUND_ORGANIZATION,
+            ErrorCode.ALREADY_EXIST_EXCEPTION,
             ErrorCode.EMAIL_VERIFICATION_NOT_FOUND,
             ErrorCode.EMAIL_VERIFICATION_EXPIRED,
             ErrorCode.EMAIL_ALREADY_VERIFIED,
             ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH,
             ErrorCode.INVALID_VALUE_EXCEPTION
     })
-    public ResponseEntity<EmailCodeVerifyTokenResponse> verifyAdminEmail(
+    public ResponseEntity<AdminEmailChangeResponse> verifyAdminEmail(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
             @Valid @RequestBody EmailVerificationRequest request
     ) {
-        return ResponseEntity.ok(emailVerificationService.verifyChangeEmail(request));
+        return ResponseEntity.ok(emailVerificationService.verifyChangeEmail(request, authUser.organizationId()));
     }
 }
