@@ -29,6 +29,7 @@ import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationReques
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -108,7 +109,8 @@ class EmailVerificationServiceTest {
                 "hashed",
                 LocalDateTime.now().plusMinutes(10)
         );
-        ReflectionTestUtils.setField(existing, "updatedAt", LocalDateTime.now());
+        // 40초 전에 발송된 상태 → 60초 정책이면 약 20초 남아야 한다.
+        ReflectionTestUtils.setField(existing, "updatedAt", LocalDateTime.now().minusSeconds(40));
 
         when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
                 .thenReturn(Optional.of(existing));
@@ -121,6 +123,48 @@ class EmailVerificationServiceTest {
         );
 
         assertEquals(ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS, ex.getErrorCode());
+        // 클라이언트가 카운트다운을 복원할 수 있도록 남은 초가 detail 로 전달되어야 한다.
+        long remaining = Long.parseLong(ex.getDetail());
+        assertTrue(remaining > 15 && remaining <= 20, "remaining=" + remaining);
+        verifyNoInteractions(emailVerificationCodeSender);
+    }
+
+    @Test
+    void sendCode_allowsResendAfterBlockWindow() {
+        EmailVerification existing = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.SIGNUP,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+        // 61초 전 발송 → 재발송 가능
+        ReflectionTestUtils.setField(existing, "updatedAt", LocalDateTime.now().minusSeconds(61));
+
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
+                .thenReturn(Optional.of(existing));
+        when(passwordEncoder.encode(anyString())).thenReturn("new-hashed-code");
+
+        emailVerificationService.sendPublicCode(
+                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
+        );
+
+        verify(emailVerificationCodeSender, times(1))
+                .sendVerificationCode(eq(email), anyString(), eq(EmailVerificationPurpose.SIGNUP), eq(600));
+    }
+
+    @Test
+    void sendCode_responseCarriesResendAndExpiryWindows() {
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
+
+        EmailVerificationSendResponse response = emailVerificationService.sendPublicCode(
+                new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
+        );
+
+        // 프론트가 상수를 하드코딩하지 않도록 두 정책값을 모두 응답으로 내려준다.
+        assertEquals(600, response.expiresInSeconds());
+        assertEquals(60, response.resendAvailableInSeconds());
     }
 
     @Test

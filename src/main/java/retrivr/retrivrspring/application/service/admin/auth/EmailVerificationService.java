@@ -26,6 +26,7 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenRes
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -79,9 +80,13 @@ public class EmailVerificationService {
         EmailVerification verification = emailVerificationRepository
                 .findByEmailAndPurpose(email, purpose)
                 .map(existing -> {
-                    if (existing.getUpdatedAt() != null
-                            && existing.getUpdatedAt().isAfter(now.minusSeconds(emailVerificationProperties.getResendBlockSeconds()))) {
-                        throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS);
+                    long remainingBlockSeconds = remainingResendBlockSeconds(existing, now);
+                    if (remainingBlockSeconds > 0) {
+                        // 남은 대기 시간을 함께 내려, 클라이언트가 상태를 잃어도 카운트다운을 복원할 수 있게 한다.
+                        throw new ApplicationException(
+                                ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS,
+                                String.valueOf(remainingBlockSeconds)
+                        );
                     }
 
                     existing.refresh(hashedCode, now.plusSeconds(emailVerificationProperties.getExpiresSeconds()));
@@ -124,7 +129,8 @@ public class EmailVerificationService {
         return new EmailVerificationSendResponse(
                 email,
                 purpose.name(),
-                emailVerificationProperties.getExpiresSeconds()
+                emailVerificationProperties.getExpiresSeconds(),
+                emailVerificationProperties.getResendBlockSeconds()
         );
     }
 
@@ -329,11 +335,5 @@ public class EmailVerificationService {
         SecureRandom random = new SecureRandom();
         int number = random.nextInt(900000) + 100000;
         return String.valueOf(number);
-    }
-
-    private void validateEmailChangePurpose(EmailVerificationPurpose purpose) {
-        if (purpose != EmailVerificationPurpose.EMAIL_CHANGE) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
-        }
     }
 }
