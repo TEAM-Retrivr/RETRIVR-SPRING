@@ -115,9 +115,23 @@ public class EmailVerificationService {
         );
     }
 
-    public EmailVerificationSendResponse sendChangeEmailCode(EmailVerificationSendRequest request) {
-        validateEmailChangePurpose(request.purpose());
-        return sendCode(request);
+    /**
+     * 이메일 변경용 인증 코드를 발송한다.
+     * 발송 이전에 현재 이메일과의 동일 여부 및 타 단체 중복을 검증하여,
+     * 검증 단계에서만 거절되어 쓸모없는 인증 코드가 발송되는 것을 방지한다.
+     */
+    public EmailVerificationSendResponse sendChangeEmailCode(EmailVerificationSendRequest request, Long organizationId) {
+        assertEmailChangePurpose(request.purpose());
+
+        String email = normalizeEmail(request.email());
+
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+        organization.assertEmailChangeableTo(email);
+        assertEmailNotUsedByOtherOrganization(email, organizationId);
+
+        return issueCode(request);
     }
 
     @Transactional(noRollbackFor = ApplicationException.class)
@@ -186,7 +200,7 @@ public class EmailVerificationService {
      */
     @Transactional(noRollbackFor = ApplicationException.class)
     public AdminEmailChangeResponse verifyChangeEmail(EmailVerificationRequest request, Long organizationId) {
-        validateEmailChangePurpose(request.purpose());
+        assertEmailChangePurpose(request.purpose());
 
         String email = normalizeEmail(request.email());
         LocalDateTime now = LocalDateTime.now();
@@ -194,12 +208,10 @@ public class EmailVerificationService {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-        // 다른 단체가 이미 사용 중인 이메일인지 검증 (코드 검증 이전에 확인하여, 인증 성공 후 실패로 인한 상태 불일치를 방지)
-        organizationRepository.findByEmail(email)
-                .filter(found -> !found.getId().equals(organizationId))
-                .ifPresent(found -> {
-                    throw new ApplicationException(ErrorCode.ALREADY_EXIST_EXCEPTION);
-                });
+        // 발송 시점에도 동일하게 검증하지만, 발송~검증 사이에 상태가 바뀔 수 있으므로 최종 방어선으로 다시 확인한다.
+        // (코드 검증 이전에 확인하여, 인증 성공 후 실패로 인한 상태 불일치를 방지)
+        organization.assertEmailChangeableTo(email);
+        assertEmailNotUsedByOtherOrganization(email, organizationId);
 
         EmailVerification verification = verifyCodeOrThrow(email, request.purpose(), request.code(), now);
         verification.markVerified(now);

@@ -21,6 +21,7 @@ import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
@@ -124,11 +125,78 @@ class EmailVerificationServiceTest {
                 ApplicationException.class,
                 () -> emailVerificationService.sendChangeEmailCode(
                         new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP),
+                        1L
                 )
         );
 
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender, organizationRepository);
+    }
+
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+    @Test
+    void sendChangeEmailCode_rejectsSameAsCurrentEmail() {
+        Long organizationId = 1L;
+        // 대소문자만 다른 현재 이메일도 동일한 것으로 판정되어야 한다.
+        Organization organization = organization(organizationId, "Test@TEST.com");
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> emailVerificationService.sendChangeEmailCode(
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                        organizationId
+                )
+        );
+
+        assertEquals(ErrorCode.EMAIL_SAME_AS_CURRENT, ex.getErrorCode());
         verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender);
+    }
+
+    @Test
+    void sendChangeEmailCode_rejectsEmailUsedByAnotherOrganization() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, "old@test.com");
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.of(organization(2L, email)));
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> emailVerificationService.sendChangeEmailCode(
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                        organizationId
+                )
+        );
+
+        assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender);
+    }
+
+    @Test
+    void sendChangeEmailCode_success_sendsCode() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, "old@test.com");
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.EMAIL_CHANGE))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
+
+        emailVerificationService.sendChangeEmailCode(
+                new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                organizationId
+        );
+
+        verify(emailVerificationRepository, times(1)).saveAndFlush(any(EmailVerification.class));
+        verify(emailVerificationCodeSender, times(1))
+                .sendVerificationCode(eq(email), anyString(), eq(EmailVerificationPurpose.EMAIL_CHANGE), eq(600));
     }
 
     @Test
@@ -253,6 +321,8 @@ class EmailVerificationServiceTest {
         assertEquals(email, response.email());
         assertEquals(email, organization.getEmail());
         assertTrue(verification.isVerified());
+        // 이메일 변경 시 refresh token 은 '변경 전' 이메일로 저장되어 있으므로, 그 값으로 폐기되어야 한다.
+        verify(refreshTokenRepository, times(1)).deleteAllByEmail("old@test.com");
         verify(organizationRepository, times(1)).saveAndFlush(organization);
         verifyNoInteractions(signupTokenRepository, passwordResetTokenRepository);
     }
@@ -333,8 +403,8 @@ class EmailVerificationServiceTest {
         when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
         when(organizationRepository.findByEmail(email)).thenReturn(Optional.of(anotherOrg));
 
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
+        DomainException ex = assertThrows(
+                DomainException.class,
                 () -> emailVerificationService.verifyChangeEmail(
                         new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
                         organizationId
@@ -359,6 +429,26 @@ class EmailVerificationServiceTest {
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
         verifyNoInteractions(emailVerificationRepository, organizationRepository);
     }
+
+    @Test
+    void verifyChangeEmail_sameAsCurrentEmail_throws() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, email);
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> emailVerificationService.verifyChangeEmail(
+                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        organizationId
+                )
+        );
+
+        assertEquals(ErrorCode.EMAIL_SAME_AS_CURRENT, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository);
+    }
+
     private Organization organization(Long id, String email) {
         return Organization.builder()
                 .id(id)

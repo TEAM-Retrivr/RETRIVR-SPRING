@@ -88,6 +88,17 @@ public class Organization extends BaseTimeEntity {
     this.email = requireNonBlankEmail(email);
   }
 
+  /**
+   * 해당 이메일로 변경할 수 있는지 검증한다.
+   * 현재 사용 중인 주소로는 인증 코드를 발송할 이유가 없으므로, 대소문자를 무시하고 동일 여부를 판정한다.
+   */
+  public void assertEmailChangeableTo(String newEmail) {
+    String candidate = requireNonBlankEmail(newEmail).trim();
+    if (this.email.trim().equalsIgnoreCase(candidate)) {
+      throw new DomainException(ErrorCode.EMAIL_SAME_AS_CURRENT);
+    }
+  }
+
   public void updateProfile(
           String encodedPassword,
           String organizationName,
