@@ -73,6 +73,7 @@ public enum ErrorCode {
     EMAIL_VERIFICATION_EXPIRED(HttpStatus.BAD_REQUEST, 7002, "인증 코드가 만료되었습니다."),
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, 7003, "이미 인증이 완료되었습니다."),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 7004, "존재하지 않는 이메일입니다."),
+    EMAIL_SAME_AS_CURRENT(HttpStatus.BAD_REQUEST, 7005, "현재 사용 중인 이메일입니다."),
 
     // 7100: Signup Email Verification Error
     SIGNUP_EMAIL_CODE_NOT_FOUND(HttpStatus.BAD_REQUEST, 7100, "회원가입 인증 요청이 존재하지 않습니다."),
