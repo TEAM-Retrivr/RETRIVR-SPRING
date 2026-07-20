@@ -87,7 +87,7 @@ class EmailVerificationServiceTest {
                 .thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
 
-        emailVerificationService.sendCode(
+        emailVerificationService.sendPublicCode(
                 new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
         );
 
@@ -111,7 +111,7 @@ class EmailVerificationServiceTest {
 
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
-                () -> emailVerificationService.sendCode(
+                () -> emailVerificationService.sendPublicCode(
                         new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
                 )
         );
@@ -124,7 +124,6 @@ class EmailVerificationServiceTest {
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
                 () -> emailVerificationService.sendChangeEmailCode(
-                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
                         new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP),
                         1L
                 )
@@ -134,10 +133,33 @@ class EmailVerificationServiceTest {
         verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender, organizationRepository);
     }
 
+    @Test
+    void sendPublicCode_rejectsEmailChangePurpose() {
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.sendPublicCode(
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE)
                 )
         );
 
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender, organizationRepository);
+    }
+
+    @Test
+    void verify_rejectsEmailChangePurpose_withoutConsumingCode() {
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.verify(
+                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        // 인증 코드가 조회조차 되지 않아야 markVerified 로 소모되지 않는다.
+        verifyNoInteractions(emailVerificationRepository);
+    }
+
     @Test
     void sendChangeEmailCode_rejectsSameAsCurrentEmail() {
         Long organizationId = 1L;

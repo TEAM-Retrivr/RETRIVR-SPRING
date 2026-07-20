@@ -26,13 +26,24 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendRe
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class EmailVerificationService {
+
+    /**
+     * 인증되지 않은 경로에서 요청할 수 있는 목적의 허용 목록.
+     * 거부 목록이 아닌 허용 목록으로 두어, 목적이 추가될 때 기본적으로 비공개가 되도록 한다.
+     */
+    private static final Set<EmailVerificationPurpose> PUBLICLY_REQUESTABLE_PURPOSES = EnumSet.of(
+            EmailVerificationPurpose.SIGNUP,
+            EmailVerificationPurpose.PASSWORD_RESET
+    );
 
     private final EmailVerificationRepository emailVerificationRepository;
     private final SignupTokenRepository signupTokenRepository;
