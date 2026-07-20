@@ -42,6 +42,7 @@ public class EmailVerificationService {
 
     public EmailVerificationSendResponse sendCode(EmailVerificationSendRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String email = normalizeEmail(request.email());
         EmailVerificationPurpose purpose = request.purpose();
 
         LocalDateTime now = LocalDateTime.now();
@@ -100,7 +101,11 @@ public class EmailVerificationService {
 
     @Transactional(noRollbackFor = ApplicationException.class)
     public EmailCodeVerifyTokenResponse verify(EmailVerificationRequest request) {
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        // EMAIL_CHANGE 코드가 이 경로로 소비되면 인증 완료 처리만 되고 이메일은 변경되지 않은 채 코드가 소모된다.
+        // 검증/상태 변경 이전에 거부한다.
+        assertPubliclyRequestable(request.purpose());
+
+        String email = normalizeEmail(request.email());
         EmailVerificationPurpose purpose = request.purpose();
         LocalDateTime now = LocalDateTime.now();
 
@@ -162,7 +167,7 @@ public class EmailVerificationService {
     public AdminEmailChangeResponse verifyChangeEmail(EmailVerificationRequest request, Long organizationId) {
         validateEmailChangePurpose(request.purpose());
 
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String email = normalizeEmail(request.email());
         LocalDateTime now = LocalDateTime.now();
 
         Organization organization = organizationRepository.findById(organizationId)
@@ -210,6 +215,10 @@ public class EmailVerificationService {
         }
 
         return verification;
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private String generateCode() {
