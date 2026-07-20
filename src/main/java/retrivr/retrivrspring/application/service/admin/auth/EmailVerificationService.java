@@ -156,9 +156,10 @@ public class EmailVerificationService {
         LocalDateTime now = LocalDateTime.now();
 
         EmailVerification verification = verifyCodeOrThrow(email, purpose, request.code(), now);
-        verification.markVerified(now);
 
         if (purpose == EmailVerificationPurpose.SIGNUP) {
+            verification.markVerified(now);
+
             String rawSignupToken = "st_" + UUID.randomUUID();
             String signupTokenHash = passwordEncoder.encode(rawSignupToken);
 
@@ -183,6 +184,7 @@ public class EmailVerificationService {
             Organization organization = organizationRepository.findByEmail(email)
                     .orElseThrow(() -> new ApplicationException(ErrorCode.ACCOUNT_NOT_FOUND));
 
+            verification.markVerified(now);
             passwordResetTokenRepository.deleteByOrganization(organization);
 
             String rawPasswordResetToken = "prt_" + UUID.randomUUID();
