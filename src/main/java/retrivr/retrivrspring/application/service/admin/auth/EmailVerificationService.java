@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.application.service.admin.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
@@ -40,8 +42,20 @@ public class EmailVerificationService {
     private final EmailVerificationCodeSender emailVerificationCodeSender;
     private final EmailVerificationProperties emailVerificationProperties;
 
-    public EmailVerificationSendResponse sendCode(EmailVerificationSendRequest request) {
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
+    /**
+     * 인증되지 않은 경로(public API)에서의 인증 코드 발송.
+     * 미인증 요청이 허용되지 않는 목적(EMAIL_CHANGE)은 거부하여, 인증된 경로의 검증을 우회할 수 없게 한다.
+     */
+    public EmailVerificationSendResponse sendPublicCode(EmailVerificationSendRequest request) {
+        assertPubliclyRequestable(request.purpose());
+        return issueCode(request);
+    }
+
+    /**
+     * 인증 코드를 발급·저장하고 메일로 발송한다.
+     * 진입점별 권한/목적 검증을 마친 뒤에만 호출되어야 하므로 외부에 노출하지 않는다.
+     */
+    private EmailVerificationSendResponse issueCode(EmailVerificationSendRequest request) {
         String email = normalizeEmail(request.email());
         EmailVerificationPurpose purpose = request.purpose();
 
@@ -80,7 +94,14 @@ public class EmailVerificationService {
                 break;
         }
 
-        emailVerificationRepository.save(verification);
+        try {
+            // (email, purpose) 유니크 제약. 동시 요청으로 같은 행이 먼저 생성되면 커밋이 아닌 이 시점에 드러나게 한다.
+            emailVerificationRepository.saveAndFlush(verification);
+        } catch (DataIntegrityViolationException e) {
+            // 방금 다른 요청이 같은 목적의 코드를 발급했다는 뜻이므로, 재발송 차단과 동일하게 취급한다.
+            throw new ApplicationException(ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS);
+        }
+
         emailVerificationCodeSender.sendVerificationCode(
                 email,
                 rawCode,
@@ -185,6 +206,15 @@ public class EmailVerificationService {
 
         organization.updateEmail(email);
 
+        try {
+            // organization.email 유니크 제약. 동시 변경 경합을 커밋 시점이 아닌 여기서 드러내어 400 으로 응답한다.
+            organizationRepository.saveAndFlush(organization);
+        } catch (DataIntegrityViolationException e) {
+            // 이 메서드는 인증 실패 횟수 누적을 위해 noRollbackFor = ApplicationException 으로 선언되어 있다.
+            // 제약 위반 이후의 영속성 컨텍스트는 커밋할 수 없으므로, 롤백 대상인 DomainException 으로 던져야 한다.
+            throw new DomainException(ErrorCode.ALREADY_EXIST_EXCEPTION);
+        }
+
         return new AdminEmailChangeResponse(organization.getId(), organization.getEmail());
     }
 
@@ -215,6 +245,48 @@ public class EmailVerificationService {
         }
 
         return verification;
+    }
+
+    /**
+     * 다른 단체가 이미 사용 중인 이메일인지 검증한다.
+     * "이메일은 하나의 단체에만 속한다"는 불변식이지만 단일 엔티티가 답할 수 없으므로 서비스가 조율한다.
+     * 커밋 시점의 유니크 제약 위반과 동일한 예외로 던져, 선검사와 경합 실패의 응답을 일치시킨다.
+     */
+    private void assertEmailNotUsedByOtherOrganization(String email, Long organizationId) {
+        organizationRepository.findByEmail(email)
+                .filter(found -> !found.getId().equals(organizationId))
+                .ifPresent(found -> {
+                    throw new DomainException(ErrorCode.ALREADY_EXIST_EXCEPTION);
+                });
+    }
+
+    /**
+     * 인증되지 않은 진입점에서 허용되는 목적인지 검증한다.
+     * purpose 는 경로가 아닌 요청 본문에서 오므로, 엔드포인트 분리만으로는 제한되지 않는다.
+     */
+    private void assertPubliclyRequestable(EmailVerificationPurpose purpose) {
+        if (!PUBLICLY_REQUESTABLE_PURPOSES.contains(purpose)) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
+    }
+
+    private void assertEmailChangePurpose(EmailVerificationPurpose purpose) {
+        if (purpose != EmailVerificationPurpose.EMAIL_CHANGE) {
+            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+        }
+    }
+
+    /**
+     * 재발송이 가능해질 때까지 남은 시간(초). 0 이하이면 재발송 가능하다.
+     * 마지막 발송 시각은 행의 updatedAt 이 기준이므로, 서버가 유일한 판단 주체다.
+     */
+    private long remainingResendBlockSeconds(EmailVerification verification, LocalDateTime now) {
+        if (verification.getUpdatedAt() == null) {
+            return 0;
+        }
+
+        long elapsedSeconds = Duration.between(verification.getUpdatedAt(), now).getSeconds();
+        return emailVerificationProperties.getResendBlockSeconds() - elapsedSeconds;
     }
 
     private String normalizeEmail(String email) {

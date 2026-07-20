@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationCodeSender;
@@ -89,7 +90,7 @@ class EmailVerificationServiceTest {
                 new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
         );
 
-        verify(emailVerificationRepository, times(1)).save(any(EmailVerification.class));
+        verify(emailVerificationRepository, times(1)).saveAndFlush(any(EmailVerification.class));
         verify(emailVerificationCodeSender, times(1))
                 .sendVerificationCode(eq(email), anyString(), eq(EmailVerificationPurpose.SIGNUP), eq(600));
     }
@@ -252,7 +253,60 @@ class EmailVerificationServiceTest {
         assertEquals(email, response.email());
         assertEquals(email, organization.getEmail());
         assertTrue(verification.isVerified());
+        verify(organizationRepository, times(1)).saveAndFlush(organization);
         verifyNoInteractions(signupTokenRepository, passwordResetTokenRepository);
+    }
+
+    @Test
+    void verifyChangeEmail_duplicateEmailAtCommit_translatedToAlreadyExist() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, "old@test.com");
+
+        EmailVerification verification = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.EMAIL_CHANGE))
+                .thenReturn(Optional.of(verification));
+        when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
+        // 동시 요청이 먼저 커밋되어 unique 제약에 걸리는 상황
+        when(organizationRepository.saveAndFlush(organization))
+                .thenThrow(new DataIntegrityViolationException("duplicate email"));
+
+        DomainException ex = assertThrows(
+                DomainException.class,
+                () -> emailVerificationService.verifyChangeEmail(
+                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        organizationId
+                )
+        );
+
+        // 500 이 아니라 400 으로 내려가야 한다.
+        assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
+    }
+
+    @Test
+    void sendCode_duplicateAtFlush_translatedToTooManyRequests() {
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.SIGNUP))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
+        when(emailVerificationRepository.saveAndFlush(any(EmailVerification.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate (email, purpose)"));
+
+        ApplicationException ex = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.sendPublicCode(
+                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP)
+                )
+        );
+
+        assertEquals(ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS, ex.getErrorCode());
+        verifyNoInteractions(emailVerificationCodeSender);
     }
 
     @Test
@@ -304,5 +358,15 @@ class EmailVerificationServiceTest {
 
         assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
         verifyNoInteractions(emailVerificationRepository, organizationRepository);
+    }
+    private Organization organization(Long id, String email) {
+        return Organization.builder()
+                .id(id)
+                .email(email)
+                .passwordHash("pw")
+                .name("org")
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("code")
+                .build();
     }
 }
