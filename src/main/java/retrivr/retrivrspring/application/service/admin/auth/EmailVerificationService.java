@@ -12,6 +12,7 @@ import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
@@ -49,6 +50,7 @@ public class EmailVerificationService {
     private final SignupTokenRepository signupTokenRepository;
     private final OrganizationRepository organizationRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationCodeSender emailVerificationCodeSender;
     private final EmailVerificationProperties emailVerificationProperties;
@@ -210,6 +212,7 @@ public class EmailVerificationService {
     /**
      * 이메일 인증 코드를 검증하고, 성공 시 로그인한 단체의 이메일을 즉시 변경한다.
      * 별도의 인증 토큰을 발급하지 않고 인증 완료 시점에 이메일 변경을 반영한다.
+     * refresh token 은 이메일로 단체를 식별하므로, 변경과 함께 기존 토큰을 모두 폐기하여 전 기기를 로그아웃시킨다.
      */
     @Transactional(noRollbackFor = ApplicationException.class)
     public AdminEmailChangeResponse verifyChangeEmail(EmailVerificationRequest request, Long organizationId) {
@@ -228,6 +231,10 @@ public class EmailVerificationService {
 
         EmailVerification verification = verifyCodeOrThrow(email, request.purpose(), request.code(), now);
         verification.markVerified(now);
+
+        // 반드시 변경 전에 캡처한다. updateEmail 이후에는 새 이메일이 조회되어 엉뚱한 토큰을 지우게 된다.
+        String previousEmail = organization.getEmail();
+        refreshTokenRepository.deleteAllByEmail(previousEmail);
 
         organization.updateEmail(email);
 

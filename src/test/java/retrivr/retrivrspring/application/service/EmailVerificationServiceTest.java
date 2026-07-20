@@ -18,6 +18,7 @@ import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificat
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
@@ -62,6 +63,9 @@ class EmailVerificationServiceTest {
 
     @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private EmailVerificationCodeSender emailVerificationCodeSender;
