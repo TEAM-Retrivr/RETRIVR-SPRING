@@ -48,7 +48,6 @@ public class AdminProfileService {
         return new AdminProfileResponse(
                 organization.getName(),
                 organization.getId(),
-                organization.getProfileImageKey(),
                 organization.getEmail()
         );
     }
@@ -63,7 +62,6 @@ public class AdminProfileService {
         return new AdminProfileResponse(
                 organization.getName(),
                 organization.getId(),
-                organization.getProfileImageKey(),
                 organization.getEmail()
         );
     }

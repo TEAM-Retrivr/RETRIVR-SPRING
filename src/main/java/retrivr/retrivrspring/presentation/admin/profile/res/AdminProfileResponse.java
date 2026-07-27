@@ -9,12 +9,6 @@ public record AdminProfileResponse(
 
         Long organizationId,
 
-        @Schema(
-                description = "단체 이미지 URL",
-                example = "https://cdn.retrivr.com/organizations/5/profile/uuid.png"
-        )
-        String profileImageUrl,
-
         @Schema(description = "단체 이메일", example = "admin@retrivr.com")
         String email
 ) {

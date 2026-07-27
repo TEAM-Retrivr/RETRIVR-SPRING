@@ -48,7 +48,7 @@ public class AdminProfileController {
     @GetMapping
     @Operation(
             summary = "관리자 프로필 조회",
-            description = "단체 명, 단체 이미지, 단체 이메일을 조회합니다."
+            description = "단체 명과 단체 이메일을 조회합니다."
     )
     @ApiResponse(
             responseCode = "200",
