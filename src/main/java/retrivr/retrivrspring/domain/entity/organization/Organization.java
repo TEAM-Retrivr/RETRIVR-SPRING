@@ -84,6 +84,19 @@ public class Organization extends BaseTimeEntity {
     this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
   }
 
+  public void changeName(String organizationName) {
+    if (organizationName == null || organizationName.trim().isEmpty()) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+    this.name = organizationName.trim();
+  }
+
+  public void changeAdminCode(String encodedAdminCode) {
+    this.adminAuthCode = AdminAuthCodeHash.fromHashed(
+        requireHashedValue(encodedAdminCode, "encodedAdminCode")
+    );
+  }
+
   public void updateEmail(String email) {
     this.email = requireNonBlankEmail(email);
   }
@@ -97,16 +110,6 @@ public class Organization extends BaseTimeEntity {
     if (this.email.trim().equalsIgnoreCase(candidate)) {
       throw new DomainException(ErrorCode.EMAIL_SAME_AS_CURRENT);
     }
-  }
-
-  public void updateProfile(
-          String encodedPassword,
-          String organizationName,
-          String encodedAdminCode
-  ) {
-    this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
-    this.name = organizationName;
-    this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));
   }
 
   public void updateProfileImageKey(String profileImageKey) {

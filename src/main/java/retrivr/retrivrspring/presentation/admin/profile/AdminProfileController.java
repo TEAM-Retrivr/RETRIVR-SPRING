@@ -23,10 +23,13 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileImageUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminGetPresignedURLForUploadRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminCodeUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileChangeResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminPasswordVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
@@ -56,9 +59,8 @@ public class AdminProfileController {
 
     @PatchMapping
     @Operation(
-            summary = "관리자 프로필 수정",
-            description = "newPassword, confirmPassword, newOrganizationName, newAdminCode를 수정합니다. "
-                    + "이메일 변경은 이메일 인증(POST /api/admin/v1/email/verification/verify)으로 즉시 반영됩니다."
+            summary = "관리자 단체명 수정",
+            description = "로그인한 관리자의 단체명을 개별 수정합니다."
     )
     @ApiResponse(
             responseCode = "200",
@@ -67,14 +69,65 @@ public class AdminProfileController {
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
-            ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH
+            ErrorCode.INVALID_VALUE_EXCEPTION
     })
     public AdminProfileResponse updateProfile(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
             @Valid @RequestBody AdminProfileUpdateRequest request
     ) {
         return adminProfileService.updateProfile(authUser.organizationId(), request);
+    }
+
+    @PatchMapping("/password")
+    @Operation(
+            summary = "관리자 비밀번호 변경",
+            description = "PASSWORD_CHANGE 목적으로 발급받은 비밀번호 인증 토큰을 검증하고 비밀번호를 변경합니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "비밀번호 변경 성공",
+            content = @Content(schema = @Schema(implementation = AdminProfileChangeResponse.class))
+    )
+    @ApiErrorCodeExamples({
+            ErrorCode.NOT_FOUND_ORGANIZATION,
+            ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH,
+            ErrorCode.PASSWORD_RESET_POLICY_VIOLATION,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
+    })
+    public AdminProfileChangeResponse updatePassword(
+            @Parameter(hidden = true) @AuthOrg AuthUser authUser,
+            @Valid @RequestBody AdminPasswordUpdateRequest request
+    ) {
+        return adminProfileService.updatePassword(authUser.organizationId(), request);
+    }
+
+    @PatchMapping("/admin-code")
+    @Operation(
+            summary = "관리자 코드 변경",
+            description = "ADMIN_CODE_CHANGE 목적으로 발급받은 비밀번호 인증 토큰을 검증하고 관리자 코드를 변경합니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "관리자 코드 변경 성공",
+            content = @Content(schema = @Schema(implementation = AdminProfileChangeResponse.class))
+    )
+    @ApiErrorCodeExamples({
+            ErrorCode.NOT_FOUND_ORGANIZATION,
+            ErrorCode.ADMIN_CODE_MISMATCH,
+            ErrorCode.INVALID_VALUE_EXCEPTION,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
+    })
+    public AdminProfileChangeResponse updateAdminCode(
+            @Parameter(hidden = true) @AuthOrg AuthUser authUser,
+            @Valid @RequestBody AdminCodeUpdateRequest request
+    ) {
+        return adminProfileService.updateAdminCode(authUser.organizationId(), request);
     }
 
     @PostMapping("/password/verify")
