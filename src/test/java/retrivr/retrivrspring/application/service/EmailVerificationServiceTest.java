@@ -31,7 +31,6 @@ import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationR
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -381,13 +380,11 @@ class EmailVerificationServiceTest {
                 .thenReturn(Optional.of(verification));
         when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
 
-        AdminEmailChangeResponse response = emailVerificationService.verifyChangeEmail(
+        emailVerificationService.verifyChangeEmail(
                 adminVerifyRequest(),
                 organizationId
         );
 
-        assertEquals(organizationId, response.organizationId());
-        assertEquals(email, response.email());
         assertEquals(email, organization.getEmail());
         assertTrue(verification.isVerified());
         // 이메일 변경 시 refresh token 은 '변경 전' 이메일로 저장되어 있으므로, 그 값으로 폐기되어야 한다.

@@ -25,7 +25,6 @@ import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationR
 import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -236,7 +235,7 @@ public class EmailVerificationService {
      * refresh token 은 이메일로 단체를 식별하므로, 변경과 함께 기존 토큰을 모두 폐기하여 전 기기를 로그아웃시킨다.
      */
     @Transactional(noRollbackFor = ApplicationException.class)
-    public AdminEmailChangeResponse verifyChangeEmail(
+    public void verifyChangeEmail(
             AdminEmailVerificationRequest request,
             Long organizationId
     ) {
@@ -285,7 +284,6 @@ public class EmailVerificationService {
             throw new DomainException(ErrorCode.ALREADY_EXIST_EXCEPTION);
         }
 
-        return new AdminEmailChangeResponse(organization.getId(), organization.getEmail());
     }
 
     private EmailVerification verifyCodeOrThrow(String email, EmailVerificationPurpose purpose, String rawCode, LocalDateTime now) {
