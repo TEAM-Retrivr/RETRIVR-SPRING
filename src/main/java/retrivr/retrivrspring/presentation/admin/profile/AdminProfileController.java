@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
 import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
+import retrivr.retrivrspring.presentation.admin.auth.AdminRefreshTokenCookieManager;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -29,7 +32,6 @@ import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordVerific
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
-import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileChangeResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminPasswordVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
@@ -41,6 +43,7 @@ public class AdminProfileController {
 
     private final AdminProfileService adminProfileService;
     private final PasswordVerificationService passwordVerificationService;
+    private final AdminRefreshTokenCookieManager refreshTokenCookieManager;
 
     @GetMapping
     @Operation(
@@ -84,9 +87,8 @@ public class AdminProfileController {
             description = "PASSWORD_CHANGE 목적으로 발급받은 비밀번호 인증 토큰을 검증하고 비밀번호를 변경합니다."
     )
     @ApiResponse(
-            responseCode = "200",
-            description = "비밀번호 변경 성공",
-            content = @Content(schema = @Schema(implementation = AdminProfileChangeResponse.class))
+            responseCode = "204",
+            description = "비밀번호 변경 및 세션 만료 성공"
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
@@ -97,11 +99,14 @@ public class AdminProfileController {
             ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
             ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
-    public AdminProfileChangeResponse updatePassword(
+    public ResponseEntity<Void> updatePassword(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
             @Valid @RequestBody AdminPasswordUpdateRequest request
     ) {
-        return adminProfileService.updatePassword(authUser.organizationId(), request);
+        adminProfileService.updatePassword(authUser.organizationId(), request);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieManager.delete().toString())
+                .build();
     }
 
     @PatchMapping("/admin-code")
@@ -110,9 +115,8 @@ public class AdminProfileController {
             description = "ADMIN_CODE_CHANGE 목적으로 발급받은 비밀번호 인증 토큰을 검증하고 관리자 코드를 변경합니다."
     )
     @ApiResponse(
-            responseCode = "200",
-            description = "관리자 코드 변경 성공",
-            content = @Content(schema = @Schema(implementation = AdminProfileChangeResponse.class))
+            responseCode = "204",
+            description = "관리자 코드 변경 성공"
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
@@ -123,11 +127,12 @@ public class AdminProfileController {
             ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
             ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
-    public AdminProfileChangeResponse updateAdminCode(
+    public ResponseEntity<Void> updateAdminCode(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
             @Valid @RequestBody AdminCodeUpdateRequest request
     ) {
-        return adminProfileService.updateAdminCode(authUser.organizationId(), request);
+        adminProfileService.updateAdminCode(authUser.organizationId(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/password/verify")

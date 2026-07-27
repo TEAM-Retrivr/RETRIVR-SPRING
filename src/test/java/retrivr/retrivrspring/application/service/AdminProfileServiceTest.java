@@ -19,6 +19,7 @@ import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificat
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -40,6 +41,9 @@ class AdminProfileServiceTest {
 
     @Mock
     private PasswordVerificationService passwordVerificationService;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private AdminProfileService adminProfileService;
@@ -79,7 +83,7 @@ class AdminProfileServiceTest {
         givenOrganization();
         given(passwordEncoder.encode("NewPassword123!")).willReturn("new-password-hash");
 
-        var response = adminProfileService.updatePassword(
+        adminProfileService.updatePassword(
                 ORGANIZATION_ID,
                 new AdminPasswordUpdateRequest(
                         "NewPassword123!",
@@ -88,13 +92,13 @@ class AdminProfileServiceTest {
                 )
         );
 
-        assertEquals(true, response.success());
         assertEquals("new-password-hash", organization.getPasswordHash());
         verify(passwordVerificationService).validateAndConsume(
                 ORGANIZATION_ID,
                 PasswordVerificationPurpose.PASSWORD_CHANGE,
                 "pvt_password"
         );
+        verify(refreshTokenRepository).deleteAllByEmail("old@retrivr.com");
     }
 
     @Test
@@ -114,6 +118,7 @@ class AdminProfileServiceTest {
         );
 
         assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, exception.getErrorCode());
+        verifyNoInteractions(refreshTokenRepository);
         verify(passwordVerificationService).validateAndConsume(
                 ORGANIZATION_ID,
                 PasswordVerificationPurpose.PASSWORD_CHANGE,
@@ -138,6 +143,7 @@ class AdminProfileServiceTest {
         );
 
         assertEquals(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION, exception.getErrorCode());
+        verifyNoInteractions(refreshTokenRepository);
     }
 
     @Test
@@ -145,18 +151,18 @@ class AdminProfileServiceTest {
         givenOrganization();
         given(passwordEncoder.encode("123456")).willReturn("new-admin-code-hash");
 
-        var response = adminProfileService.updateAdminCode(
+        adminProfileService.updateAdminCode(
                 ORGANIZATION_ID,
                 new AdminCodeUpdateRequest("123456", "123456", "pvt_admin_code")
         );
 
-        assertEquals(true, response.success());
         assertEquals("new-admin-code-hash", organization.getAdminCodeHash());
         verify(passwordVerificationService).validateAndConsume(
                 ORGANIZATION_ID,
                 PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
                 "pvt_admin_code"
         );
+        verifyNoInteractions(refreshTokenRepository);
     }
 
     @Test

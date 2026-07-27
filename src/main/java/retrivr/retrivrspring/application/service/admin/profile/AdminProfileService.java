@@ -14,6 +14,7 @@ import retrivr.retrivrspring.domain.entity.organization.AdminAuthCodeHash;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordHash;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -23,7 +24,6 @@ import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileImageUpd
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminGetPresignedURLForUploadRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
-import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileChangeResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
@@ -36,6 +36,7 @@ public class AdminProfileService {
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordVerificationService passwordVerificationService;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final ProfileImageKeyGeneratorPort profileImageKeyGeneratorPort;
     private final ImageStoragePort imageStoragePort;
 
@@ -68,7 +69,7 @@ public class AdminProfileService {
     }
 
     @Transactional
-    public AdminProfileChangeResponse updatePassword(
+    public void updatePassword(
             Long organizationId,
             AdminPasswordUpdateRequest request
     ) {
@@ -91,12 +92,11 @@ public class AdminProfileService {
                 ErrorCode.PASSWORD_RESET_POLICY_VIOLATION
         );
         organization.changePassword(newPasswordHash.getValue());
-
-        return AdminProfileChangeResponse.ofSuccess();
+        refreshTokenRepository.deleteAllByEmail(organization.getEmail());
     }
 
     @Transactional
-    public AdminProfileChangeResponse updateAdminCode(
+    public void updateAdminCode(
             Long organizationId,
             AdminCodeUpdateRequest request
     ) {
@@ -118,8 +118,6 @@ public class AdminProfileService {
                 passwordEncoder
         );
         organization.changeAdminCode(newAdminCodeHash.getValue());
-
-        return AdminProfileChangeResponse.ofSuccess();
     }
 
     @Transactional
