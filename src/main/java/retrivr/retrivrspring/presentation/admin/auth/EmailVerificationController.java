@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,8 @@ import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
@@ -31,6 +34,7 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendRe
 public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
+    private final AdminRefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/public/v1/email/verification")
     @Operation(
@@ -87,14 +91,17 @@ public class EmailVerificationController {
     )
     @ApiErrorCodeExamples({
             ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
             ErrorCode.NOT_FOUND_ORGANIZATION,
             ErrorCode.EMAIL_SAME_AS_CURRENT,
-            ErrorCode.ALREADY_EXIST_EXCEPTION
+            ErrorCode.ALREADY_EXIST_EXCEPTION,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
     public ResponseEntity<EmailVerificationSendResponse> sendAdminEmailVerificationCode(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
-            @Valid @RequestBody EmailVerificationSendRequest request
+            @Valid @RequestBody AdminEmailVerificationSendRequest request
     ) {
         return ResponseEntity.ok(emailVerificationService.sendChangeEmailCode(request, authUser.organizationId()));
     }
@@ -116,13 +123,21 @@ public class EmailVerificationController {
             ErrorCode.EMAIL_VERIFICATION_EXPIRED,
             ErrorCode.EMAIL_ALREADY_VERIFIED,
             ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
-            ErrorCode.EMAIL_SAME_AS_CURRENT
+            ErrorCode.EMAIL_SAME_AS_CURRENT,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
     public ResponseEntity<AdminEmailChangeResponse> verifyAdminEmail(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
-            @Valid @RequestBody EmailVerificationRequest request
+            @Valid @RequestBody AdminEmailVerificationRequest request
     ) {
-        return ResponseEntity.ok(emailVerificationService.verifyChangeEmail(request, authUser.organizationId()));
+        AdminEmailChangeResponse response =
+                emailVerificationService.verifyChangeEmail(request, authUser.organizationId());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieManager.delete().toString())
+                .body(response);
     }
 }

@@ -10,6 +10,7 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
@@ -19,6 +20,9 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
+import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
@@ -55,6 +59,7 @@ public class EmailVerificationService {
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationCodeSender emailVerificationCodeSender;
     private final EmailVerificationProperties emailVerificationProperties;
+    private final PasswordVerificationService passwordVerificationService;
 
     /**
      * 인증되지 않은 경로(public API)에서의 인증 코드 발송.
@@ -139,8 +144,15 @@ public class EmailVerificationService {
      * 발송 이전에 현재 이메일과의 동일 여부 및 타 단체 중복을 검증하여,
      * 검증 단계에서만 거절되어 쓸모없는 인증 코드가 발송되는 것을 방지한다.
      */
-    public EmailVerificationSendResponse sendChangeEmailCode(EmailVerificationSendRequest request, Long organizationId) {
-        assertEmailChangePurpose(request.purpose());
+    public EmailVerificationSendResponse sendChangeEmailCode(
+            AdminEmailVerificationSendRequest request,
+            Long organizationId
+    ) {
+        passwordVerificationService.validate(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                request.passwordVerificationToken()
+        );
 
         String email = normalizeEmail(request.email());
 
@@ -150,7 +162,10 @@ public class EmailVerificationService {
         organization.assertEmailChangeableTo(email);
         assertEmailNotUsedByOtherOrganization(email, organizationId);
 
-        return issueCode(request);
+        return issueCode(new EmailVerificationSendRequest(
+                request.email(),
+                EmailVerificationPurpose.EMAIL_CHANGE
+        ));
     }
 
     @Transactional(noRollbackFor = ApplicationException.class)
@@ -221,8 +236,15 @@ public class EmailVerificationService {
      * refresh token 은 이메일로 단체를 식별하므로, 변경과 함께 기존 토큰을 모두 폐기하여 전 기기를 로그아웃시킨다.
      */
     @Transactional(noRollbackFor = ApplicationException.class)
-    public AdminEmailChangeResponse verifyChangeEmail(EmailVerificationRequest request, Long organizationId) {
-        assertEmailChangePurpose(request.purpose());
+    public AdminEmailChangeResponse verifyChangeEmail(
+            AdminEmailVerificationRequest request,
+            Long organizationId
+    ) {
+        passwordVerificationService.validate(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                request.passwordVerificationToken()
+        );
 
         String email = normalizeEmail(request.email());
         LocalDateTime now = LocalDateTime.now();
@@ -235,8 +257,18 @@ public class EmailVerificationService {
         organization.assertEmailChangeableTo(email);
         assertEmailNotUsedByOtherOrganization(email, organizationId);
 
-        EmailVerification verification = verifyCodeOrThrow(email, request.purpose(), request.code(), now);
+        EmailVerification verification = verifyCodeOrThrow(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE,
+                request.code(),
+                now
+        );
         verification.markVerified(now);
+        passwordVerificationService.validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                request.passwordVerificationToken()
+        );
 
         // 반드시 변경 전에 캡처한다. updateEmail 이후에는 새 이메일이 조회되어 엉뚱한 토큰을 지우게 된다.
         String previousEmail = organization.getEmail();
@@ -304,12 +336,6 @@ public class EmailVerificationService {
      */
     private void assertPubliclyRequestable(EmailVerificationPurpose purpose) {
         if (!PUBLICLY_REQUESTABLE_PURPOSES.contains(purpose)) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
-        }
-    }
-
-    private void assertEmailChangePurpose(EmailVerificationPurpose purpose) {
-        if (purpose != EmailVerificationPurpose.EMAIL_CHANGE) {
             throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
         }
     }

@@ -11,11 +11,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationCodeSender;
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
+import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
@@ -25,6 +27,8 @@ import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.properties.EmailVerificationProperties;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
@@ -73,6 +77,9 @@ class EmailVerificationServiceTest {
 
     @Mock
     private EmailVerificationProperties emailVerificationProperties;
+
+    @Mock
+    private PasswordVerificationService passwordVerificationService;
 
     @InjectMocks
     private EmailVerificationService emailVerificationService;
@@ -168,20 +175,6 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void sendChangeEmailCode_rejectsNonEmailChangePurpose() {
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.sendChangeEmailCode(
-                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.SIGNUP),
-                        1L
-                )
-        );
-
-        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
-        verifyNoInteractions(emailVerificationRepository, emailVerificationCodeSender, organizationRepository);
-    }
-
-    @Test
     void sendPublicCode_rejectsEmailChangePurpose() {
         ApplicationException ex = assertThrows(
                 ApplicationException.class,
@@ -219,7 +212,7 @@ class EmailVerificationServiceTest {
         DomainException ex = assertThrows(
                 DomainException.class,
                 () -> emailVerificationService.sendChangeEmailCode(
-                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                        adminSendRequest(),
                         organizationId
                 )
         );
@@ -239,7 +232,7 @@ class EmailVerificationServiceTest {
         DomainException ex = assertThrows(
                 DomainException.class,
                 () -> emailVerificationService.sendChangeEmailCode(
-                        new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                        adminSendRequest(),
                         organizationId
                 )
         );
@@ -260,13 +253,18 @@ class EmailVerificationServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
 
         emailVerificationService.sendChangeEmailCode(
-                new EmailVerificationSendRequest(email, EmailVerificationPurpose.EMAIL_CHANGE),
+                adminSendRequest(),
                 organizationId
         );
 
         verify(emailVerificationRepository, times(1)).saveAndFlush(any(EmailVerification.class));
         verify(emailVerificationCodeSender, times(1))
                 .sendVerificationCode(eq(email), anyString(), eq(EmailVerificationPurpose.EMAIL_CHANGE), eq(600));
+        verify(passwordVerificationService).validate(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                "pvt_email"
+        );
     }
 
     @Test
@@ -383,7 +381,7 @@ class EmailVerificationServiceTest {
         when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
 
         AdminEmailChangeResponse response = emailVerificationService.verifyChangeEmail(
-                new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                adminVerifyRequest(),
                 organizationId
         );
 
@@ -393,8 +391,53 @@ class EmailVerificationServiceTest {
         assertTrue(verification.isVerified());
         // 이메일 변경 시 refresh token 은 '변경 전' 이메일로 저장되어 있으므로, 그 값으로 폐기되어야 한다.
         verify(refreshTokenRepository, times(1)).deleteAllByEmail("old@test.com");
+        verify(passwordVerificationService).validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                "pvt_email"
+        );
         verify(organizationRepository, times(1)).saveAndFlush(organization);
         verifyNoInteractions(signupTokenRepository, passwordResetTokenRepository);
+    }
+
+    @Test
+    void verifyChangeEmail_codeMismatchDoesNotConsumePasswordVerificationToken() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, "old@test.com");
+        EmailVerification verification = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(emailVerificationRepository.findByEmailAndPurpose(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE
+        )).thenReturn(Optional.of(verification));
+        when(passwordEncoder.matches("123456", "hashed")).thenReturn(false);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.verifyChangeEmail(
+                        adminVerifyRequest(),
+                        organizationId
+                )
+        );
+
+        assertEquals(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH, exception.getErrorCode());
+        verify(passwordVerificationService).validate(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                "pvt_email"
+        );
+        verify(passwordVerificationService, times(0)).validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                "pvt_email"
+        );
     }
 
     @Test
@@ -421,7 +464,7 @@ class EmailVerificationServiceTest {
         DomainException ex = assertThrows(
                 DomainException.class,
                 () -> emailVerificationService.verifyChangeEmail(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        adminVerifyRequest(),
                         organizationId
                 )
         );
@@ -476,7 +519,7 @@ class EmailVerificationServiceTest {
         DomainException ex = assertThrows(
                 DomainException.class,
                 () -> emailVerificationService.verifyChangeEmail(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        adminVerifyRequest(),
                         organizationId
                 )
         );
@@ -484,20 +527,6 @@ class EmailVerificationServiceTest {
         assertEquals(ErrorCode.ALREADY_EXIST_EXCEPTION, ex.getErrorCode());
         assertEquals("old@test.com", organization.getEmail());
         verifyNoInteractions(emailVerificationRepository);
-    }
-
-    @Test
-    void verifyChangeEmail_rejectsNonEmailChangePurpose() {
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> emailVerificationService.verifyChangeEmail(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.SIGNUP, "123456"),
-                        1L
-                )
-        );
-
-        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
-        verifyNoInteractions(emailVerificationRepository, organizationRepository);
     }
 
     @Test
@@ -510,7 +539,7 @@ class EmailVerificationServiceTest {
         DomainException ex = assertThrows(
                 DomainException.class,
                 () -> emailVerificationService.verifyChangeEmail(
-                        new EmailVerificationRequest(email, EmailVerificationPurpose.EMAIL_CHANGE, "123456"),
+                        adminVerifyRequest(),
                         organizationId
                 )
         );
@@ -528,5 +557,13 @@ class EmailVerificationServiceTest {
                 .status(OrganizationStatus.ACTIVE)
                 .adminCodeHash("code")
                 .build();
+    }
+
+    private AdminEmailVerificationSendRequest adminSendRequest() {
+        return new AdminEmailVerificationSendRequest(email, "pvt_email");
+    }
+
+    private AdminEmailVerificationRequest adminVerifyRequest() {
+        return new AdminEmailVerificationRequest(email, "123456", "pvt_email");
     }
 }
