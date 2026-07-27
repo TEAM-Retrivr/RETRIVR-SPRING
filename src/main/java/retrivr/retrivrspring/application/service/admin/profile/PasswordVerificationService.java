@@ -71,14 +71,37 @@ public class PasswordVerificationService {
             PasswordVerificationPurpose purpose,
             String rawToken
     ) {
-        PasswordVerificationToken token = findValidToken(organizationId, purpose, rawToken);
-        token.markUsed(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        PasswordVerificationToken token = findValidToken(
+                organizationId,
+                purpose,
+                rawToken,
+                now
+        );
+        int updatedRows = passwordVerificationTokenRepository.markUsedIfUnused(
+                token.getId(),
+                now
+        );
+        if (updatedRows == 0) {
+            throw new ApplicationException(
+                    ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
+            );
+        }
     }
 
     private PasswordVerificationToken findValidToken(
             Long organizationId,
             PasswordVerificationPurpose purpose,
             String rawToken
+    ) {
+        return findValidToken(organizationId, purpose, rawToken, LocalDateTime.now());
+    }
+
+    private PasswordVerificationToken findValidToken(
+            Long organizationId,
+            PasswordVerificationPurpose purpose,
+            String rawToken,
+            LocalDateTime now
     ) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND);
@@ -94,7 +117,7 @@ public class PasswordVerificationService {
         if (token.getUsedAt() != null) {
             throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED);
         }
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (token.getExpiresAt().isBefore(now)) {
             throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED);
         }
         if (!passwordEncoder.matches(rawToken, token.getTokenHash())) {

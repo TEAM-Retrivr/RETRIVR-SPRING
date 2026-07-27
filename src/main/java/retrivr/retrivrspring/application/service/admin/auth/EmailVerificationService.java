@@ -263,12 +263,12 @@ public class EmailVerificationService {
                 request.code(),
                 now
         );
-        verification.markVerified(now);
         passwordVerificationService.validateAndConsume(
                 organizationId,
                 PasswordVerificationPurpose.EMAIL_CHANGE,
                 request.passwordVerificationToken()
         );
+        verification.markVerified(now);
 
         // 반드시 변경 전에 캡처한다. updateEmail 이후에는 새 이메일이 조회되어 엉뚱한 토큰을 지우게 된다.
         String previousEmail = organization.getEmail();

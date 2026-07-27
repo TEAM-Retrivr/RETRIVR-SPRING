@@ -63,8 +63,4 @@ public class PasswordVerificationToken extends BaseTimeEntity {
         this.expiresAt = expiresAt;
         this.usedAt = usedAt;
     }
-
-    public void markUsed(LocalDateTime time) {
-        this.usedAt = time;
-    }
 }

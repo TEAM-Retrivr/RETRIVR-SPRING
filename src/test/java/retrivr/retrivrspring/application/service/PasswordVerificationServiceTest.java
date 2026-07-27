@@ -162,6 +162,10 @@ class PasswordVerificationServiceTest {
         PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
         givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
         given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        )).willReturn(1);
 
         passwordVerificationService.validateAndConsume(
                 ORGANIZATION_ID,
@@ -169,13 +173,47 @@ class PasswordVerificationServiceTest {
                 "pvt_valid"
         );
 
-        assertNotNull(token.getUsedAt());
+        verify(passwordVerificationTokenRepository).markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void validateAndConsume_rejectsConcurrentSecondConsumption() {
+        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
+        given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        )).willReturn(0);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validateAndConsume(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE,
+                        "pvt_valid"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED,
+                exception.getErrorCode()
+        );
     }
 
     @Test
     void validate_rejectsAlreadyUsedToken() {
-        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
-        token.markUsed(LocalDateTime.now());
+        PasswordVerificationToken token = PasswordVerificationToken.builder()
+                .id(1L)
+                .organization(organization)
+                .purpose(PasswordVerificationPurpose.EMAIL_CHANGE)
+                .tokenHash(TOKEN_HASH)
+                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .usedAt(LocalDateTime.now())
+                .build();
         givenToken(PasswordVerificationPurpose.EMAIL_CHANGE, token);
 
         ApplicationException exception = assertThrows(
@@ -216,6 +254,7 @@ class PasswordVerificationServiceTest {
 
     private PasswordVerificationToken tokenExpiringAt(LocalDateTime expiresAt) {
         return PasswordVerificationToken.builder()
+                .id(1L)
                 .organization(organization)
                 .purpose(PasswordVerificationPurpose.PASSWORD_CHANGE)
                 .tokenHash(TOKEN_HASH)

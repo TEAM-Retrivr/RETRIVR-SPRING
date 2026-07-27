@@ -46,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -438,6 +439,49 @@ class EmailVerificationServiceTest {
                 PasswordVerificationPurpose.EMAIL_CHANGE,
                 "pvt_email"
         );
+    }
+
+    @Test
+    void verifyChangeEmail_tokenConsumptionFailureDoesNotVerifyEmailCode() {
+        Long organizationId = 1L;
+        Organization organization = organization(organizationId, "old@test.com");
+        EmailVerification verification = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(emailVerificationRepository.findByEmailAndPurpose(
+                email,
+                EmailVerificationPurpose.EMAIL_CHANGE
+        )).thenReturn(Optional.of(verification));
+        when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
+        doThrow(new ApplicationException(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
+        )).when(passwordVerificationService).validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.EMAIL_CHANGE,
+                "pvt_email"
+        );
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> emailVerificationService.verifyChangeEmail(
+                        adminVerifyRequest(),
+                        organizationId
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED,
+                exception.getErrorCode()
+        );
+        assertEquals(false, verification.isVerified());
+        assertEquals("old@test.com", organization.getEmail());
+        verifyNoInteractions(refreshTokenRepository);
     }
 
     @Test
