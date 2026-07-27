@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -115,7 +116,12 @@ public class EmailVerificationController {
     )
     @ApiResponse(
             responseCode = "204",
-            description = "이메일 변경 및 세션 만료 성공"
+            description = "이메일 변경 및 세션 만료 성공",
+            headers = @Header(
+                    name = HttpHeaders.SET_COOKIE,
+                    description = "관리자 Refresh Token 쿠키 삭제",
+                    schema = @Schema(type = "string", example = "refreshToken=; Max-Age=0; Path=/")
+            )
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,

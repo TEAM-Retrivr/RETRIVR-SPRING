@@ -15,7 +15,10 @@ public record AdminCodeUpdateRequest(
         @Pattern(regexp = "\\d{6}", message = "관리자 코드 확인은 숫자 6자리여야 합니다.")
         String confirmAdminCode,
 
-        @Schema(description = "ADMIN_CODE_CHANGE 목적으로 발급받은 비밀번호 인증 토큰")
+        @Schema(
+                description = "ADMIN_CODE_CHANGE 목적으로 발급받은 비밀번호 인증 토큰",
+                example = "550e8400-e29b-41d4-a716-446655440000"
+        )
         @NotBlank
         String passwordVerificationToken
 ) {

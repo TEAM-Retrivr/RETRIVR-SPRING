@@ -11,7 +11,10 @@ public record AdminEmailVerificationSendRequest(
         @Email
         String email,
 
-        @Schema(description = "EMAIL_CHANGE 목적으로 발급받은 비밀번호 인증 토큰")
+        @Schema(
+                description = "EMAIL_CHANGE 목적으로 발급받은 비밀번호 인증 토큰",
+                example = "550e8400-e29b-41d4-a716-446655440000"
+        )
         @NotBlank
         String passwordVerificationToken
 ) {
