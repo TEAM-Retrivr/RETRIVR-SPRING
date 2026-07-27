@@ -66,13 +66,12 @@ class AdminProfileServiceTest {
     void updateProfile_changesOnlyOrganizationName() {
         givenOrganization();
 
-        var response = adminProfileService.updateProfile(
+        adminProfileService.updateProfile(
                 ORGANIZATION_ID,
                 new AdminProfileUpdateRequest(" New Org ")
         );
 
-        assertEquals("New Org", response.organizationName());
-        assertEquals("old@retrivr.com", response.email());
+        assertEquals("New Org", organization.getName());
         assertEquals("old-password", organization.getPasswordHash());
         assertEquals("old-code", organization.getAdminCodeHash());
         verifyNoInteractions(passwordEncoder, passwordVerificationService);

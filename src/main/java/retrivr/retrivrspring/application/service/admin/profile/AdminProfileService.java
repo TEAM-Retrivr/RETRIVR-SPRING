@@ -46,24 +46,16 @@ public class AdminProfileService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
         return new AdminProfileResponse(
-                organization.getName(),
-                organization.getId(),
-                organization.getEmail()
+                organization.getName()
         );
     }
 
     @Transactional
-    public AdminProfileResponse updateProfile(Long organizationId, AdminProfileUpdateRequest request) {
+    public void updateProfile(Long organizationId, AdminProfileUpdateRequest request) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
         organization.changeName(request.organizationName());
-
-        return new AdminProfileResponse(
-                organization.getName(),
-                organization.getId(),
-                organization.getEmail()
-        );
     }
 
     @Transactional

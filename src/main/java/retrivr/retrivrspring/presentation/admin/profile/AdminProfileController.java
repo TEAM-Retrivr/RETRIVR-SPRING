@@ -48,7 +48,7 @@ public class AdminProfileController {
     @GetMapping
     @Operation(
             summary = "관리자 프로필 조회",
-            description = "단체 명과 단체 이메일을 조회합니다."
+            description = "개인정보 수정 화면에 표시할 단체 명을 조회합니다."
     )
     @ApiResponse(
             responseCode = "200",
@@ -66,19 +66,19 @@ public class AdminProfileController {
             description = "로그인한 관리자의 단체명을 개별 수정합니다."
     )
     @ApiResponse(
-            responseCode = "200",
-            description = "수정 성공",
-            content = @Content(schema = @Schema(implementation = AdminProfileResponse.class))
+            responseCode = "204",
+            description = "수정 성공"
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
             ErrorCode.INVALID_VALUE_EXCEPTION
     })
-    public AdminProfileResponse updateProfile(
+    public ResponseEntity<Void> updateProfile(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
             @Valid @RequestBody AdminProfileUpdateRequest request
     ) {
-        return adminProfileService.updateProfile(authUser.organizationId(), request);
+        adminProfileService.updateProfile(authUser.organizationId(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/password")

@@ -20,6 +20,7 @@ import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.presentation.admin.auth.AdminRefreshTokenCookieManager;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminCodeUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 
 @ExtendWith(MockitoExtension.class)
 class AdminProfileControllerTest {
@@ -37,6 +38,17 @@ class AdminProfileControllerTest {
     private AdminProfileController adminProfileController;
 
     private final AuthUser authUser = new AuthUser(1L, "admin@retrivr.com");
+
+    @Test
+    void updateProfile_returnsNoContent() {
+        AdminProfileUpdateRequest request = new AdminProfileUpdateRequest("New Org");
+
+        var response = adminProfileController.updateProfile(authUser, request);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertNull(response.getBody());
+        verify(adminProfileService).updateProfile(1L, request);
+    }
 
     @Test
     void updatePassword_returnsNoContentAndExpiresRefreshTokenCookie() {
