@@ -1,0 +1,111 @@
+package retrivr.retrivrspring.application.service.admin.profile;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordVerificationToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.PasswordVerificationTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminPasswordVerificationResponse;
+
+@Service
+@RequiredArgsConstructor
+public class PasswordVerificationService {
+
+    private static final long TOKEN_EXPIRATION_SECONDS = 300;
+    private static final String TOKEN_PREFIX = "pvt_";
+
+    private final OrganizationRepository organizationRepository;
+    private final PasswordVerificationTokenRepository passwordVerificationTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Transactional
+    public AdminPasswordVerificationResponse verify(
+            Long organizationId,
+            AdminPasswordVerificationRequest request
+    ) {
+        Organization organization = getOrganization(organizationId);
+
+        if (!passwordEncoder.matches(request.password(), organization.getPasswordHash())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        passwordVerificationTokenRepository.deleteByOrganizationAndPurpose(
+                organization,
+                request.purpose()
+        );
+
+        String rawToken = TOKEN_PREFIX + UUID.randomUUID();
+        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(TOKEN_EXPIRATION_SECONDS);
+        PasswordVerificationToken token = PasswordVerificationToken.builder()
+                .organization(organization)
+                .purpose(request.purpose())
+                .tokenHash(passwordEncoder.encode(rawToken))
+                .expiresAt(expiresAt)
+                .build();
+        passwordVerificationTokenRepository.save(token);
+
+        return new AdminPasswordVerificationResponse(rawToken, TOKEN_EXPIRATION_SECONDS);
+    }
+
+    @Transactional(readOnly = true)
+    public void validate(
+            Long organizationId,
+            PasswordVerificationPurpose purpose,
+            String rawToken
+    ) {
+        findValidToken(organizationId, purpose, rawToken);
+    }
+
+    @Transactional
+    public void validateAndConsume(
+            Long organizationId,
+            PasswordVerificationPurpose purpose,
+            String rawToken
+    ) {
+        PasswordVerificationToken token = findValidToken(organizationId, purpose, rawToken);
+        token.markUsed(LocalDateTime.now());
+    }
+
+    private PasswordVerificationToken findValidToken(
+            Long organizationId,
+            PasswordVerificationPurpose purpose,
+            String rawToken
+    ) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND);
+        }
+
+        Organization organization = getOrganization(organizationId);
+        PasswordVerificationToken token = passwordVerificationTokenRepository
+                .findTopByOrganizationAndPurposeOrderByCreatedAtDesc(organization, purpose)
+                .orElseThrow(() -> new ApplicationException(
+                        ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND
+                ));
+
+        if (token.getUsedAt() != null) {
+            throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED);
+        }
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED);
+        }
+        if (!passwordEncoder.matches(rawToken, token.getTokenHash())) {
+            throw new ApplicationException(ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID);
+        }
+
+        return token;
+    }
+
+    private Organization getOrganization(Long organizationId) {
+        return organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+    }
+}

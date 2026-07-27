@@ -16,15 +16,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
+import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileImageUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminGetPresignedURLForUploadRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminPasswordVerificationResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
 @RestController
@@ -34,6 +37,7 @@ import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse
 public class AdminProfileController {
 
     private final AdminProfileService adminProfileService;
+    private final PasswordVerificationService passwordVerificationService;
 
     @GetMapping
     @Operation(
@@ -71,6 +75,28 @@ public class AdminProfileController {
             @Valid @RequestBody AdminProfileUpdateRequest request
     ) {
         return adminProfileService.updateProfile(authUser.organizationId(), request);
+    }
+
+    @PostMapping("/password/verify")
+    @Operation(
+            summary = "개인정보 변경용 현재 비밀번호 확인",
+            description = "현재 비밀번호를 확인하고 변경 목적에 한정된 5분 유효 일회용 인증 토큰을 발급합니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "비밀번호 확인 성공",
+            content = @Content(schema = @Schema(implementation = AdminPasswordVerificationResponse.class))
+    )
+    @ApiErrorCodeExamples({
+            ErrorCode.NOT_FOUND_ORGANIZATION,
+            ErrorCode.PASSWORD_MISMATCH,
+            ErrorCode.INVALID_VALUE_EXCEPTION
+    })
+    public AdminPasswordVerificationResponse verifyPassword(
+            @Parameter(hidden = true) @AuthOrg AuthUser authUser,
+            @Valid @RequestBody AdminPasswordVerificationRequest request
+    ) {
+        return passwordVerificationService.verify(authUser.organizationId(), request);
     }
 
     @PostMapping("/images/pre-signed-upload-url")
