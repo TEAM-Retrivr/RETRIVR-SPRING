@@ -56,7 +56,13 @@ public class PasswordVerificationService {
         return new AdminPasswordVerificationResponse(rawToken, TOKEN_EXPIRATION_SECONDS);
     }
 
-    @Transactional(readOnly = true)
+    /*
+     * 이메일 인증 서비스의 noRollbackFor 정책에 참여할 때도 토큰 검증 실패가
+     * 바깥 트랜잭션을 rollback-only 상태로 만들지 않도록 동일한 예외 정책을 적용한다.
+     * 비밀번호·관리자 코드 변경 서비스에서는 예외가 바깥 @Transactional 경계를 통과하므로
+     * 해당 변경 작업 전체가 기존과 동일하게 롤백된다.
+     */
+    @Transactional(readOnly = true, noRollbackFor = ApplicationException.class)
     public void validate(
             Long organizationId,
             PasswordVerificationPurpose purpose,
@@ -65,7 +71,7 @@ public class PasswordVerificationService {
         findValidToken(organizationId, purpose, rawToken);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ApplicationException.class)
     public void validateAndConsume(
             Long organizationId,
             PasswordVerificationPurpose purpose,
