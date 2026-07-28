@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
@@ -63,9 +64,13 @@ class PasswordVerificationServiceTest {
 
     @Test
     void verify_issuesPurposeBoundTokenWhenPasswordMatches() {
-        given(organizationRepository.findById(ORGANIZATION_ID))
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
                 .willReturn(Optional.of(organization));
         given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.EMAIL_CHANGE
+        )).willReturn(Optional.empty());
         given(passwordEncoder.encode(any(String.class))).willReturn(TOKEN_HASH);
 
         var response = passwordVerificationService.verify(
@@ -79,11 +84,6 @@ class PasswordVerificationServiceTest {
         assertNotNull(response.verificationToken());
         assertEquals(true, response.verificationToken().startsWith("pvt_"));
         assertEquals(300, response.expiresIn());
-        verify(passwordVerificationTokenRepository).deleteByOrganizationAndPurpose(
-                organization,
-                PasswordVerificationPurpose.EMAIL_CHANGE
-        );
-
         ArgumentCaptor<PasswordVerificationToken> captor =
                 ArgumentCaptor.forClass(PasswordVerificationToken.class);
         verify(passwordVerificationTokenRepository).save(captor.capture());
@@ -93,7 +93,7 @@ class PasswordVerificationServiceTest {
 
     @Test
     void verify_rejectsIncorrectPassword() {
-        given(organizationRepository.findById(ORGANIZATION_ID))
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
                 .willReturn(Optional.of(organization));
         given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(false);
 
@@ -112,11 +112,68 @@ class PasswordVerificationServiceTest {
     }
 
     @Test
+    void verify_rejectsIssuanceWhenActiveTokenAlreadyExists() {
+        PasswordVerificationToken activeToken =
+                tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.PASSWORD_CHANGE
+        )).willReturn(Optional.of(activeToken));
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.verify(
+                        ORGANIZATION_ID,
+                        new AdminPasswordVerificationRequest(
+                                RAW_PASSWORD,
+                                PasswordVerificationPurpose.PASSWORD_CHANGE
+                        )
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED,
+                exception.getErrorCode()
+        );
+        verify(passwordVerificationTokenRepository, never()).delete(activeToken);
+        verify(passwordVerificationTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void verify_replacesExpiredToken() {
+        PasswordVerificationToken expiredToken =
+                tokenExpiringAt(LocalDateTime.now().minusSeconds(1));
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.PASSWORD_CHANGE
+        )).willReturn(Optional.of(expiredToken));
+        given(passwordEncoder.encode(any(String.class))).willReturn(TOKEN_HASH);
+
+        passwordVerificationService.verify(
+                ORGANIZATION_ID,
+                new AdminPasswordVerificationRequest(
+                        RAW_PASSWORD,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE
+                )
+        );
+
+        verify(passwordVerificationTokenRepository).delete(expiredToken);
+        verify(passwordVerificationTokenRepository).flush();
+        verify(passwordVerificationTokenRepository).save(any());
+    }
+
+    @Test
     void validate_rejectsTokenForDifferentPurpose() {
         given(organizationRepository.findById(ORGANIZATION_ID))
                 .willReturn(Optional.of(organization));
         given(passwordVerificationTokenRepository
-                .findTopByOrganizationAndPurposeOrderByCreatedAtDesc(
+                .findByOrganizationAndPurpose(
                         organization,
                         PasswordVerificationPurpose.ADMIN_CODE_CHANGE
                 ))
@@ -269,7 +326,7 @@ class PasswordVerificationServiceTest {
         given(organizationRepository.findById(ORGANIZATION_ID))
                 .willReturn(Optional.of(organization));
         given(passwordVerificationTokenRepository
-                .findTopByOrganizationAndPurposeOrderByCreatedAtDesc(organization, purpose))
+                .findByOrganizationAndPurpose(organization, purpose))
                 .willReturn(Optional.of(token));
     }
 }

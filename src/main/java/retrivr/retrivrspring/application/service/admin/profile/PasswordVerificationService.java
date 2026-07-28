@@ -32,24 +32,35 @@ public class PasswordVerificationService {
             Long organizationId,
             AdminPasswordVerificationRequest request
     ) {
-        Organization organization = getOrganization(organizationId);
+        Organization organization = organizationRepository.findByIdForUpdate(organizationId)
+                .orElseThrow(() -> new ApplicationException(
+                        ErrorCode.NOT_FOUND_ORGANIZATION
+                ));
 
         if (!passwordEncoder.matches(request.password(), organization.getPasswordHash())) {
             throw new ApplicationException(ErrorCode.PASSWORD_MISMATCH);
         }
 
-        passwordVerificationTokenRepository.deleteByOrganizationAndPurpose(
-                organization,
-                request.purpose()
-        );
+        LocalDateTime now = LocalDateTime.now();
+        passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization, request.purpose()
+        ).ifPresent(existingToken -> {
+            if (existingToken.getUsedAt() == null
+                    && !existingToken.getExpiresAt().isBefore(now)) {
+                throw new ApplicationException(
+                        ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED
+                );
+            }
+            passwordVerificationTokenRepository.delete(existingToken);
+            passwordVerificationTokenRepository.flush();
+        });
 
         String rawToken = TOKEN_PREFIX + UUID.randomUUID();
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(TOKEN_EXPIRATION_SECONDS);
         PasswordVerificationToken token = PasswordVerificationToken.builder()
                 .organization(organization)
                 .purpose(request.purpose())
                 .tokenHash(passwordEncoder.encode(rawToken))
-                .expiresAt(expiresAt)
+                .expiresAt(now.plusSeconds(TOKEN_EXPIRATION_SECONDS))
                 .build();
         passwordVerificationTokenRepository.save(token);
 
@@ -115,7 +126,7 @@ public class PasswordVerificationService {
 
         Organization organization = getOrganization(organizationId);
         PasswordVerificationToken token = passwordVerificationTokenRepository
-                .findTopByOrganizationAndPurposeOrderByCreatedAtDesc(organization, purpose)
+                .findByOrganizationAndPurpose(organization, purpose)
                 .orElseThrow(() -> new ApplicationException(
                         ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND
                 ));

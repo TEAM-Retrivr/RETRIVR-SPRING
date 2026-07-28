@@ -12,12 +12,7 @@ import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerifi
 public interface PasswordVerificationTokenRepository
         extends JpaRepository<PasswordVerificationToken, Long> {
 
-    void deleteByOrganizationAndPurpose(
-            Organization organization,
-            PasswordVerificationPurpose purpose
-    );
-
-    Optional<PasswordVerificationToken> findTopByOrganizationAndPurposeOrderByCreatedAtDesc(
+    Optional<PasswordVerificationToken> findByOrganizationAndPurpose(
             Organization organization,
             PasswordVerificationPurpose purpose
     );

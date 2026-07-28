@@ -10,8 +10,7 @@ create table password_verification_token
     expires_at                    timestamp(6) not null,
     used_at                       timestamp(6),
     created_at                    timestamp(6) not null,
-    updated_at                    timestamp(6) not null
+    updated_at                    timestamp(6) not null,
+    constraint uk_password_verification_token_org_purpose
+        unique (organization_id, purpose)
 );
-
-create index idx_password_verification_token_org_purpose
-    on password_verification_token (organization_id, purpose);

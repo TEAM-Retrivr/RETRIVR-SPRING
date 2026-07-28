@@ -120,6 +120,7 @@ public enum ErrorCode {
     PASSWORD_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8101, "비밀번호 인증 토큰이 유효하지 않습니다."),
     PASSWORD_VERIFICATION_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, 8102, "비밀번호 인증 토큰이 만료되었습니다."),
     PASSWORD_VERIFICATION_TOKEN_ALREADY_USED(HttpStatus.FORBIDDEN, 8103, "이미 사용된 비밀번호 인증 토큰입니다."),
+    PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED(HttpStatus.TOO_MANY_REQUESTS, 8104, "이미 유효한 비밀번호 인증 토큰이 발급되었습니다."),
 
     // 9000: Return Event Error
     RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
