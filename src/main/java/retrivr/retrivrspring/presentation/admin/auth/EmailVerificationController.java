@@ -4,11 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,9 +20,11 @@ import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationRequest;
+import retrivr.retrivrspring.presentation.admin.auth.req.AdminEmailVerificationSendRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationRequest;
 import retrivr.retrivrspring.presentation.admin.auth.req.EmailVerificationSendRequest;
-import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailChangeResponse;
+import retrivr.retrivrspring.presentation.admin.auth.res.AdminEmailVerificationSendResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailCodeVerifyTokenResponse;
 import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendResponse;
 
@@ -31,6 +35,7 @@ import retrivr.retrivrspring.presentation.admin.auth.res.EmailVerificationSendRe
 public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
+    private final AdminRefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/public/v1/email/verification")
     @Operation(
@@ -83,31 +88,40 @@ public class EmailVerificationController {
     @ApiResponse(
             responseCode = "200",
             description = "인증 코드 발송 성공",
-            content = @Content(schema = @Schema(implementation = EmailVerificationSendResponse.class))
+            content = @Content(schema = @Schema(implementation = AdminEmailVerificationSendResponse.class))
     )
     @ApiErrorCodeExamples({
             ErrorCode.EMAIL_VERIFICATION_TOO_MANY_REQUESTS,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
             ErrorCode.NOT_FOUND_ORGANIZATION,
             ErrorCode.EMAIL_SAME_AS_CURRENT,
-            ErrorCode.ALREADY_EXIST_EXCEPTION
+            ErrorCode.ALREADY_EXIST_EXCEPTION,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
-    public ResponseEntity<EmailVerificationSendResponse> sendAdminEmailVerificationCode(
+    public ResponseEntity<AdminEmailVerificationSendResponse> sendAdminEmailVerificationCode(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
-            @Valid @RequestBody EmailVerificationSendRequest request
+            @Valid @RequestBody AdminEmailVerificationSendRequest request
     ) {
-        return ResponseEntity.ok(emailVerificationService.sendChangeEmailCode(request, authUser.organizationId()));
+        EmailVerificationSendResponse response =
+                emailVerificationService.sendChangeEmailCode(request, authUser.organizationId());
+        return ResponseEntity.ok(AdminEmailVerificationSendResponse.from(response));
     }
 
     @PostMapping("/admin/v1/email/verification/verify")
     @Operation(
             summary = "admin 이메일 인증 코드 검증 및 이메일 변경",
-            description = "이메일, 목적, 인증 코드를 검증하고, 성공 시 로그인한 단체의 이메일을 즉시 변경한다."
+            description = "이메일과 인증 코드를 검증하고, 성공 시 로그인한 단체의 이메일을 즉시 변경한다."
     )
     @ApiResponse(
-            responseCode = "200",
-            description = "이메일 변경 성공",
-            content = @Content(schema = @Schema(implementation = AdminEmailChangeResponse.class))
+            responseCode = "204",
+            description = "이메일 변경 및 세션 만료 성공",
+            headers = @Header(
+                    name = HttpHeaders.SET_COOKIE,
+                    description = "관리자 Refresh Token 쿠키 삭제",
+                    schema = @Schema(type = "string", example = "refreshToken=; Max-Age=0; Path=/")
+            )
     )
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
@@ -116,13 +130,20 @@ public class EmailVerificationController {
             ErrorCode.EMAIL_VERIFICATION_EXPIRED,
             ErrorCode.EMAIL_ALREADY_VERIFIED,
             ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
-            ErrorCode.EMAIL_SAME_AS_CURRENT
+            ErrorCode.EMAIL_SAME_AS_CURRENT,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
     })
-    public ResponseEntity<AdminEmailChangeResponse> verifyAdminEmail(
+    public ResponseEntity<Void> verifyAdminEmail(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
-            @Valid @RequestBody EmailVerificationRequest request
+            @Valid @RequestBody AdminEmailVerificationRequest request
     ) {
-        return ResponseEntity.ok(emailVerificationService.verifyChangeEmail(request, authUser.organizationId()));
+        emailVerificationService.verifyChangeEmail(request, authUser.organizationId());
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieManager.delete().toString())
+                .build();
     }
 }

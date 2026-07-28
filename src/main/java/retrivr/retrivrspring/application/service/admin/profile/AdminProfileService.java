@@ -13,12 +13,16 @@ import retrivr.retrivrspring.application.port.image.ProfileImageKeyGeneratorPort
 import retrivr.retrivrspring.domain.entity.organization.AdminAuthCodeHash;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordHash;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.image.ImageContentTypePolicy;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminCodeUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileImageUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminGetPresignedURLForUploadRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileImageUpdateResponse;
 import retrivr.retrivrspring.presentation.admin.profile.res.AdminGetPresignedURLForUploadResponse;
@@ -31,6 +35,8 @@ public class AdminProfileService {
 
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordVerificationService passwordVerificationService;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final ProfileImageKeyGeneratorPort profileImageKeyGeneratorPort;
     private final ImageStoragePort imageStoragePort;
 
@@ -40,49 +46,66 @@ public class AdminProfileService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
         return new AdminProfileResponse(
-                organization.getName(),
-                organization.getId(),
-                organization.getProfileImageKey(),
-                organization.getEmail()
+                organization.getName()
         );
     }
 
     @Transactional
-    public AdminProfileResponse updateProfile(Long organizationId, AdminProfileUpdateRequest request) {
+    public void updateProfile(Long organizationId, AdminProfileUpdateRequest request) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-        String organizationName = request.newOrganizationName().trim();
-        PasswordHash newPasswordHash = PasswordHash.fromRawOrThrow(
-                request.newPassword(),
-                passwordEncoder,
-                ErrorCode.INVALID_VALUE_EXCEPTION
-        );
-        AdminAuthCodeHash newAdminAuthCodeHash = AdminAuthCodeHash.fromRawOrThrow(
-                request.newAdminCode(),
-                passwordEncoder
-        );
+        organization.changeName(request.organizationName());
+    }
 
-        if (organizationName.isEmpty()) {
-            throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
-        }
+    @Transactional
+    public void updatePassword(
+            Long organizationId,
+            AdminPasswordUpdateRequest request
+    ) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
         }
 
-        organization.updateProfile(
-                newPasswordHash.getValue(),
-                organizationName,
-                newAdminAuthCodeHash.getValue()
+        PasswordHash newPasswordHash = PasswordHash.fromRawOrThrow(
+                request.newPassword(),
+                passwordEncoder,
+                ErrorCode.PASSWORD_RESET_POLICY_VIOLATION
         );
+        passwordVerificationService.validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.PASSWORD_CHANGE,
+                request.passwordVerificationToken()
+        );
+        organization.changePassword(newPasswordHash.getValue());
+        refreshTokenRepository.deleteAllByEmail(organization.getEmail());
+    }
 
-        return new AdminProfileResponse(
-                organization.getName(),
-                organization.getId(),
-                organization.getProfileImageKey(),
-                organization.getEmail()
+    @Transactional
+    public void updateAdminCode(
+            Long organizationId,
+            AdminCodeUpdateRequest request
+    ) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+        if (!request.newAdminCode().equals(request.confirmAdminCode())) {
+            throw new ApplicationException(ErrorCode.ADMIN_CODE_MISMATCH);
+        }
+
+        AdminAuthCodeHash newAdminCodeHash = AdminAuthCodeHash.fromRawOrThrow(
+                request.newAdminCode(),
+                passwordEncoder
         );
+        passwordVerificationService.validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
+                request.passwordVerificationToken()
+        );
+        organization.changeAdminCode(newAdminCodeHash.getValue());
     }
 
     @Transactional

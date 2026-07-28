@@ -1,6 +1,13 @@
 package retrivr.retrivrspring.application.service;
 
-import org.junit.jupiter.api.DisplayName;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -8,24 +15,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
+import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
-import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
-
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import retrivr.retrivrspring.global.error.DomainException;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminCodeUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
 
 @ExtendWith(MockitoExtension.class)
 class AdminProfileServiceTest {
+
+    private static final Long ORGANIZATION_ID = 1L;
 
     @Mock
     private OrganizationRepository organizationRepository;
@@ -33,101 +39,176 @@ class AdminProfileServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private PasswordVerificationService passwordVerificationService;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
     @InjectMocks
     private AdminProfileService adminProfileService;
 
-    @Test
-    @DisplayName("profile update success")
-    void updateProfile_success() {
-        Organization org = Organization.builder()
-                .id(1L)
+    private Organization organization;
+
+    @BeforeEach
+    void setUp() {
+        organization = Organization.builder()
+                .id(ORGANIZATION_ID)
                 .email("old@retrivr.com")
                 .passwordHash("old-password")
                 .name("old")
                 .status(OrganizationStatus.ACTIVE)
                 .adminCodeHash("old-code")
                 .build();
-
-        given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
-        given(passwordEncoder.encode("NewPassword123!")).willReturn("encoded-password");
-        given(passwordEncoder.encode("new-admin-code")).willReturn("encoded-admin-code");
-
-        var response = adminProfileService.updateProfile(
-                1L,
-                new AdminProfileUpdateRequest(
-                        "NewPassword123!",
-                        "NewPassword123!",
-                        "New Org",
-                        "new-admin-code"
-                )
-        );
-
-        // 이메일은 프로필 수정으로 변경되지 않고 기존 값을 유지한다
-        assertEquals("old@retrivr.com", response.email());
-        assertEquals("New Org", response.organizationName());
-        verify(passwordEncoder, times(1)).encode("NewPassword123!");
-        verify(passwordEncoder, times(1)).encode("new-admin-code");
     }
 
     @Test
-    @DisplayName("password confirm mismatch throws PASSWORD_RESET_PASSWORD_MISMATCH")
-    void updateProfile_passwordMismatch_throws() {
-        Organization org = Organization.builder()
-                .id(1L)
-                .email("old@retrivr.com")
-                .passwordHash("old-password")
-                .name("old")
-                .status(OrganizationStatus.ACTIVE)
-                .adminCodeHash("old-code")
-                .build();
+    void updateProfile_changesOnlyOrganizationName() {
+        givenOrganization();
 
-        given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
-
-        ApplicationException ex = assertThrows(
-                ApplicationException.class,
-                () -> adminProfileService.updateProfile(
-                        1L,
-                        new AdminProfileUpdateRequest(
-                                "NewPassword123!",
-                                "DifferentPassword123!",
-                                "New Org",
-                                "new-admin-code"
-                        )
-                )
+        adminProfileService.updateProfile(
+                ORGANIZATION_ID,
+                new AdminProfileUpdateRequest(" New Org ")
         );
 
-        assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, ex.getErrorCode());
-        verify(passwordEncoder, times(1)).encode("NewPassword123!");
-        verify(passwordEncoder, times(1)).encode("new-admin-code");
+        assertEquals("New Org", organization.getName());
+        assertEquals("old-password", organization.getPasswordHash());
+        assertEquals("old-code", organization.getAdminCodeHash());
+        verifyNoInteractions(passwordEncoder, passwordVerificationService);
     }
 
     @Test
-    @DisplayName("disallowed special character in password throws INVALID_VALUE_EXCEPTION")
-    void updateProfile_passwordWithDisallowedSpecialCharacter_throws() {
-        Organization org = Organization.builder()
-                .id(1L)
-                .email("old@retrivr.com")
-                .passwordHash("old-password")
-                .name("old")
-                .status(OrganizationStatus.ACTIVE)
-                .adminCodeHash("old-code")
-                .build();
+    void updateProfile_rejectsBlankOrganizationName() {
+        givenOrganization();
 
-        given(organizationRepository.findById(1L)).willReturn(Optional.of(org));
-
-        DomainException ex = assertThrows(
+        DomainException exception = assertThrows(
                 DomainException.class,
                 () -> adminProfileService.updateProfile(
-                        1L,
-                        new AdminProfileUpdateRequest(
-                                "NewPassword123?",
-                                "NewPassword123?",
-                                "New Org",
-                                "new-admin-code"
+                        ORGANIZATION_ID,
+                        new AdminProfileUpdateRequest("   ")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, exception.getErrorCode());
+        assertEquals("old", organization.getName());
+    }
+
+    @Test
+    void updateProfile_rejectsOrganizationNameLongerThan255Characters() {
+        givenOrganization();
+
+        DomainException exception = assertThrows(
+                DomainException.class,
+                () -> adminProfileService.updateProfile(
+                        ORGANIZATION_ID,
+                        new AdminProfileUpdateRequest("a".repeat(256))
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, exception.getErrorCode());
+        assertEquals("old", organization.getName());
+    }
+
+    @Test
+    void updatePassword_changesPasswordAfterConsumingPurposeBoundToken() {
+        givenOrganization();
+        given(passwordEncoder.encode("NewPassword123!")).willReturn("new-password-hash");
+
+        adminProfileService.updatePassword(
+                ORGANIZATION_ID,
+                new AdminPasswordUpdateRequest(
+                        "NewPassword123!",
+                        "NewPassword123!",
+                        "pvt_password"
+                )
+        );
+
+        assertEquals("new-password-hash", organization.getPasswordHash());
+        verify(passwordVerificationService).validateAndConsume(
+                ORGANIZATION_ID,
+                PasswordVerificationPurpose.PASSWORD_CHANGE,
+                "pvt_password"
+        );
+        verify(refreshTokenRepository).deleteAllByEmail("old@retrivr.com");
+    }
+
+    @Test
+    void updatePassword_rejectsConfirmationMismatch() {
+        givenOrganization();
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> adminProfileService.updatePassword(
+                        ORGANIZATION_ID,
+                        new AdminPasswordUpdateRequest(
+                                "NewPassword123!",
+                                "DifferentPassword123!",
+                                "pvt_password"
                         )
                 )
         );
 
-        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, ex.getErrorCode());
+        assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, exception.getErrorCode());
+        verifyNoInteractions(passwordVerificationService, refreshTokenRepository);
+    }
+
+    @Test
+    void updatePassword_rejectsPasswordThatViolatesPolicy() {
+        givenOrganization();
+
+        DomainException exception = assertThrows(
+                DomainException.class,
+                () -> adminProfileService.updatePassword(
+                        ORGANIZATION_ID,
+                        new AdminPasswordUpdateRequest(
+                                "NewPassword123?",
+                                "NewPassword123?",
+                                "pvt_password"
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION, exception.getErrorCode());
+        verifyNoInteractions(passwordVerificationService, refreshTokenRepository);
+    }
+
+    @Test
+    void updateAdminCode_changesCodeAfterConsumingPurposeBoundToken() {
+        givenOrganization();
+        given(passwordEncoder.encode("123456")).willReturn("new-admin-code-hash");
+
+        adminProfileService.updateAdminCode(
+                ORGANIZATION_ID,
+                new AdminCodeUpdateRequest("123456", "123456", "pvt_admin_code")
+        );
+
+        assertEquals("new-admin-code-hash", organization.getAdminCodeHash());
+        verify(passwordVerificationService).validateAndConsume(
+                ORGANIZATION_ID,
+                PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
+                "pvt_admin_code"
+        );
+        verifyNoInteractions(refreshTokenRepository);
+    }
+
+    @Test
+    void updateAdminCode_rejectsConfirmationMismatch() {
+        givenOrganization();
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> adminProfileService.updateAdminCode(
+                        ORGANIZATION_ID,
+                        new AdminCodeUpdateRequest("123456", "654321", "pvt_admin_code")
+                )
+        );
+
+        assertEquals(ErrorCode.ADMIN_CODE_MISMATCH, exception.getErrorCode());
+        verifyNoInteractions(passwordVerificationService);
+    }
+
+    private void givenOrganization() {
+        given(organizationRepository.findById(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
     }
 }

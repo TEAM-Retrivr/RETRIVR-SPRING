@@ -1,0 +1,332 @@
+package retrivr.retrivrspring.application.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.organization.PasswordVerificationToken;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
+import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
+import retrivr.retrivrspring.domain.repository.auth.PasswordVerificationTokenRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordVerificationRequest;
+
+@ExtendWith(MockitoExtension.class)
+class PasswordVerificationServiceTest {
+
+    private static final Long ORGANIZATION_ID = 1L;
+    private static final String RAW_PASSWORD = "Password123!";
+    private static final String PASSWORD_HASH = "encoded-password";
+    private static final String TOKEN_HASH = "encoded-token";
+
+    @Mock
+    private OrganizationRepository organizationRepository;
+
+    @Mock
+    private PasswordVerificationTokenRepository passwordVerificationTokenRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @InjectMocks
+    private PasswordVerificationService passwordVerificationService;
+
+    private Organization organization;
+
+    @BeforeEach
+    void setUp() {
+        organization = Organization.builder()
+                .id(ORGANIZATION_ID)
+                .email("admin@retrivr.com")
+                .passwordHash(PASSWORD_HASH)
+                .status(OrganizationStatus.ACTIVE)
+                .adminCodeHash("encoded-admin-code")
+                .build();
+    }
+
+    @Test
+    void verify_issuesPurposeBoundTokenWhenPasswordMatches() {
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.EMAIL_CHANGE
+        )).willReturn(Optional.empty());
+        given(passwordEncoder.encode(any(String.class))).willReturn(TOKEN_HASH);
+
+        var response = passwordVerificationService.verify(
+                ORGANIZATION_ID,
+                new AdminPasswordVerificationRequest(
+                        RAW_PASSWORD,
+                        PasswordVerificationPurpose.EMAIL_CHANGE
+                )
+        );
+
+        assertNotNull(response.verificationToken());
+        assertEquals(true, response.verificationToken().startsWith("pvt_"));
+        assertEquals(300, response.expiresIn());
+        ArgumentCaptor<PasswordVerificationToken> captor =
+                ArgumentCaptor.forClass(PasswordVerificationToken.class);
+        verify(passwordVerificationTokenRepository).save(captor.capture());
+        assertEquals(PasswordVerificationPurpose.EMAIL_CHANGE, captor.getValue().getPurpose());
+        assertEquals(TOKEN_HASH, captor.getValue().getTokenHash());
+    }
+
+    @Test
+    void verify_rejectsIncorrectPassword() {
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(false);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.verify(
+                        ORGANIZATION_ID,
+                        new AdminPasswordVerificationRequest(
+                                RAW_PASSWORD,
+                                PasswordVerificationPurpose.PASSWORD_CHANGE
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.PASSWORD_MISMATCH, exception.getErrorCode());
+    }
+
+    @Test
+    void verify_rejectsIssuanceWhenActiveTokenAlreadyExists() {
+        PasswordVerificationToken activeToken =
+                tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.PASSWORD_CHANGE
+        )).willReturn(Optional.of(activeToken));
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.verify(
+                        ORGANIZATION_ID,
+                        new AdminPasswordVerificationRequest(
+                                RAW_PASSWORD,
+                                PasswordVerificationPurpose.PASSWORD_CHANGE
+                        )
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED,
+                exception.getErrorCode()
+        );
+        verify(passwordVerificationTokenRepository, never()).delete(activeToken);
+        verify(passwordVerificationTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void verify_replacesExpiredToken() {
+        PasswordVerificationToken expiredToken =
+                tokenExpiringAt(LocalDateTime.now().minusSeconds(1));
+        given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordEncoder.matches(RAW_PASSWORD, PASSWORD_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.findByOrganizationAndPurpose(
+                organization,
+                PasswordVerificationPurpose.PASSWORD_CHANGE
+        )).willReturn(Optional.of(expiredToken));
+        given(passwordEncoder.encode(any(String.class))).willReturn(TOKEN_HASH);
+
+        passwordVerificationService.verify(
+                ORGANIZATION_ID,
+                new AdminPasswordVerificationRequest(
+                        RAW_PASSWORD,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE
+                )
+        );
+
+        verify(passwordVerificationTokenRepository).delete(expiredToken);
+        verify(passwordVerificationTokenRepository).flush();
+        verify(passwordVerificationTokenRepository).save(any());
+    }
+
+    @Test
+    void validate_rejectsTokenForDifferentPurpose() {
+        given(organizationRepository.findById(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordVerificationTokenRepository
+                .findByOrganizationAndPurpose(
+                        organization,
+                        PasswordVerificationPurpose.ADMIN_CODE_CHANGE
+                ))
+                .willReturn(Optional.empty());
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validate(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
+                        "pvt_token-for-email-change"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_NOT_FOUND,
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    void validate_rejectsExpiredToken() {
+        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().minusSeconds(1));
+        givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validate(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE,
+                        "pvt_expired"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_EXPIRED,
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    void validateAndConsume_marksValidTokenAsUsed() {
+        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
+        given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        )).willReturn(1);
+
+        passwordVerificationService.validateAndConsume(
+                ORGANIZATION_ID,
+                PasswordVerificationPurpose.PASSWORD_CHANGE,
+                "pvt_valid"
+        );
+
+        verify(passwordVerificationTokenRepository).markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void validateAndConsume_rejectsConcurrentSecondConsumption() {
+        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
+        given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
+        given(passwordVerificationTokenRepository.markUsedIfUnused(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(LocalDateTime.class)
+        )).willReturn(0);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validateAndConsume(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE,
+                        "pvt_valid"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED,
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    void validate_rejectsAlreadyUsedToken() {
+        PasswordVerificationToken token = PasswordVerificationToken.builder()
+                .id(1L)
+                .organization(organization)
+                .purpose(PasswordVerificationPurpose.EMAIL_CHANGE)
+                .tokenHash(TOKEN_HASH)
+                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .usedAt(LocalDateTime.now())
+                .build();
+        givenToken(PasswordVerificationPurpose.EMAIL_CHANGE, token);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validate(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.EMAIL_CHANGE,
+                        "pvt_used"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED,
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    void validate_rejectsInvalidTokenValue() {
+        PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
+        givenToken(PasswordVerificationPurpose.EMAIL_CHANGE, token);
+        given(passwordEncoder.matches("pvt_wrong", TOKEN_HASH)).willReturn(false);
+
+        ApplicationException exception = assertThrows(
+                ApplicationException.class,
+                () -> passwordVerificationService.validate(
+                        ORGANIZATION_ID,
+                        PasswordVerificationPurpose.EMAIL_CHANGE,
+                        "pvt_wrong"
+                )
+        );
+
+        assertEquals(
+                ErrorCode.PASSWORD_VERIFICATION_TOKEN_INVALID,
+                exception.getErrorCode()
+        );
+    }
+
+    private PasswordVerificationToken tokenExpiringAt(LocalDateTime expiresAt) {
+        return PasswordVerificationToken.builder()
+                .id(1L)
+                .organization(organization)
+                .purpose(PasswordVerificationPurpose.PASSWORD_CHANGE)
+                .tokenHash(TOKEN_HASH)
+                .expiresAt(expiresAt)
+                .build();
+    }
+
+    private void givenToken(
+            PasswordVerificationPurpose purpose,
+            PasswordVerificationToken token
+    ) {
+        given(organizationRepository.findById(ORGANIZATION_ID))
+                .willReturn(Optional.of(organization));
+        given(passwordVerificationTokenRepository
+                .findByOrganizationAndPurpose(organization, purpose))
+                .willReturn(Optional.of(token));
+    }
+}
