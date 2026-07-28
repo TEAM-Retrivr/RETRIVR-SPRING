@@ -66,12 +66,6 @@ public class AdminProfileService {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-        passwordVerificationService.validateAndConsume(
-                organizationId,
-                PasswordVerificationPurpose.PASSWORD_CHANGE,
-                request.passwordVerificationToken()
-        );
-
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new ApplicationException(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH);
         }
@@ -80,6 +74,11 @@ public class AdminProfileService {
                 request.newPassword(),
                 passwordEncoder,
                 ErrorCode.PASSWORD_RESET_POLICY_VIOLATION
+        );
+        passwordVerificationService.validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.PASSWORD_CHANGE,
+                request.passwordVerificationToken()
         );
         organization.changePassword(newPasswordHash.getValue());
         refreshTokenRepository.deleteAllByEmail(organization.getEmail());
@@ -93,12 +92,6 @@ public class AdminProfileService {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-        passwordVerificationService.validateAndConsume(
-                organizationId,
-                PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
-                request.passwordVerificationToken()
-        );
-
         if (!request.newAdminCode().equals(request.confirmAdminCode())) {
             throw new ApplicationException(ErrorCode.ADMIN_CODE_MISMATCH);
         }
@@ -106,6 +99,11 @@ public class AdminProfileService {
         AdminAuthCodeHash newAdminCodeHash = AdminAuthCodeHash.fromRawOrThrow(
                 request.newAdminCode(),
                 passwordEncoder
+        );
+        passwordVerificationService.validateAndConsume(
+                organizationId,
+                PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
+                request.passwordVerificationToken()
         );
         organization.changeAdminCode(newAdminCodeHash.getValue());
     }

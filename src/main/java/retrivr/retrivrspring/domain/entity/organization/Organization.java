@@ -85,10 +85,15 @@ public class Organization extends BaseTimeEntity {
   }
 
   public void changeName(String organizationName) {
-    if (organizationName == null || organizationName.trim().isEmpty()) {
+    if (organizationName == null) {
       throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
     }
-    this.name = organizationName.trim();
+
+    String trimmedName = organizationName.trim();
+    if (trimmedName.isEmpty() || trimmedName.length() > 255) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+    this.name = trimmedName;
   }
 
   public void changeAdminCode(String encodedAdminCode) {

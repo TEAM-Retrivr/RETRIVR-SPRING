@@ -78,6 +78,38 @@ class AdminProfileServiceTest {
     }
 
     @Test
+    void updateProfile_rejectsBlankOrganizationName() {
+        givenOrganization();
+
+        DomainException exception = assertThrows(
+                DomainException.class,
+                () -> adminProfileService.updateProfile(
+                        ORGANIZATION_ID,
+                        new AdminProfileUpdateRequest("   ")
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, exception.getErrorCode());
+        assertEquals("old", organization.getName());
+    }
+
+    @Test
+    void updateProfile_rejectsOrganizationNameLongerThan255Characters() {
+        givenOrganization();
+
+        DomainException exception = assertThrows(
+                DomainException.class,
+                () -> adminProfileService.updateProfile(
+                        ORGANIZATION_ID,
+                        new AdminProfileUpdateRequest("a".repeat(256))
+                )
+        );
+
+        assertEquals(ErrorCode.INVALID_VALUE_EXCEPTION, exception.getErrorCode());
+        assertEquals("old", organization.getName());
+    }
+
+    @Test
     void updatePassword_changesPasswordAfterConsumingPurposeBoundToken() {
         givenOrganization();
         given(passwordEncoder.encode("NewPassword123!")).willReturn("new-password-hash");
@@ -117,12 +149,7 @@ class AdminProfileServiceTest {
         );
 
         assertEquals(ErrorCode.PASSWORD_RESET_PASSWORD_MISMATCH, exception.getErrorCode());
-        verifyNoInteractions(refreshTokenRepository);
-        verify(passwordVerificationService).validateAndConsume(
-                ORGANIZATION_ID,
-                PasswordVerificationPurpose.PASSWORD_CHANGE,
-                "pvt_password"
-        );
+        verifyNoInteractions(passwordVerificationService, refreshTokenRepository);
     }
 
     @Test
@@ -142,7 +169,7 @@ class AdminProfileServiceTest {
         );
 
         assertEquals(ErrorCode.PASSWORD_RESET_POLICY_VIOLATION, exception.getErrorCode());
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(passwordVerificationService, refreshTokenRepository);
     }
 
     @Test
@@ -177,11 +204,7 @@ class AdminProfileServiceTest {
         );
 
         assertEquals(ErrorCode.ADMIN_CODE_MISMATCH, exception.getErrorCode());
-        verify(passwordVerificationService).validateAndConsume(
-                ORGANIZATION_ID,
-                PasswordVerificationPurpose.ADMIN_CODE_CHANGE,
-                "pvt_admin_code"
-        );
+        verifyNoInteractions(passwordVerificationService);
     }
 
     private void givenOrganization() {
