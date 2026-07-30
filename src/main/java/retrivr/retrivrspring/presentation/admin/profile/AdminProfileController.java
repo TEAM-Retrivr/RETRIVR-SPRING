@@ -61,7 +61,7 @@ public class AdminProfileController {
         return adminProfileService.getProfile(authUser.organizationId());
     }
 
-    @PatchMapping
+    @PatchMapping("/organization-name")
     @Operation(
             summary = "관리자 단체명 수정",
             description = "로그인한 관리자의 단체명을 개별 수정합니다."
