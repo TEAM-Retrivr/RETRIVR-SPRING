@@ -49,7 +49,7 @@ public class AdminProfileController {
     @GetMapping
     @Operation(
             summary = "관리자 프로필 조회",
-            description = "개인정보 수정 화면에 표시할 단체 명을 조회합니다."
+            description = "개인정보 수정 화면에 표시할 단체 정보와 프로필 이미지를 조회합니다."
     )
     @ApiResponse(
             responseCode = "200",
@@ -61,7 +61,7 @@ public class AdminProfileController {
         return adminProfileService.getProfile(authUser.organizationId());
     }
 
-    @PatchMapping
+    @PatchMapping("/organization-name")
     @Operation(
             summary = "관리자 단체명 수정",
             description = "로그인한 관리자의 단체명을 개별 수정합니다."
