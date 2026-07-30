@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import retrivr.retrivrspring.application.service.admin.profile.AdminProfileService;
 import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
@@ -27,6 +28,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminCodeUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminPasswordUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.profile.req.AdminProfileUpdateRequest;
+import retrivr.retrivrspring.presentation.admin.profile.res.AdminProfileResponse;
 
 @ExtendWith(MockitoExtension.class)
 class AdminProfileServiceTest {
@@ -45,6 +47,9 @@ class AdminProfileServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private ImageStoragePort imageStoragePort;
+
     @InjectMocks
     private AdminProfileService adminProfileService;
 
@@ -60,6 +65,35 @@ class AdminProfileServiceTest {
                 .status(OrganizationStatus.ACTIVE)
                 .adminCodeHash("old-code")
                 .build();
+    }
+
+    @Test
+    void getProfile_returnsOrganizationInformationWithoutImageUrlWhenImageDoesNotExist() {
+        givenOrganization();
+
+        AdminProfileResponse response = adminProfileService.getProfile(ORGANIZATION_ID);
+
+        assertEquals("old", response.organizationName());
+        assertEquals(ORGANIZATION_ID, response.organizationId());
+        assertEquals("old@retrivr.com", response.email());
+        assertEquals(null, response.profileImageUrl());
+        verifyNoInteractions(imageStoragePort);
+    }
+
+    @Test
+    void getProfile_returnsPresignedUrlWhenProfileImageExists() {
+        organization.updateProfileImageKey("organizations/1/profile/image.png");
+        givenOrganization();
+        given(imageStoragePort.createPresignedDownloadUrl(
+                "organizations/1/profile/image.png"
+        )).willReturn("https://s3.retrivr/profile-image");
+
+        AdminProfileResponse response = adminProfileService.getProfile(ORGANIZATION_ID);
+
+        assertEquals("https://s3.retrivr/profile-image", response.profileImageUrl());
+        verify(imageStoragePort).createPresignedDownloadUrl(
+                "organizations/1/profile/image.png"
+        );
     }
 
     @Test

@@ -279,8 +279,6 @@ public class EmailVerificationService {
             // organization.email 유니크 제약. 동시 변경 경합을 커밋 시점이 아닌 여기서 드러내어 400 으로 응답한다.
             organizationRepository.saveAndFlush(organization);
         } catch (DataIntegrityViolationException e) {
-            // 이 메서드는 인증 실패 횟수 누적을 위해 noRollbackFor = ApplicationException 으로 선언되어 있다.
-            // 제약 위반 이후의 영속성 컨텍스트는 커밋할 수 없으므로, 롤백 대상인 DomainException 으로 던져야 한다.
             throw new DomainException(ErrorCode.ALREADY_EXIST_EXCEPTION);
         }
 

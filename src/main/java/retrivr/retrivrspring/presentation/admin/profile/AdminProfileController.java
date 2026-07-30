@@ -49,7 +49,7 @@ public class AdminProfileController {
     @GetMapping
     @Operation(
             summary = "관리자 프로필 조회",
-            description = "개인정보 수정 화면에 표시할 단체 명을 조회합니다."
+            description = "개인정보 수정 화면에 표시할 단체 정보와 프로필 이미지를 조회합니다."
     )
     @ApiResponse(
             responseCode = "200",

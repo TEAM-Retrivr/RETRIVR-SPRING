@@ -45,8 +45,15 @@ public class AdminProfileService {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
+        String profileImageUrl = organization.getProfileImageKey() == null
+                ? null
+                : imageStoragePort.createPresignedDownloadUrl(organization.getProfileImageKey());
+
         return new AdminProfileResponse(
-                organization.getName()
+                organization.getName(),
+                organization.getId(),
+                organization.getEmail(),
+                profileImageUrl
         );
     }
 
