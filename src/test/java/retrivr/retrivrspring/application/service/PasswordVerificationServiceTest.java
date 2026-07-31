@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
@@ -112,7 +111,7 @@ class PasswordVerificationServiceTest {
     }
 
     @Test
-    void verify_rejectsIssuanceWhenActiveTokenAlreadyExists() {
+    void verify_replacesActiveTokenWhenPasswordIsVerifiedAgain() {
         PasswordVerificationToken activeToken =
                 tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
         given(organizationRepository.findByIdForUpdate(ORGANIZATION_ID))
@@ -122,24 +121,19 @@ class PasswordVerificationServiceTest {
                 organization,
                 PasswordVerificationPurpose.PASSWORD_CHANGE
         )).willReturn(Optional.of(activeToken));
+        given(passwordEncoder.encode(any(String.class))).willReturn(TOKEN_HASH);
 
-        ApplicationException exception = assertThrows(
-                ApplicationException.class,
-                () -> passwordVerificationService.verify(
-                        ORGANIZATION_ID,
-                        new AdminPasswordVerificationRequest(
-                                RAW_PASSWORD,
-                                PasswordVerificationPurpose.PASSWORD_CHANGE
-                        )
+        passwordVerificationService.verify(
+                ORGANIZATION_ID,
+                new AdminPasswordVerificationRequest(
+                        RAW_PASSWORD,
+                        PasswordVerificationPurpose.PASSWORD_CHANGE
                 )
         );
 
-        assertEquals(
-                ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED,
-                exception.getErrorCode()
-        );
-        verify(passwordVerificationTokenRepository, never()).delete(activeToken);
-        verify(passwordVerificationTokenRepository, never()).save(any());
+        verify(passwordVerificationTokenRepository).delete(activeToken);
+        verify(passwordVerificationTokenRepository).flush();
+        verify(passwordVerificationTokenRepository).save(any());
     }
 
     @Test
@@ -215,14 +209,11 @@ class PasswordVerificationServiceTest {
     }
 
     @Test
-    void validateAndConsume_marksValidTokenAsUsed() {
+    void validateAndConsume_deletesValidToken() {
         PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
         givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
         given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
-        given(passwordVerificationTokenRepository.markUsedIfUnused(
-                org.mockito.ArgumentMatchers.eq(1L),
-                any(LocalDateTime.class)
-        )).willReturn(1);
+        given(passwordVerificationTokenRepository.deleteByIdIfExists(1L)).willReturn(1);
 
         passwordVerificationService.validateAndConsume(
                 ORGANIZATION_ID,
@@ -230,10 +221,7 @@ class PasswordVerificationServiceTest {
                 "pvt_valid"
         );
 
-        verify(passwordVerificationTokenRepository).markUsedIfUnused(
-                org.mockito.ArgumentMatchers.eq(1L),
-                any(LocalDateTime.class)
-        );
+        verify(passwordVerificationTokenRepository).deleteByIdIfExists(1L);
     }
 
     @Test
@@ -241,10 +229,7 @@ class PasswordVerificationServiceTest {
         PasswordVerificationToken token = tokenExpiringAt(LocalDateTime.now().plusMinutes(5));
         givenToken(PasswordVerificationPurpose.PASSWORD_CHANGE, token);
         given(passwordEncoder.matches("pvt_valid", TOKEN_HASH)).willReturn(true);
-        given(passwordVerificationTokenRepository.markUsedIfUnused(
-                org.mockito.ArgumentMatchers.eq(1L),
-                any(LocalDateTime.class)
-        )).willReturn(0);
+        given(passwordVerificationTokenRepository.deleteByIdIfExists(1L)).willReturn(0);
 
         ApplicationException exception = assertThrows(
                 ApplicationException.class,

@@ -154,8 +154,7 @@ public class AdminProfileController {
     @ApiErrorCodeExamples({
             ErrorCode.NOT_FOUND_ORGANIZATION,
             ErrorCode.PASSWORD_MISMATCH,
-            ErrorCode.INVALID_VALUE_EXCEPTION,
-            ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED
+            ErrorCode.INVALID_VALUE_EXCEPTION
     })
     public AdminPasswordVerificationResponse verifyPassword(
             @Parameter(hidden = true) @AuthOrg AuthUser authUser,
