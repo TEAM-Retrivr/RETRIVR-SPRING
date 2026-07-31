@@ -19,14 +19,8 @@ public interface PasswordVerificationTokenRepository
 
     @Modifying(flushAutomatically = true)
     @Query("""
-            update PasswordVerificationToken token
-               set token.usedAt = :usedAt,
-                   token.updatedAt = :usedAt
+            delete from PasswordVerificationToken token
              where token.id = :tokenId
-               and token.usedAt is null
             """)
-    int markUsedIfUnused(
-            @Param("tokenId") Long tokenId,
-            @Param("usedAt") java.time.LocalDateTime usedAt
-    );
+    int deleteByIdIfExists(@Param("tokenId") Long tokenId);
 }

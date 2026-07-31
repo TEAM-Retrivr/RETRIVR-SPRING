@@ -45,12 +45,8 @@ public class PasswordVerificationService {
         passwordVerificationTokenRepository.findByOrganizationAndPurpose(
                 organization, request.purpose()
         ).ifPresent(existingToken -> {
-            if (existingToken.getUsedAt() == null
-                    && !existingToken.getExpiresAt().isBefore(now)) {
-                throw new ApplicationException(
-                        ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED
-                );
-            }
+            // 비밀번호를 다시 확인했다면 기존 토큰의 상태와 관계없이 교체한다.
+            // 이전 화면이나 탭에 남아 있는 토큰은 새 토큰 발급 즉시 무효화된다.
             passwordVerificationTokenRepository.delete(existingToken);
             passwordVerificationTokenRepository.flush();
         });
@@ -88,18 +84,14 @@ public class PasswordVerificationService {
             PasswordVerificationPurpose purpose,
             String rawToken
     ) {
-        LocalDateTime now = LocalDateTime.now();
         PasswordVerificationToken token = findValidToken(
                 organizationId,
                 purpose,
                 rawToken,
-                now
+                LocalDateTime.now()
         );
-        int updatedRows = passwordVerificationTokenRepository.markUsedIfUnused(
-                token.getId(),
-                now
-        );
-        if (updatedRows == 0) {
+        int deletedRows = passwordVerificationTokenRepository.deleteByIdIfExists(token.getId());
+        if (deletedRows == 0) {
             throw new ApplicationException(
                     ErrorCode.PASSWORD_VERIFICATION_TOKEN_ALREADY_USED
             );
