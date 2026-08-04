@@ -94,6 +94,7 @@ public class PaymentMethodController {
       description = """
           결제수단을 비활성화합니다.
           현재 활성 구독에서 사용 중인 결제수단은 삭제할 수 없습니다.
+          기본 결제수단은 삭제할 수 없습니다.
           """
   )
   public PaymentMethodDeleteResponse deletePaymentMethod(

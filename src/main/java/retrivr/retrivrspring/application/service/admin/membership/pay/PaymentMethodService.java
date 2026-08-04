@@ -117,6 +117,10 @@ public class PaymentMethodService {
   }
 
   private void validateDeletable(PaymentMethod paymentMethod) {
+    if (paymentMethod.isDefault()) {
+      throw new ApplicationException(ErrorCode.NOT_DELETABLE_DEFAULT_PAYMENT_METHOD);
+    }
+
     subscriptionRepository.findByPaymentMethod(paymentMethod)
         .filter(subscription -> subscription.getStatus() != SubscriptionStatus.CANCELED)
         .ifPresent(subscription -> {
