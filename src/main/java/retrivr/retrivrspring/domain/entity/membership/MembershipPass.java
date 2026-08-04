@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
@@ -34,7 +35,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @Table(
     name = "membership_pass"
 )
-public class MembershipPass {
+public class MembershipPass extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

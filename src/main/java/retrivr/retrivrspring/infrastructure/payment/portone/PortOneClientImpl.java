@@ -37,15 +37,14 @@ public class PortOneClientImpl implements PortOneClient {
           properties.storeId(),
           properties.kakaoPayProperties().channelKey()
       );
-      case TOSS -> request.withDefaults(
+      case TOSSPAY -> request.withDefaults(
           properties.storeId(),
           properties.tossPayProperties().channelKey()
       );
-      case CARD -> request.withDefaults(
+      case KGINICIS -> request.withDefaults(
           properties.storeId(),
           properties.kgInicisProperties().channelKey()
       );
-      case MOCK -> null;
     };
 
     try {
@@ -75,15 +74,14 @@ public class PortOneClientImpl implements PortOneClient {
           properties.storeId(),
           properties.kakaoPayProperties().channelKey()
       );
-      case TOSS -> request.withDefaults(
+      case TOSSPAY -> request.withDefaults(
           properties.storeId(),
           properties.tossPayProperties().channelKey()
       );
-      case CARD -> request.withDefaults(
+      case KGINICIS -> request.withDefaults(
           properties.storeId(),
           properties.kgInicisProperties().channelKey()
       );
-      case MOCK -> null;
     };
 
     try {

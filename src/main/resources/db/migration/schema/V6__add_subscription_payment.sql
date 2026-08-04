@@ -6,7 +6,6 @@ alter table subscription add constraint subscription_status_check
         (array [
             'ACTIVE'::character varying,
             'CANCELED'::character varying,
-            'PAST_DUE'::character varying,
             'PAYMENT_FAILED'::character varying
         ])::text[]
     ));
@@ -34,10 +33,9 @@ create table if not exists payment_method
         constraint payment_method_provider_check
             check ((provider)::text = any (
                 (array [
-                    'MOCK'::character varying,
-                    'TOSS'::character varying,
+                    'TOSSPAY'::character varying,
                     'KAKAOPAY'::character varying,
-                    'CARD'::character varying
+                    'KGINICIS'::character varying
                 ])::text[]
             )),
     status          varchar(255) not null
@@ -79,10 +77,9 @@ create table if not exists payment
         constraint payment_provider_check
             check ((provider)::text = any (
                 (array [
-                    'MOCK'::character varying,
-                    'TOSS'::character varying,
+                    'TOSSPAY'::character varying,
                     'KAKAOPAY'::character varying,
-                    'CARD'::character varying
+                    'KGINICIS'::character varying
                 ])::text[]
             )),
     provider_payment_key varchar(255),

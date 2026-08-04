@@ -57,7 +57,7 @@ public class Subscription extends BaseTimeEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private SubscriptionStatus status; // ACTIVE, CANCELED, PAST_DUE, PAYMENT_FAILED
+  private SubscriptionStatus status; // ACTIVE, CANCELED, PAYMENT_FAILED
 
   private LocalDateTime nextBillingAt; // 다음 결제 시각
 
@@ -133,30 +133,6 @@ public class Subscription extends BaseTimeEntity {
     }
     this.paymentMethod.validateActive();
     return this.paymentMethod;
-  }
-
-  private void retryableFailedPayment(LocalDateTime failedAt) {
-    this.status = SubscriptionStatus.PAST_DUE;
-    this.paymentFailedAt = failedAt;
-  }
-
-  private void finalFailedPayment(LocalDateTime failedAt) {
-    this.status = SubscriptionStatus.PAYMENT_FAILED;
-    this.paymentFailedAt = failedAt;
-    this.nextBillingAt = null;
-  }
-
-  public void failPayment(LocalDateTime failedAt) {
-    this.paymentFailCount++;
-    if (this.paymentFailCount >= MAX_PAYMENT_FAIL_COUNT) {
-      finalFailedPayment(failedAt);
-    } else {
-      retryableFailedPayment(failedAt);
-    }
-  }
-
-  public boolean isPastDue() {
-    return this.status == SubscriptionStatus.PAST_DUE;
   }
 
   public static Subscription start(Organization organization, SubscriptionPlan plan,
@@ -244,7 +220,7 @@ public class Subscription extends BaseTimeEntity {
   }
 
   public boolean isActive() {
-    return this.status == SubscriptionStatus.ACTIVE || this.status == SubscriptionStatus.PAST_DUE;
+    return this.status == SubscriptionStatus.ACTIVE;
   }
 
   public LocalDateTime getNextBillingAt() {
