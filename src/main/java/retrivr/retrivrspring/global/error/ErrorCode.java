@@ -161,14 +161,17 @@ public enum ErrorCode {
     NOT_FOUND_ACTIVE_SUBSCRIPTION(HttpStatus.NOT_FOUND, 12303, "활성화된 구독 정보를 찾을 수 없습니다."),
     SUBSCRIPTION_STATUS_CONFLICT(HttpStatus.CONFLICT, 12304, "구독 상태를 전환할 수 없습니다."),
     NOT_FOUND_SUBSCRIPTION(HttpStatus.NOT_FOUND, 12305, "유효한 구독 정보를 찾을 수 없습니다."),
+    ALREADY_SAME_SUBSCRIPTION_PLAN(HttpStatus.CONFLICT, 12306, "이미 동일한 플랜을 사용중입니다."),
 
     // 12400: Payment Error
     PAYMENT_FAILED(HttpStatus.PAYMENT_REQUIRED, 12400, "결제가 실패했습니다."),
     PAYMENT_TOKEN_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12401, "결제 인증 토큰 발급에 실패했습니다."),
     PAYMENT_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12402, "결제 예약에 실패했습니다."),
     PAYMENT_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 12403, "결제 상태를 요청된 상태로 변경할 수 없습니다."),
-    NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다.")
-    ;
+    NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다."),
+
+    // 12500: Payment Method Error
+    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

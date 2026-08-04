@@ -33,4 +33,19 @@ public interface MembershipPassRepository extends JpaRepository<MembershipPass, 
       @Param("status") MembershipPassStatus status,
       @Param("now") LocalDateTime now
   );
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("""
+      select mp
+      from MembershipPass mp
+      join fetch mp.organization o
+      where mp.status = :status
+        and mp.endAt <= :now
+      order by mp.endAt asc
+      limit 1
+  """)
+  Optional<MembershipPass> findFirstExpiredActivePassesForUpdate(
+      @Param("status") MembershipPassStatus status,
+      @Param("now") LocalDateTime now
+  );
 }
