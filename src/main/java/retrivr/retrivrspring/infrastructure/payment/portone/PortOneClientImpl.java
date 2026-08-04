@@ -7,7 +7,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClient.Builder;
 import org.springframework.web.client.RestClientException;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentRequest;
@@ -22,17 +24,29 @@ public class PortOneClientImpl implements PortOneClient {
 
   private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
 
-  private final RestClient.Builder restClientBuilder;
+  private final Builder restClientBuilder;
   private final PortOneProperties properties;
 
   @Override
   public PortOneBillingKeyPaymentResponse chargeBillingKey(
-      PortOneBillingKeyPaymentRequest request
+      PortOneBillingKeyPaymentRequest request,
+      PaymentProvider provider
   ) {
-    PortOneBillingKeyPaymentRequest body = request.withDefaults(
-        properties.storeId(),
-        properties.channelKey()
-    );
+    PortOneBillingKeyPaymentRequest body = switch (provider) {
+      case KAKAOPAY -> request.withDefaults(
+          properties.storeId(),
+          properties.kakaoPayProperties().channelKey()
+      );
+      case TOSS -> request.withDefaults(
+          properties.storeId(),
+          properties.tossPayProperties().channelKey()
+      );
+      case CARD -> request.withDefaults(
+          properties.storeId(),
+          properties.kgInicisProperties().channelKey()
+      );
+      case MOCK -> null;
+    };
 
     try {
       return restClient().post()
@@ -53,12 +67,24 @@ public class PortOneClientImpl implements PortOneClient {
 
   @Override
   public PortOneScheduleBillingPaymentResponse scheduleBillingPayment(
-      PortOneScheduleBillingPaymentRequest request
+      PortOneScheduleBillingPaymentRequest request,
+      PaymentProvider provider
   ) {
-    PortOneScheduleBillingPaymentRequest body = request.withDefaults(
-        properties.storeId(),
-        properties.channelKey()
-    );
+    PortOneScheduleBillingPaymentRequest body = switch (provider) {
+      case KAKAOPAY -> request.withDefaults(
+          properties.storeId(),
+          properties.kakaoPayProperties().channelKey()
+      );
+      case TOSS -> request.withDefaults(
+          properties.storeId(),
+          properties.tossPayProperties().channelKey()
+      );
+      case CARD -> request.withDefaults(
+          properties.storeId(),
+          properties.kgInicisProperties().channelKey()
+      );
+      case MOCK -> null;
+    };
 
     try {
       return restClient().post()
@@ -69,7 +95,7 @@ public class PortOneClientImpl implements PortOneClient {
           .retrieve()
           .onStatus(HttpStatusCode::isError, (req, res) -> {
             throw new PortOneException("PortOne schedule payment failed. status="
-                + res.getStatusCode());
+                + res.getStatusCode().toString() + "body=" + res.getBody().toString());
           })
           .body(PortOneScheduleBillingPaymentResponse.class);
     } catch (RestClientException e) {

@@ -68,11 +68,12 @@ public class PortOnePaymentService {
               null,
               1,
               false
-          )
+          ),
+          paymentMethod.getProvider()
       );
 
       PortOnePaymentResponse portOnePayment = verifyPaidPayment(paymentId, plan.getPrice());
-      PaymentProvider provider = resolveProvider(portOnePayment);
+      PaymentProvider provider = paymentMethod.getProvider();
       LocalDateTime paidAt = resolvePaidAt(response, portOnePayment, now);
 
       Payment payment = Payment.success(
@@ -147,7 +148,7 @@ public class PortOnePaymentService {
         toOffsetDateTime(timeToPay)
     );
 
-    PortOneScheduleBillingPaymentResponse response = portOneClient.scheduleBillingPayment(request);
+    PortOneScheduleBillingPaymentResponse response = portOneClient.scheduleBillingPayment(request, paymentMethod.getProvider());
     if (response == null || response.schedule() == null || response.schedule().id() == null) {
       throw new ApplicationException(ErrorCode.PAYMENT_RESERVATION_FAILED);
     }
@@ -196,7 +197,7 @@ public class PortOnePaymentService {
   }
 
   private String createPaymentId(Subscription subscription, String reason) {
-    return "sub_" + subscription.getId() + "_" + reason + "_" + UUID.randomUUID();
+    return "sub_" + reason + "_" + UUID.randomUUID();
   }
 
   private String orderName(SubscriptionPlan plan) {
@@ -235,19 +236,6 @@ public class PortOnePaymentService {
       return null;
     }
     return response.payment().pgTxId();
-  }
-
-  private PaymentProvider resolveProvider(PortOnePaymentResponse payment) {
-    if (payment != null && payment.channel() != null && payment.channel().pgProvider() != null) {
-      String pgProvider = payment.channel().pgProvider();
-      if (pgProvider.contains("TOSS")) {
-        return PaymentProvider.TOSS;
-      }
-      if (pgProvider.contains("KAKAO")) {
-        return PaymentProvider.KAKAOPAY;
-      }
-    }
-    return PaymentProvider.KAKAOPAY;
   }
 
   private PaymentProvider resolvePaymentMethodProvider(Subscription subscription) {

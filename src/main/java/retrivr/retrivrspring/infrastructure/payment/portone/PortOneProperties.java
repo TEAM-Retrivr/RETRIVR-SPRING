@@ -5,9 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "portone.v2")
 public record PortOneProperties(
     String storeId,
-    String channelKey,
+    String baseUrl,
     String apiSecret,
-    String baseUrl
+    PortOneKakaoPayProperties kakaoPayProperties,
+    PortOneTossPayProperties tossPayProperties,
+    PortOneKGInicisProperties kgInicisProperties
 ) {
 
   public String resolvedBaseUrl() {

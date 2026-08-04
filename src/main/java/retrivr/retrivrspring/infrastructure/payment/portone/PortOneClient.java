@@ -1,5 +1,6 @@
 package retrivr.retrivrspring.infrastructure.payment.portone;
 
+import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentRequest;
@@ -10,10 +11,14 @@ import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneSchedule
 
 public interface PortOneClient {
 
-  PortOneBillingKeyPaymentResponse chargeBillingKey(PortOneBillingKeyPaymentRequest request);
+  PortOneBillingKeyPaymentResponse chargeBillingKey(
+      PortOneBillingKeyPaymentRequest request,
+      PaymentProvider provider
+  );
 
   PortOneScheduleBillingPaymentResponse scheduleBillingPayment(
-      PortOneScheduleBillingPaymentRequest request
+      PortOneScheduleBillingPaymentRequest request,
+      PaymentProvider provider
   );
 
   PortOneCancelScheduledPaymentResponse cancelScheduledPayment(

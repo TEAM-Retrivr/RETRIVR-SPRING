@@ -98,6 +98,11 @@ manager-secret: ${MANAGER_SECRET}
 portone:
   v2:
     store-id: ${PORTONE_STORE_ID}
-    channel-key: ${PORTONE_CHANNEL_KEY}
+    kakao-pay-properties:
+      channel-key: ${KAKAOPAY_CHANNEL_KEY}
+    toss-pay-properties:
+      channel-key: ${TOSSPAY_CHANNEL_KEY}
+    kg-inicis-properties:
+      channel-key: ${KGINICIS_CHANNEL_KEY}
     api-secret: ${PORTONE_API_SECRET}
     base-url: ${PORTONE_BASE_URL:https://api.portone.io}
