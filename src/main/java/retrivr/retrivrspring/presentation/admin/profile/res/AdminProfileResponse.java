@@ -7,15 +7,17 @@ public record AdminProfileResponse(
         @Schema(description = "단체 명", example = "건국대학교 전산원")
         String organizationName,
 
+        @Schema(description = "단체 ID", example = "1")
         Long organizationId,
 
-        @Schema(
-                description = "단체 이미지 URL",
-                example = "https://cdn.retrivr.com/organizations/5/profile/uuid.png"
-        )
-        String profileImageUrl,
-
         @Schema(description = "단체 이메일", example = "admin@retrivr.com")
-        String email
+        String email,
+
+        @Schema(
+                description = "단체 프로필 이미지 URL",
+                example = "https://s3.retrivr/organizations/1/profile/image.png",
+                nullable = true
+        )
+        String profileImageUrl
 ) {
 }

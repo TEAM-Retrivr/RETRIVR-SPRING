@@ -84,16 +84,37 @@ public class Organization extends BaseTimeEntity {
     this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
   }
 
-  public void updateProfile(
-          String email,
-          String encodedPassword,
-          String organizationName,
-          String encodedAdminCode
-  ) {
+  public void changeName(String organizationName) {
+    if (organizationName == null) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+
+    String trimmedName = organizationName.trim();
+    if (trimmedName.isEmpty() || trimmedName.length() > 255) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+    this.name = trimmedName;
+  }
+
+  public void changeAdminCode(String encodedAdminCode) {
+    this.adminAuthCode = AdminAuthCodeHash.fromHashed(
+        requireHashedValue(encodedAdminCode, "encodedAdminCode")
+    );
+  }
+
+  public void updateEmail(String email) {
     this.email = requireNonBlankEmail(email);
-    this.password = PasswordHash.fromHashed(requireHashedValue(encodedPassword, "encodedPassword"));
-    this.name = organizationName;
-    this.adminAuthCode = AdminAuthCodeHash.fromHashed(requireHashedValue(encodedAdminCode, "encodedAdminCode"));
+  }
+
+  /**
+   * 해당 이메일로 변경할 수 있는지 검증한다.
+   * 현재 사용 중인 주소로는 인증 코드를 발송할 이유가 없으므로, 대소문자를 무시하고 동일 여부를 판정한다.
+   */
+  public void assertEmailChangeableTo(String newEmail) {
+    String candidate = requireNonBlankEmail(newEmail).trim();
+    if (this.email.trim().equalsIgnoreCase(candidate)) {
+      throw new DomainException(ErrorCode.EMAIL_SAME_AS_CURRENT);
+    }
   }
 
   public void updateProfileImageKey(String profileImageKey) {
@@ -114,6 +135,16 @@ public class Organization extends BaseTimeEntity {
 
   public String getAdminCodeHash() {
     return adminAuthCode == null ? null : adminAuthCode.getValue();
+  }
+
+  /**
+   * 단체가 정상 운영 중인지 검증한다.
+   * 탈퇴/정지/승인대기 단체는 운영 중이 아니며, 존재 여부가 드러나지 않도록 NOT_FOUND 로 응답한다.
+   */
+  public void assertOperating() {
+    if (this.status != OrganizationStatus.ACTIVE) {
+      throw new DomainException(ErrorCode.NOT_FOUND_ORGANIZATION);
+    }
   }
 
   public void assertLoginAllowed() {

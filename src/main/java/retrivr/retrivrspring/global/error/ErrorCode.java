@@ -73,6 +73,7 @@ public enum ErrorCode {
     EMAIL_VERIFICATION_EXPIRED(HttpStatus.BAD_REQUEST, 7002, "인증 코드가 만료되었습니다."),
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, 7003, "이미 인증이 완료되었습니다."),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 7004, "존재하지 않는 이메일입니다."),
+    EMAIL_SAME_AS_CURRENT(HttpStatus.BAD_REQUEST, 7005, "현재 사용 중인 이메일입니다."),
 
     // 7100: Signup Email Verification Error
     SIGNUP_EMAIL_CODE_NOT_FOUND(HttpStatus.BAD_REQUEST, 7100, "회원가입 인증 요청이 존재하지 않습니다."),
@@ -113,6 +114,13 @@ public enum ErrorCode {
     PASSWORD_RESET_TOKEN_ALREADY_USED(HttpStatus.BAD_REQUEST, 8003, "이미 사용된 비밀번호 재설정 토큰입니다."),
     PASSWORD_RESET_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, 8004, "비밀번호와 비밀번호 확인 값이 일치하지 않습니다."),
     PASSWORD_RESET_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, 8005, "비밀번호 정책을 만족하지 않습니다."),
+
+    // 8100: Password Verification Error
+    PASSWORD_VERIFICATION_TOKEN_NOT_FOUND(HttpStatus.FORBIDDEN, 8100, "비밀번호 인증 토큰이 존재하지 않습니다."),
+    PASSWORD_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, 8101, "비밀번호 인증 토큰이 유효하지 않습니다."),
+    PASSWORD_VERIFICATION_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, 8102, "비밀번호 인증 토큰이 만료되었습니다."),
+    PASSWORD_VERIFICATION_TOKEN_ALREADY_USED(HttpStatus.FORBIDDEN, 8103, "이미 사용된 비밀번호 인증 토큰입니다."),
+    PASSWORD_VERIFICATION_TOKEN_ALREADY_ISSUED(HttpStatus.TOO_MANY_REQUESTS, 8104, "이미 유효한 비밀번호 인증 토큰이 발급되었습니다."),
 
     // 9000: Return Event Error
     RETURN_EVENT_CAN_NOT_CREATE(HttpStatus.INTERNAL_SERVER_ERROR, 9000, "반납 이벤트를 생성할 수 없습니다."),
