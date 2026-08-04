@@ -49,6 +49,7 @@ public class MembershipPassExpirationService {
 
     expiredPass.expire(now);
 
+    // 예약 결제 건에 대한 검증 및 다음 패스 제작
     paymentRepository.findByOrganizationAndStatus(organization,
         PaymentStatus.SCHEDULED)
         .ifPresent(
@@ -56,7 +57,21 @@ public class MembershipPassExpirationService {
             new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())
         )
         );
+  }
 
+  @Transactional
+  public void expireOrganizationMembershipPass(Organization organization, LocalDateTime now) {
+    MembershipPass expiredPass = membershipPassRepository.findFirstExpiredActivePassesForUpdate(MembershipPassStatus.ACTIVE, now)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_PASS));
+    processExpiredPass(expiredPass, now);
+  }
+
+  @Transactional
+  public void expireOrganizationMembershipPassIfExist(Organization organization, LocalDateTime now) {
+    membershipPassRepository.findFirstExpiredActivePassesForUpdate(MembershipPassStatus.ACTIVE, now)
+        .ifPresent(
+            expiredPass -> processExpiredPass(expiredPass, now)
+        );
   }
 
   @Transactional
