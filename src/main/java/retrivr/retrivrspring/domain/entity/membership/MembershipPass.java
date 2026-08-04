@@ -150,6 +150,10 @@ public class MembershipPass {
     return this.status == MembershipPassStatus.EXPIRED;
   }
 
+  public boolean isOverDue(LocalDateTime now) {
+    return this.endAt.isBefore(now);
+  }
+
   public boolean isSubscriptionPass() {
     return this.sourceType == MembershipPassType.SUBSCRIPTION;
   }

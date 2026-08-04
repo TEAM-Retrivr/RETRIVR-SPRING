@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.application.service.admin.membership.subscription;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +22,10 @@ import retrivr.retrivrspring.domain.repository.membership.subscription.Subscript
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
-import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentResponse;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionPlanChangeRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionStartRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionCancelResponse;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPlanChangeResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionStartResponse;
 
 @Service
@@ -97,18 +99,23 @@ public class SubscriptionService {
     paymentMethodService.changeDefaultPaymentMethod(loginOrganizationId, paymentMethod.getId());
 
     if (lastRegisteredPass != null) {
-      // 결제 예약
-      paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
-      subscription.scheduleNextBillingAt(lastRegisteredPass.getEndAt());
-      return new SubscriptionStartResponse(
-          subscription.getId(),
-          subscription.getPlan(),
-          subscription.getStatus(),
-          subscription.getNextBillingAt(),
-          lastRegisteredPass.getId(),
-          lastRegisteredPass.getStartAt(),
-          lastRegisteredPass.getEndAt()
-      );
+      if (lastRegisteredPass.isOverDue(now)) {
+        lastRegisteredPass.expire(now);
+      }
+      else {
+        // 결제 예약
+        paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
+        subscription.scheduleNextBillingAt(lastRegisteredPass.getEndAt());
+        return new SubscriptionStartResponse(
+            subscription.getId(),
+            subscription.getPlan(),
+            subscription.getStatus(),
+            subscription.getNextBillingAt(),
+            lastRegisteredPass.getId(),
+            lastRegisteredPass.getStartAt(),
+            lastRegisteredPass.getEndAt()
+        );
+      }
     }
 
     // 즉시 결제
@@ -183,5 +190,59 @@ public class SubscriptionService {
         subscription.getCanceledAt(),
         membershipPass != null ? membershipPass.getEndAt() : null
     );
+  }
+
+  @Transactional
+  public SubscriptionPlanChangeResponse changeSubscriptionPlan(
+      Long loginOrganizationId,
+      SubscriptionPlanChangeRequest request
+  ) {
+    Organization organization = organizationRepository.findById(loginOrganizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    Subscription subscription = subscriptionRepository.findByOrganization(organization)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION));
+    subscription.validateOwner(organization);
+
+    if (!subscription.isActive()) {
+      throw new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION);
+    }
+
+    if (subscription.matchesPlan(request.plan())) {
+      throw new ApplicationException(ErrorCode.ALREADY_SAME_SUBSCRIPTION_PLAN);
+    }
+
+    Optional<Payment> opPendingPayment = paymentRepository.findByOrganizationAndStatus(
+            organization,
+            PaymentStatus.SCHEDULED
+        );
+
+    if (opPendingPayment.isPresent()) {
+      paymentService.cancelScheduledPayment(opPendingPayment.get());
+      subscription.changePlan(request.plan());
+      paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
+    }
+    else {
+      subscription.changePlan(request.plan());
+    }
+
+    return new SubscriptionPlanChangeResponse(
+        subscription.getId(),
+        subscription.getPlan(),
+        subscription.getNextBillingAt()
+    );
+  }
+
+  @Transactional
+  public void cancelSubscriptionWhenPaymentFail(Organization organization, LocalDateTime now) {
+    Subscription subscription = subscriptionRepository.findByOrganization(organization)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION));
+
+    subscription.validateOwner(organization);
+
+    if (!subscription.isActive()) {
+      return;
+    }
+    subscription.cancel(organization, now);
   }
 }
