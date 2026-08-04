@@ -31,4 +31,8 @@ public record PortOnePaymentResponse(
   public boolean isPaid() {
     return "PAID".equals(status);
   }
+
+  public boolean isFailed() {
+    return "FAILED".equals(status);
+  }
 }
