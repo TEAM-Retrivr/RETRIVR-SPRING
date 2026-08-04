@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.membership.subscription.SubscriptionService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionPlanChangeRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionStartRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionCancelResponse;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPlanChangeResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionStartResponse;
 
 @RestController
@@ -65,5 +67,25 @@ public class SubscriptionController {
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser
   ) {
     return subscriptionService.cancelSubscription(loginUser.organizationId());
+  }
+
+  @PatchMapping("/plans")
+  @Operation(
+      summary = "구독 플랜 변경",
+      description = """
+          현재 조직의 구독 플랜을 변경합니다.
+          기존 예약 결제를 취소하고, 다음 결제일에 변경된 플랜 가격으로 예약 결제를 다시 등록합니다.
+          """
+  )
+  @ApiResponse(
+      responseCode = "200",
+      description = "구독 플랜 변경 성공",
+      content = @Content(schema = @Schema(implementation = SubscriptionPlanChangeResponse.class))
+  )
+  public SubscriptionPlanChangeResponse changeSubscriptionPlan(
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
+      @Valid @RequestBody SubscriptionPlanChangeRequest request
+  ) {
+    return subscriptionService.changeSubscriptionPlan(loginUser.organizationId(), request);
   }
 }

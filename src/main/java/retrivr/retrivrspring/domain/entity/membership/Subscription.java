@@ -101,6 +101,16 @@ public class Subscription extends BaseTimeEntity {
     this.paymentMethod = paymentMethod;
   }
 
+  public void changePlan(SubscriptionPlan plan) {
+    if (!isActive()) {
+      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
+    }
+    if (plan == null) {
+      throw new DomainException(ErrorCode.INVALID_SUBSCRIPTION_PLAN);
+    }
+    this.plan = plan;
+  }
+
   public void clearPaymentMethod() {
     if (isActive()) {
       throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
@@ -246,5 +256,9 @@ public class Subscription extends BaseTimeEntity {
 
   public boolean isPaused() {
     return this.status == SubscriptionStatus.CANCELED || this.status == SubscriptionStatus.PAYMENT_FAILED;
+  }
+
+  public boolean matchesPlan(SubscriptionPlan plan) {
+    return this.plan == plan;
   }
 }
