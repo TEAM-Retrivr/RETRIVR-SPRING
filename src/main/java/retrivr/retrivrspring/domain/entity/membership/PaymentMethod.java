@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentMethodStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
@@ -31,6 +32,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "payment_method")
+@SQLRestriction("status = 'ACTIVE'")
 public class PaymentMethod extends BaseTimeEntity {
 
   @Id
