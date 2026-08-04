@@ -14,10 +14,6 @@ where id in (
 create index if not exists idx_payment_method_organization
     on payment_method (organization_id);
 
-create unique index if not exists ux_payment_method_org_default
-    on payment_method (organization_id)
-    where is_default = true;
-
 alter table subscription drop constraint if exists fk_subscription_payment_method;
 alter table subscription add constraint fk_subscription_payment_method
     foreign key (payment_method_id)
