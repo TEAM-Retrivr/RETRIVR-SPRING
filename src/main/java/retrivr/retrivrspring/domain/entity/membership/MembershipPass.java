@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
@@ -34,7 +35,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @Table(
     name = "membership_pass"
 )
-public class MembershipPass {
+public class MembershipPass extends BaseTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -132,6 +133,13 @@ public class MembershipPass {
     return this.status == MembershipPassStatus.REGISTERED && !this.startAt.isAfter(now);
   }
 
+  public void expire(LocalDateTime now) {
+    if (!isActive()) {
+      throw new DomainException(ErrorCode.DO_NOT_EXPIRE_MEMBERSHIP_PASS);
+    }
+    this.status = MembershipPassStatus.EXPIRED;
+  }
+
   public boolean isActive() {
     return this.status == MembershipPassStatus.ACTIVE;
   }
@@ -141,6 +149,10 @@ public class MembershipPass {
   // 스케쥴러가 돌았을 때 자동결제가 되므로 중간에 프리미엄이 꺼지지 않도록 하기 위함이다.
   public boolean isExpired(LocalDateTime now) {
     return this.status == MembershipPassStatus.EXPIRED;
+  }
+
+  public boolean isOverDue(LocalDateTime now) {
+    return this.endAt.isBefore(now);
   }
 
   public boolean isSubscriptionPass() {

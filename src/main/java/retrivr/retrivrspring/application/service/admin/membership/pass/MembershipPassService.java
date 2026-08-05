@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.membership.CouponRegistration;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
+import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
@@ -121,23 +122,52 @@ public class MembershipPassService {
     }
   }
 
-  public MembershipLevel validateMembershipPass(Long organizationId, LocalDateTime now) {
-    Organization organization = organizationRepository.findById(organizationId)
+  @Transactional
+  public MembershipPass generateSubscriptionMembershipPassWithPayment(Long loginOrganizationId,
+      Payment payment, Subscription subscription) {
+    LocalDateTime now = LocalDateTime.now();
+
+    Organization organization = organizationRepository.findById(loginOrganizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    MembershipPass membershipPass = membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceDesc(
-            organization, MembershipPassStatus.ACTIVE)
+    subscription.validateOwner(organization);
+    payment.validateOwner(organization);
+
+    MembershipPass lastPass = membershipPassRepository.findFirstByOrganizationOrderBySequenceDesc(
+            organization)
         .orElse(null);
 
-    if (membershipPass == null) {
-      return MembershipLevel.FREE;
+    LocalDateTime startAt;
+    long sequence;
+    if (lastPass == null) {
+      startAt = now;
+      sequence = 1L;
+    } else {
+      startAt = lastPass.getEndAt().isBefore(now)
+          ? now
+          : lastPass.getEndAt();
+
+      sequence = lastPass.getSequence() + 1;
     }
 
-    if (membershipPass.isExpired(now)) {
-      return MembershipLevel.FREE;
+    MembershipPass pass = MembershipPass.createSubscriptionPass(
+        organization,
+        MembershipLevel.PREMIUM,
+        subscription,
+        startAt,
+        payment.getPlan().getDuration(),
+        sequence
+    );
+
+    if (pass.isActivable(now)) {
+      pass.activate(now);
     }
 
-    return membershipPass.getLevel();
+    try {
+      return membershipPassRepository.saveAndFlush(pass);
+    } catch (DataIntegrityViolationException e) {
+      throw new ApplicationException(ErrorCode.MEMBERSHIP_PASS_CONFLICT);
+    }
   }
 
   public MembershipStatusSummaryResponse getMembershipStatusSummary(Long organizationId) {

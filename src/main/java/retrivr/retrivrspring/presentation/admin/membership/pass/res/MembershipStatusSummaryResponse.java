@@ -60,6 +60,8 @@ public record MembershipStatusSummaryResponse(
       passType = "연간 구독";
     }
 
+    LocalDate nextBillingAt = subscription.getNextBillingAt() != null ? LocalDate.from(subscription.getNextBillingAt()) : null;
+
     return new MembershipStatusSummaryResponse(
         subscription.isActive(),
         membershipPass.getLevel(),
@@ -68,7 +70,7 @@ public record MembershipStatusSummaryResponse(
         new SubscriptionInfo(subscriptionName),
         LocalDate.from(membershipPass.getStartAt()),
         LocalDate.from(membershipPass.getEndAt()),
-        LocalDate.from(subscription.getNextBillingAt())
+        nextBillingAt
     );
   }
 
@@ -79,6 +81,8 @@ public record MembershipStatusSummaryResponse(
     Coupon coupon = membershipPass.getCouponRegistrationOrThrow()
         .getCoupon();
 
+    LocalDate nextBillingAt = subscription.getNextBillingAt() != null ? LocalDate.from(subscription.getNextBillingAt()) : null;
+
     return new MembershipStatusSummaryResponse(
         subscription.isActive(),
         membershipPass.getLevel(),
@@ -87,7 +91,7 @@ public record MembershipStatusSummaryResponse(
         null,
         LocalDate.from(membershipPass.getStartAt()),
         LocalDate.from(membershipPass.getEndAt()),
-        LocalDate.from(subscription.getNextBillingAt())
+        nextBillingAt
     );
   }
 

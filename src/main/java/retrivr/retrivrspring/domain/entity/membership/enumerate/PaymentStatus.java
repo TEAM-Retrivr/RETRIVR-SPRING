@@ -5,11 +5,11 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum SubscriptionPlan {
-  MONTHLY("월간", 3999, 31),
-  YEARLY("연간", 39999, 365);
+public enum PaymentStatus {
+  SUCCESS("결제 성공"),
+  FAILED("결제 실패"),
+  SCHEDULED("결제 예약"),
+  SCHEDULE_CANCELED("결제 예약 취소");
 
   private final String korean;
-  private final int price;
-  private final int duration;
 }

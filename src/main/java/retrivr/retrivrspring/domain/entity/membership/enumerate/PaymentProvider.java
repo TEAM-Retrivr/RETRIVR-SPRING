@@ -1,0 +1,7 @@
+package retrivr.retrivrspring.domain.entity.membership.enumerate;
+
+public enum PaymentProvider {
+  TOSSPAY,
+  KAKAOPAY,
+  KGINICIS
+}

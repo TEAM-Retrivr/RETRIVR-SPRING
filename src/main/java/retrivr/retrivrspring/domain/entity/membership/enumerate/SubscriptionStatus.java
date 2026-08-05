@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum SubscriptionStatus {
   ACTIVE("활성화됨"),
   CANCELED("취소됨"),
-  PAYMENT_FAILED("결제실패");
+  PAYMENT_FAILED("결제 실패");
 
   private final String korean;
 }
