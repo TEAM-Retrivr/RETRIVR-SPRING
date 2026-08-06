@@ -75,9 +75,11 @@ public class MembershipPassService {
     }
   }
 
+  //generateSubscriptionMembershipPassWithPayment 로 통합됨
+  @Deprecated
   @Transactional
   public MembershipPass generateSubscriptionMembershipPass(Long loginOrganizationId,
-      Subscription subscription) {
+      Subscription subscription, Payment payment) {
     LocalDateTime now = LocalDateTime.now();
 
     Organization organization = organizationRepository.findById(loginOrganizationId)
@@ -108,7 +110,8 @@ public class MembershipPassService {
         subscription,
         startAt,
         subscription.getDurationDays(),
-        sequence
+        sequence,
+        payment
     );
 
     if (pass.isActivable(now)) {
@@ -156,7 +159,8 @@ public class MembershipPassService {
         subscription,
         startAt,
         payment.getPlan().getDuration(),
-        sequence
+        sequence,
+        payment
     );
 
     if (pass.isActivable(now)) {

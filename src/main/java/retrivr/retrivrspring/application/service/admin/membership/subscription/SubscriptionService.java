@@ -133,8 +133,9 @@ public class SubscriptionService {
 
     subscription.completeSuccessfulPayment(now);
 
-    MembershipPass membershipPass = membershipPassService.generateSubscriptionMembershipPass(
+    MembershipPass membershipPass = membershipPassService.generateSubscriptionMembershipPassWithPayment(
         loginOrganizationId,
+        payment,
         subscription
     );
 

@@ -177,9 +177,10 @@ public enum ErrorCode {
     PAYMENT_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12402, "결제 예약에 실패했습니다."),
     PAYMENT_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 12403, "결제 상태를 요청된 상태로 변경할 수 없습니다."),
     NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다."),
-
+    DO_NOT_GET_PAYMENT(HttpStatus.CONFLICT, 12405, "연결된 결제 내역을 가져올 수 없습니다."),
     // 12500: Payment Method Error
-    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.");
+    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.")
+    ;
 
     private final HttpStatus httpStatus;
     private final Integer code;
