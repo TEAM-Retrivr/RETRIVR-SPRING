@@ -97,7 +97,7 @@ public class MembershipPassController {
   })
   public ResponseEntity<MembershipPassHistoryResponse> getMembershipHistory(
       @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
-      @Parameter(description = "커서(마지막으로 조회한 itemId). 다음 페이지 조회 시 사용", example = "10")
+      @Parameter(description = "커서. 다음 페이지 조회 시 사용", example = "10")
       @RequestParam(name = "cursor", required = false) Long cursor,
       @RequestParam(name = "size", required = false, defaultValue = "15") Integer size,
       @RequestParam(name = "start", required = false) LocalDate start,
