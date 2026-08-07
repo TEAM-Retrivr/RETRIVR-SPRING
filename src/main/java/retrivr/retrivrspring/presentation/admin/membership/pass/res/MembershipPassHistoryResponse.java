@@ -66,7 +66,7 @@ public record MembershipPassHistoryResponse(
             payment.getPlan().getKorean() + " 이용권 결제",
             membershipPass.getStatus(),
             payment.getPlan(),
-            payment.getPaidAt().format(formatter),
+            membershipPass.getCreatedAt().format(formatter),
             payment.getAmount(),
             payment.isSuccess()
         );
