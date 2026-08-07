@@ -22,6 +22,7 @@ import retrivr.retrivrspring.domain.repository.membership.subscription.Subscript
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.infrastructure.repository.membership.MembershipPassSearchRepository;
 import retrivr.retrivrspring.presentation.admin.membership.pass.res.CouponMembershipPassListResponse;
 import retrivr.retrivrspring.presentation.admin.membership.pass.res.CurrentSubscriptionMembershipPassResponse;
 import retrivr.retrivrspring.presentation.admin.membership.pass.res.MembershipPassHistoryResponse;
@@ -34,6 +35,7 @@ public class MembershipPassService {
 
   private final OrganizationRepository organizationRepository;
   private final MembershipPassRepository membershipPassRepository;
+  private final MembershipPassSearchRepository membershipPassSearchRepository;
   private final SubscriptionRepository subscriptionRepository;
 
   @Transactional
@@ -243,15 +245,20 @@ public class MembershipPassService {
     DefaultNormalizedCursorPageSearchSize normalizedSize = DefaultNormalizedCursorPageSearchSize.of(
         limit);
 
-    long sequenceCursor = cursor == null ? Long.MAX_VALUE : cursor;
+
+    LocalDateTime startAt =
+        start != null ? start.atStartOfDay() : null;
+
+    LocalDateTime endAt =
+        end != null ? end.plusDays(1).atStartOfDay() : null;
 
     List<MembershipPass> passes =
-        membershipPassRepository
-            .findAllByOrganizationAndSequenceLessThanAndCreatedAtBetweenOrderBySequenceDesc(
+        membershipPassSearchRepository
+            .findMembershipPassHistory(
                 organization,
-                sequenceCursor,
-                start.atStartOfDay(),
-                end.atStartOfDay().plusDays(1),
+                cursor,
+                startAt,
+                endAt,
                 PageRequest.of(0, normalizedSize.sizePlusOne())
             );
 
