@@ -23,6 +23,8 @@ public interface MembershipPassRepository extends JpaRepository<MembershipPass, 
 
   Optional<MembershipPass> findFirstByOrganizationAndStatusOrderBySequenceAsc(Organization organization, MembershipPassStatus status);
 
+  Optional<MembershipPass> findFirstByOrganizationAndStatusAndSourceTypeOrderBySequenceAsc(Organization organization, MembershipPassStatus status, MembershipPassType sourceType);
+
   List<MembershipPass> findAllByOrganizationAndSourceTypeAndStatusIsNotOrderBySequenceAsc(Organization organization, MembershipPassType sourceType, MembershipPassStatus status);
 
   List<MembershipPass> findAllByOrganizationAndSequenceLessThanAndCreatedAtBetweenOrderBySequenceDesc(Organization organization, Long sequence, LocalDateTime start, LocalDateTime end, Pageable pageable);

@@ -211,8 +211,8 @@ public class MembershipPassService {
     Organization organization = organizationRepository.findById(organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    MembershipPass membershipPass = membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceAsc(
-        organization, MembershipPassStatus.ACTIVE
+    MembershipPass membershipPass = membershipPassRepository.findFirstByOrganizationAndStatusAndSourceTypeOrderBySequenceAsc(
+        organization, MembershipPassStatus.ACTIVE, MembershipPassType.SUBSCRIPTION
     ).orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_PASS));
 
     return CurrentSubscriptionMembershipPassResponse.of(
