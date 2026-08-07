@@ -1,15 +1,18 @@
 package retrivr.retrivrspring.domain.repository.membership.pass;
 
 import jakarta.persistence.LockModeType;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 
 public interface MembershipPassRepository extends JpaRepository<MembershipPass, String> {
@@ -19,6 +22,10 @@ public interface MembershipPassRepository extends JpaRepository<MembershipPass, 
   Optional<MembershipPass> findFirstByOrganizationAndStatusOrderBySequenceDesc(Organization organization, MembershipPassStatus status);
 
   Optional<MembershipPass> findFirstByOrganizationAndStatusOrderBySequenceAsc(Organization organization, MembershipPassStatus status);
+
+  List<MembershipPass> findAllByOrganizationAndSourceTypeAndStatusIsNotOrderBySequenceAsc(Organization organization, MembershipPassType sourceType, MembershipPassStatus status);
+
+  List<MembershipPass> findAllByOrganizationAndSequenceLessThanAndCreatedAtBetweenOrderBySequenceDesc(Organization organization, Long sequence, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("""
