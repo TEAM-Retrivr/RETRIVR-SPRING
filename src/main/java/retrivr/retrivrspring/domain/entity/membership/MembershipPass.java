@@ -73,6 +73,10 @@ public class MembershipPass extends BaseTimeEntity {
   @Column(nullable = false)
   private Long sequence; // 순서
 
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "payment_id")
+  private Payment payment;
+
   public static MembershipPass createCouponPass(
       Organization organization,
       MembershipLevel level,
@@ -104,7 +108,8 @@ public class MembershipPass extends BaseTimeEntity {
       Subscription subscription,
       LocalDateTime startAt,
       int durationDays,
-      Long sequence
+      Long sequence,
+      Payment payment
   ) {
     Objects.requireNonNull(subscription, "subscription must not be null");
     if (durationDays <= 0) {
@@ -119,6 +124,7 @@ public class MembershipPass extends BaseTimeEntity {
         .startAt(startAt)
         .endAt(startAt.plusDays(durationDays))
         .sequence(sequence)
+        .payment(payment)
         .build();
   }
 
@@ -164,6 +170,13 @@ public class MembershipPass extends BaseTimeEntity {
       throw new DomainException(ErrorCode.DO_NOT_GET_COUPON_REGISTRATION);
     }
     return this.couponRegistration;
+  }
+
+  public Payment getPaymentOrThrow() {
+    if (this.payment == null) {
+      throw new DomainException(ErrorCode.DO_NOT_GET_PAYMENT);
+    }
+    return this.payment;
   }
 
   public Subscription getSubscriptionOrThrow() {

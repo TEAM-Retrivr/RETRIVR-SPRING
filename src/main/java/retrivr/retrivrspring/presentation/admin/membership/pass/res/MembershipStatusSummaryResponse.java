@@ -3,6 +3,7 @@ package retrivr.retrivrspring.presentation.admin.membership.pass.res;
 import java.time.LocalDate;
 import retrivr.retrivrspring.domain.entity.membership.Coupon;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
+import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
@@ -15,7 +16,8 @@ public record MembershipStatusSummaryResponse(
     SubscriptionInfo subscriptionInfo,
     LocalDate startAt,
     LocalDate endAt,
-    LocalDate nextBillingAt
+    LocalDate nextBillingAt,
+    Long payedAmount
 ) {
 
   public record CouponInfo(
@@ -40,18 +42,20 @@ public record MembershipStatusSummaryResponse(
         null,
         null,
         null,
-        null
+        null,
+        0L
     );
   }
 
   public static MembershipStatusSummaryResponse subscribedPlan(
       MembershipPass membershipPass
   ) {
+    Payment payment = membershipPass.getPaymentOrThrow();
     Subscription subscription = membershipPass.getSubscriptionOrThrow();
 
     String subscriptionName = "";
     String passType = "";
-    if (subscription.getPlan() == SubscriptionPlan.MONTHLY) {
+    if (payment.getPlan() == SubscriptionPlan.MONTHLY) {
       subscriptionName = "월간 이용권";
       passType = "월간 구독";
     }
@@ -70,7 +74,8 @@ public record MembershipStatusSummaryResponse(
         new SubscriptionInfo(subscriptionName),
         LocalDate.from(membershipPass.getStartAt()),
         LocalDate.from(membershipPass.getEndAt()),
-        nextBillingAt
+        nextBillingAt,
+        payment.getAmount()
     );
   }
 
@@ -91,7 +96,8 @@ public record MembershipStatusSummaryResponse(
         null,
         LocalDate.from(membershipPass.getStartAt()),
         LocalDate.from(membershipPass.getEndAt()),
-        nextBillingAt
+        nextBillingAt,
+        0L
     );
   }
 
@@ -107,7 +113,8 @@ public record MembershipStatusSummaryResponse(
         null,
         LocalDate.from(membershipPass.getStartAt()),
         LocalDate.from(membershipPass.getEndAt()),
-        null
+        null,
+        0L
     );
   }
 }
