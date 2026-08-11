@@ -15,6 +15,7 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
 import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -25,17 +26,31 @@ public class MembershipPassExpirationService {
 
   private final MembershipPassRepository membershipPassRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final OrganizationRepository organizationRepository;
   private final PaymentRepository paymentRepository;
   private final MembershipPassService membershipPassService;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
-  public void processExpiredPass(MembershipPass expiredPass, LocalDateTime now) {
-    Organization organization = expiredPass.getOrganization();
+  public boolean processExpiredPass(Long organizationId, LocalDateTime now) {
+    Organization lockedOrganization = organizationRepository.findByIdForUpdate(organizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    MembershipPass expiredPass = membershipPassRepository
+        .findFirstByOrganizationAndStatusAndEndAtLessThanEqualOrderByEndAtAsc(
+            lockedOrganization,
+            MembershipPassStatus.ACTIVE,
+            now
+        )
+        .orElse(null);
+
+    if (expiredPass == null) {
+      return false;
+    }
 
     MembershipPass nextPass = membershipPassRepository
         .findFirstByOrganizationAndStatusOrderBySequenceAsc(
-            organization,
+            lockedOrganization,
             MembershipPassStatus.REGISTERED
         )
         .orElse(null);
@@ -44,34 +59,20 @@ public class MembershipPassExpirationService {
     if (nextPass != null) {
       nextPass.activate(now);
       expiredPass.expire(now);
-      return;
+      return true;
     }
 
     expiredPass.expire(now);
 
     // 예약 결제 건에 대한 검증 및 다음 패스 제작
-    paymentRepository.findByOrganizationAndStatus(organization,
+    paymentRepository.findByOrganizationAndStatus(lockedOrganization,
         PaymentStatus.SCHEDULED)
         .ifPresent(
         pendingPayment -> eventPublisher.publishEvent(
             new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())
-        )
+          )
         );
-  }
-
-  @Transactional
-  public void expireOrganizationMembershipPass(Organization organization, LocalDateTime now) {
-    MembershipPass expiredPass = membershipPassRepository.findFirstExpiredActivePassesForUpdate(MembershipPassStatus.ACTIVE, now)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_PASS));
-    processExpiredPass(expiredPass, now);
-  }
-
-  @Transactional
-  public void expireOrganizationMembershipPassIfExist(Organization organization, LocalDateTime now) {
-    membershipPassRepository.findFirstExpiredActivePassesForUpdate(MembershipPassStatus.ACTIVE, now)
-        .ifPresent(
-            expiredPass -> processExpiredPass(expiredPass, now)
-        );
+    return true;
   }
 
   @Transactional

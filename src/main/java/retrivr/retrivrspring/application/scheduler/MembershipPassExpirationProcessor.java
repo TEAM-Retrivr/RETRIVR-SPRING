@@ -31,8 +31,9 @@ public class MembershipPassExpirationProcessor {
 
     int expiredCount = 0;
     for (MembershipPass expiredPass : expiredPasses) {
-      membershipPassExpirationService.processExpiredPass(expiredPass, now);
-      expiredCount++;
+      if (membershipPassExpirationService.processExpiredPass(expiredPass.getOrganization().getId(), now)) {
+        expiredCount++;
+      };
     }
 
     if (expiredCount > 0) {

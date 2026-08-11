@@ -68,7 +68,7 @@ public class CouponRegistrationService {
     }
 
     // 만료된 멤버십 패스가 유지 중일 경우 만료시킴
-    membershipPassExpirationService.expireOrganizationMembershipPassIfExist(organization, now);
+    membershipPassExpirationService.processExpiredPass(organization.getId(), now);
 
     // 멤버십 패스 제작
     MembershipPass membershipPass = membershipPassService.generateCouponMembershipPass(

@@ -1,11 +1,9 @@
 package retrivr.retrivrspring.domain.repository.membership.pass;
 
 import jakarta.persistence.LockModeType;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -27,8 +25,6 @@ public interface MembershipPassRepository extends JpaRepository<MembershipPass, 
 
   List<MembershipPass> findAllByOrganizationAndSourceTypeAndStatusIsNotOrderBySequenceAsc(Organization organization, MembershipPassType sourceType, MembershipPassStatus status);
 
-  List<MembershipPass> findAllByOrganizationAndSequenceLessThanAndCreatedAtBetweenOrderBySequenceDesc(Organization organization, Long sequence, LocalDateTime start, LocalDateTime end, Pageable pageable);
-
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("""
       select mp
@@ -43,18 +39,9 @@ public interface MembershipPassRepository extends JpaRepository<MembershipPass, 
       @Param("now") LocalDateTime now
   );
 
-  @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("""
-      select mp
-      from MembershipPass mp
-      join fetch mp.organization o
-      where mp.status = :status
-        and mp.endAt <= :now
-      order by mp.endAt asc
-      limit 1
-  """)
-  Optional<MembershipPass> findFirstExpiredActivePassesForUpdate(
-      @Param("status") MembershipPassStatus status,
-      @Param("now") LocalDateTime now
+  Optional<MembershipPass> findFirstByOrganizationAndStatusAndEndAtLessThanEqualOrderByEndAtAsc(
+      Organization organization,
+      MembershipPassStatus status,
+      LocalDateTime now
   );
 }
