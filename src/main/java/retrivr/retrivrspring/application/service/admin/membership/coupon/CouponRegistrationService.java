@@ -62,7 +62,7 @@ public class CouponRegistrationService {
     }
 
     // 쿠폰 수량 조정
-    boolean consumed = couponRepository.consumeIfAvailable(coupon);
+    boolean consumed = couponRepository.consumeIfAvailable(coupon, now.toLocalDate());
     if (!consumed) {
       throw new ApplicationException(ErrorCode.COUPON_AVAILABLE_QUANTITY_OVERFLOW);
     }

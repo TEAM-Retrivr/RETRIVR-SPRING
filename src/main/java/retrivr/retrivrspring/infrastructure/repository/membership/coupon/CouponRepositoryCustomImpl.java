@@ -14,7 +14,7 @@ public class CouponRepositoryCustomImpl implements CouponRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public boolean consumeIfAvailable(Coupon coupon) {
+  public boolean consumeIfAvailable(Coupon coupon, LocalDate today) {
 
     QCoupon qCoupon = QCoupon.coupon;
 
@@ -27,7 +27,7 @@ public class CouponRepositoryCustomImpl implements CouponRepositoryCustom {
         .where(
             qCoupon.id.eq(coupon.getId()),
             qCoupon.usedQuantity.lt(qCoupon.totalQuantity),
-            qCoupon.expiresAt.after(LocalDate.now())
+            qCoupon.expiresAt.goe(today)
         )
         .execute();
 
