@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassExpirationService;
@@ -13,17 +12,13 @@ import retrivr.retrivrspring.application.service.admin.membership.pay.PortOnePay
 import retrivr.retrivrspring.domain.entity.membership.Coupon;
 import retrivr.retrivrspring.domain.entity.membership.CouponRegistration;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
-import retrivr.retrivrspring.domain.entity.membership.Payment;
-import retrivr.retrivrspring.domain.entity.membership.Subscription;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.coupon.CouponRegistrationRepository;
 import retrivr.retrivrspring.domain.repository.membership.coupon.CouponRepository;
-import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
-import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
+import retrivr.retrivrspring.infrastructure.repository.membership.coupon.CouponRegistrationRepositoryCustom;
 import retrivr.retrivrspring.presentation.admin.membership.coupon.res.AdminCouponCodeCheckResponse;
 import retrivr.retrivrspring.presentation.admin.membership.coupon.res.CouponRegistrationResponse;
 
@@ -34,12 +29,12 @@ import retrivr.retrivrspring.presentation.admin.membership.coupon.res.CouponRegi
 public class CouponRegistrationService {
 
   private final CouponRepository couponRepository;
+  private final CouponRegistrationRepositoryCustom couponRegistrationRepositoryCustom;
   private final CouponRegistrationRepository couponRegistrationRepository;
   private final OrganizationRepository organizationRepository;
-  private final MembershipPassService membershipPassService;
-  private final PaymentRepository paymentRepository;
-  private final SubscriptionRepository subscriptionRepository;
+
   private final PortOnePaymentService paymentService;
+  private final MembershipPassService membershipPassService;
   private final MembershipPassExpirationService membershipPassExpirationService;
 
   @Transactional
@@ -51,22 +46,26 @@ public class CouponRegistrationService {
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     // 쿠폰 조회
-    Coupon coupon = couponRepository.findByIdForUpdate(couponId)
+    Coupon coupon = couponRepository.findById(couponId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_COUPON));
 
-    // 쿠폰 검증
+    // 쿠폰 검증 (Application 단에서 우선 검증)
     validateCoupon(coupon, organization, now);
 
     // 쿠폰 등록
     CouponRegistration couponRegistration = CouponRegistration.register(organization, coupon, now);
 
-    try {
-      couponRegistrationRepository.saveAndFlush(couponRegistration);
-    } catch (DataIntegrityViolationException e) {
+    // DB 단에 Flush 후 검증
+    boolean registered = couponRegistrationRepositoryCustom.saveIfAbsent(couponRegistration);
+    if (!registered) {
       throw new ApplicationException(ErrorCode.ALREADY_REGISTERED_COUPON);
     }
 
-    coupon.registered(now);
+    // 쿠폰 수량 조정
+    boolean consumed = couponRepository.consumeIfAvailable(coupon);
+    if (!consumed) {
+      throw new ApplicationException(ErrorCode.COUPON_AVAILABLE_QUANTITY_OVERFLOW);
+    }
 
     // 만료된 멤버십 패스가 유지 중일 경우 만료시킴
     membershipPassExpirationService.expireOrganizationMembershipPassIfExist(organization, now);
@@ -93,23 +92,6 @@ public class CouponRegistrationService {
         coupon.getId(),
         membershipPass.getId()
     );
-  }
-
-  private void validateCoupon(Coupon coupon, Organization organization, LocalDateTime now) {
-    // 활성화된 쿠폰인지 검증
-    if (!coupon.isActive(now)) {
-      throw new ApplicationException(ErrorCode.NOT_AVAILABLE_COUPON);
-    }
-
-    // 수량이 초과되었는지 검증
-    if (coupon.isQuantityExceeded()) {
-      throw new ApplicationException(ErrorCode.COUPON_AVAILABLE_QUANTITY_OVERFLOW);
-    }
-
-    // 이미 등록한 쿠폰인지 확인
-    if (couponRegistrationRepository.existsByOrganizationAndCoupon(organization, coupon)) {
-      throw new ApplicationException(ErrorCode.ALREADY_REGISTERED_COUPON);
-    }
   }
 
   public AdminCouponCodeCheckResponse checkCouponCode(Long organizationId, String couponCode) {
@@ -144,5 +126,22 @@ public class CouponRegistrationService {
         isUsed,
         coupon
     );
+  }
+
+  private void validateCoupon(Coupon coupon, Organization organization, LocalDateTime now) {
+    // 활성화된 쿠폰인지 검증
+    if (!coupon.isActive(now)) {
+      throw new ApplicationException(ErrorCode.NOT_AVAILABLE_COUPON);
+    }
+
+    // 수량이 초과되었는지 검증
+    if (coupon.isQuantityExceeded()) {
+      throw new ApplicationException(ErrorCode.COUPON_AVAILABLE_QUANTITY_OVERFLOW);
+    }
+
+    // 이미 등록한 쿠폰인지 확인
+    if (couponRegistrationRepository.existsByOrganizationAndCoupon(organization, coupon)) {
+      throw new ApplicationException(ErrorCode.ALREADY_REGISTERED_COUPON);
+    }
   }
 }
