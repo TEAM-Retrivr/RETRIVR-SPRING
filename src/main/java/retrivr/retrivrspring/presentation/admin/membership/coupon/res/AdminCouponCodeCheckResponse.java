@@ -12,10 +12,12 @@ public record AdminCouponCodeCheckResponse(
     int durationDays,
     LocalDate activeStartDay,
     LocalDate expiresDay,
-    String guideline
+    String guideline,
+    Integer totalQuantity,
+    Integer usedQuantity
 ) {
   public static AdminCouponCodeCheckResponse empty() {
-    return new AdminCouponCodeCheckResponse(false, false, null, null, null, 0, null, null, null);
+    return new AdminCouponCodeCheckResponse(false, false, null, null, null, 0, null, null, null, 0, 0);
   }
 
   public static AdminCouponCodeCheckResponse of(boolean isExist, boolean isUsed, Coupon coupon) {
@@ -28,7 +30,9 @@ public record AdminCouponCodeCheckResponse(
         coupon.getDurationDays(),
         coupon.getActiveStartAt(),
         coupon.getExpiresAt(),
-        coupon.getGuideline()
+        coupon.getGuideline(),
+        coupon.getTotalQuantity(),
+        coupon.getUsedQuantity()
     );
   }
 }
