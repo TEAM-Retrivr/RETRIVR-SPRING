@@ -75,16 +75,7 @@ public class CouponRegistrationService {
         organizationId, couponRegistration);
 
     // 결제 예약이 걸려있을 경우 생성된 멤버십 패스 이후로 변경
-    Optional<Payment> scheduledPaymentOp = paymentRepository.findByOrganizationAndStatus(
-        organization, PaymentStatus.SCHEDULED);
-
-    if (scheduledPaymentOp.isPresent()) {
-      // 결제 스케쥴링이 있는 상태에서 구독이 없을 수 없음.
-      Subscription orgsSubscription = subscriptionRepository.findByOrganization(organization)
-          .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SUBSCRIPTION));
-      paymentService.cancelScheduledPayment(scheduledPaymentOp.get());
-      paymentService.scheduleBillingPayment(orgsSubscription, membershipPass.getEndAt());
-    }
+    paymentService.rescheduleScheduledPayment(organization, membershipPass.getEndAt());
 
     return new CouponRegistrationResponse(
         organization.getId(),

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
+import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.payment.portone.PortOneClient;
@@ -42,6 +44,7 @@ public class PortOnePaymentService {
 
   private final PortOneClient portOneClient;
   private final PaymentRepository paymentRepository;
+  private final SubscriptionRepository subscriptionRepository;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public Payment charge(
@@ -180,6 +183,29 @@ public class PortOnePaymentService {
     payment.scheduledCancel(response.revokedAt().toLocalDateTime());
 
     return response;
+  }
+
+  @Transactional
+  public void rescheduleScheduledPayment(
+      Organization organization,
+      LocalDateTime nextBillingAt
+  ) {
+    Optional<Payment> scheduledPaymentOp =
+        paymentRepository.findByOrganizationAndStatus(
+            organization,
+            PaymentStatus.SCHEDULED
+        );
+
+    if (scheduledPaymentOp.isEmpty()) {
+      return;
+    }
+
+    Subscription subscription =
+        subscriptionRepository.findByOrganization(organization)
+            .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SUBSCRIPTION));
+
+    cancelScheduledPayment(scheduledPaymentOp.get());
+    scheduleBillingPayment(subscription, nextBillingAt);
   }
 
   public PortOnePaymentResponse verifyPaidPayment(String paymentId, long expectedAmount) {

@@ -106,7 +106,7 @@ public class PortOneWebhookService {
         portOnePaymentResponse.failedAt().toLocalDateTime()
     );
 
-    membershipPassExpirationService.expireOrganizationMembershipPass(payment.getOrganization(), now);
+    membershipPassExpirationService.processExpiredPass(payment.getOrganization().getId(), now);
 
     subscriptionService.cancelSubscriptionWhenPaymentFail(payment.getOrganization(), now);
   }
