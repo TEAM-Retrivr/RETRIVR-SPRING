@@ -11,6 +11,7 @@ import retrivr.retrivrspring.application.service.admin.membership.pass.Membershi
 import retrivr.retrivrspring.application.service.admin.membership.pay.portone.PortOnePaymentService;
 import retrivr.retrivrspring.application.service.admin.membership.pay.immediate.ImmediatePaymentPreparation;
 import retrivr.retrivrspring.application.service.admin.membership.pay.immediate.ImmediatePaymentTransactionService;
+import retrivr.retrivrspring.application.service.admin.membership.pay.schedule.BillingScheduleCancellationService;
 import retrivr.retrivrspring.application.service.admin.membership.pay.schedule.BillingScheduleRequestService;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
 import retrivr.retrivrspring.domain.entity.membership.Payment;
@@ -47,6 +48,9 @@ public class SubscriptionService {
   private final SubscriptionStartPreparationService startPreparationService;
   private final SubscriptionStartCompletionService startCompletionService;
   private final ScheduledSubscriptionStartService scheduledStartService;
+
+  private final SubscriptionCancellationTransactionService cancellationTransactionService;
+  private final BillingScheduleCancellationService billingScheduleCancellationService;
 
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public SubscriptionStartResponse startSubscription(
@@ -159,42 +163,20 @@ public class SubscriptionService {
     }
   }
 
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public SubscriptionCancelResponse cancelSubscription(Long loginOrganizationId) {
     LocalDateTime now = LocalDateTime.now();
-    Organization organization = organizationRepository.findById(loginOrganizationId)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
-    Subscription subscription = subscriptionRepository.findByOrganization(organization)
-        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION));
+    BillingScheduleCancellationPreparation preparation =
+        cancellationTransactionService.prepare(loginOrganizationId, now);
 
-    subscription.validateOwner(organization);
-
-    if (!subscription.isActive()) {
-      throw new ApplicationException(ErrorCode.NOT_FOUND_ACTIVE_SUBSCRIPTION);
-    }
-
-    // 만약 예약결제가 적용되어 있다면 취소
-
-    Payment pendingPayment = paymentRepository.findByOrganizationAndStatus(organization,
-        PaymentStatus.SCHEDULED)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SCHEDULED_PAYMENT));
-
-    paymentService.cancelScheduledPayment(pendingPayment);
-    subscription.cancel(organization, now);
-
-    MembershipPass membershipPass = membershipPassRepository
-        .findFirstByOrganizationAndStatusOrderBySequenceDesc(
-            organization,
-            MembershipPassStatus.ACTIVE
-        )
-        .orElse(null);
+    billingScheduleCancellationService.cancel(preparation);
 
     return new SubscriptionCancelResponse(
-        subscription.getId(),
-        subscription.getStatus(),
-        subscription.getCanceledAt(),
-        membershipPass != null ? membershipPass.getEndAt() : null
+        preparation.subscriptionId(),
+        preparation.subscriptionStatus(),
+        preparation.canceledAt(),
+        preparation.currentPassExpireAt()
     );
   }
 
