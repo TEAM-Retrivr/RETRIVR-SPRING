@@ -84,6 +84,25 @@ cloud:
       get-expiration: ${S3_GET_EXPIRATION:300000}  #ms (5분)
 
 scheduler:
+  missing-billing-schedule:
+    delay: ${MISSING_BILLING_SCHEDULE_DELAY:60000}
+    batch-size: ${MISSING_BILLING_SCHEDULE_BATCH_SIZE:50}
+  pending-payment-recovery:
+    delay: ${PENDING_PAYMENT_RECOVERY_DELAY:60000}
+    batch-size: ${PENDING_PAYMENT_RECOVERY_BATCH_SIZE:50}
+    retry-age-seconds: ${PENDING_PAYMENT_RECOVERY_RETRY_AGE_SECONDS:60}
+  billing-schedule-retry:
+    delay: ${BILLING_SCHEDULE_RETRY_DELAY:30000}
+    batch-size: ${BILLING_SCHEDULE_RETRY_BATCH_SIZE:50}
+    retry-age-seconds: ${BILLING_SCHEDULE_RETRY_AGE_SECONDS:30}
+  payment-compensation:
+    delay: ${PAYMENT_COMPENSATION_DELAY:30000}
+    batch-size: ${PAYMENT_COMPENSATION_BATCH_SIZE:50}
+    retry-age-seconds: ${PAYMENT_COMPENSATION_RETRY_AGE_SECONDS:30}
+  payment-reconciliation:
+    delay: ${PAYMENT_RECONCILIATION_DELAY:30000}
+    batch-size: ${PAYMENT_RECONCILIATION_BATCH_SIZE:50}
+    retry-age-seconds: ${PAYMENT_RECONCILIATION_RETRY_AGE_SECONDS:30}
   rental-expire:
     delay: ${RENTAL_EXPIRE_DELAY:60000}
     batch-size: ${RENTAL_EXPIRE_BATCH_SIZE:100}

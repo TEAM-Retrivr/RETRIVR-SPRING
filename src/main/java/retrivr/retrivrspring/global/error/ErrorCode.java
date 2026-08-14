@@ -170,6 +170,7 @@ public enum ErrorCode {
     SUBSCRIPTION_STATUS_CONFLICT(HttpStatus.CONFLICT, 12304, "구독 상태를 전환할 수 없습니다."),
     NOT_FOUND_SUBSCRIPTION(HttpStatus.NOT_FOUND, 12305, "유효한 구독 정보를 찾을 수 없습니다."),
     ALREADY_SAME_SUBSCRIPTION_PLAN(HttpStatus.CONFLICT, 12306, "이미 동일한 플랜을 사용중입니다."),
+    SUBSCRIPTION_ACTIVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 12307, "결제 후 구독 활성화에 실패했습니다."),
 
     // 12400: Payment Error
     PAYMENT_FAILED(HttpStatus.PAYMENT_REQUIRED, 12400, "결제가 실패했습니다."),
@@ -178,6 +179,7 @@ public enum ErrorCode {
     PAYMENT_STATUS_TRANSITION_EXCEPTION(HttpStatus.BAD_REQUEST, 12403, "결제 상태를 요청된 상태로 변경할 수 없습니다."),
     NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다."),
     DO_NOT_GET_PAYMENT(HttpStatus.CONFLICT, 12405, "연결된 결제 내역을 가져올 수 없습니다."),
+    PAYMENT_CONFIRMATION_PENDING(HttpStatus.ACCEPTED, 12406, "결제 결과를 확인하고 있습니다. 다시 결제하지 마세요."),
     // 12500: Payment Method Error
     NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.")
     ;
