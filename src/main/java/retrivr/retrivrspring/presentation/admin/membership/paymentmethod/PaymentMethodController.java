@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import retrivr.retrivrspring.application.service.admin.membership.pay.PaymentMethodService;
+import retrivr.retrivrspring.application.service.admin.membership.pay.method.PaymentMethodService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.presentation.admin.membership.paymentmethod.req.PaymentMethodCreateRequest;

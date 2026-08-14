@@ -1,11 +1,13 @@
-package retrivr.retrivrspring.application.service.admin.membership.pay;
+package retrivr.retrivrspring.application.service.admin.membership.pay.portone;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.event.BillingScheduleRequestedEvent;
 import retrivr.retrivrspring.application.event.ScheduledPaymentFailEvent;
 import retrivr.retrivrspring.application.event.ScheduledPaymentReconcileRequestedEvent;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassExpirationService;
@@ -25,8 +27,10 @@ public class PortOneWebhookService {
   private final PortOnePaymentService paymentService;
   private final MembershipPassExpirationService membershipPassExpirationService;
   private final SubscriptionService subscriptionService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @EventListener
+  @Transactional
   public void handleScheduledPaymentReconcileRequested(
       ScheduledPaymentReconcileRequestedEvent event
   ) {
@@ -34,6 +38,7 @@ public class PortOneWebhookService {
   }
 
   @EventListener
+  @Transactional
   public void handleScheduledPaymentFail(
       ScheduledPaymentFailEvent event
   ) {
@@ -55,11 +60,14 @@ public class PortOneWebhookService {
     Payment payment = opPayment.get();
 
     // 실제로 결제가 이루어졌는지 체크
-    PortOnePaymentResponse portOnePaymentResponse = paymentService.verifyPaidPayment(paymentId,
+    PortOnePaymentResponse portOnePaymentResponse = paymentService.getVerifiedPayment(paymentId,
         payment.getAmount());
 
     if (portOnePaymentResponse.isFailed()) {
       handleSchedulePaymentFail(paymentId);
+      return;
+    }
+    if (!portOnePaymentResponse.isPaid()) {
       return;
     }
 
@@ -77,7 +85,12 @@ public class PortOneWebhookService {
         now
     );
 
-    paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
+    eventPublisher.publishEvent(
+        new BillingScheduleRequestedEvent(
+            subscription.getId(),
+            subscription.getNextBillingAt()
+        )
+    );
   }
 
   @Transactional
@@ -92,7 +105,7 @@ public class PortOneWebhookService {
     Payment payment = opPayment.get();
 
     // 실제로 결제가 이루어졌는지 체크
-    PortOnePaymentResponse portOnePaymentResponse = paymentService.verifyPaidPayment(paymentId,
+    PortOnePaymentResponse portOnePaymentResponse = paymentService.getVerifiedPayment(paymentId,
         payment.getAmount());
 
     if (!portOnePaymentResponse.isFailed()) {

@@ -5,6 +5,8 @@ import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingK
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentResponse;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelPaymentRequest;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOnePaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentResponse;
@@ -23,6 +25,11 @@ public interface PortOneClient {
 
   PortOneCancelScheduledPaymentResponse cancelScheduledPayment(
       PortOneCancelScheduledPaymentRequest request
+  );
+
+  PortOneCancelPaymentResponse cancelPayment(
+      String paymentId,
+      PortOneCancelPaymentRequest request
   );
 
   PortOnePaymentResponse getPayment(String paymentId);

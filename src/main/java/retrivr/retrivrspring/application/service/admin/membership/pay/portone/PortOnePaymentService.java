@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.application.service.admin.membership.pay;
+package retrivr.retrivrspring.application.service.admin.membership.pay.portone;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -11,10 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.service.admin.membership.pay.immediate.ImmediatePaymentPreparation;
+import retrivr.retrivrspring.application.service.admin.membership.pay.immediate.ImmediatePaymentTransactionService;
 import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.PaymentMethod;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentProvider;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -45,87 +46,95 @@ public class PortOnePaymentService {
   private final PortOneClient portOneClient;
   private final PaymentRepository paymentRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final ImmediatePaymentTransactionService immediatePaymentTransactionService;
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Payment charge(
-      Organization organization,
-      Subscription subscription,
-      SubscriptionPlan plan,
+      ImmediatePaymentPreparation preparation,
       LocalDateTime now
   ) {
-    String paymentId = createPaymentId(subscription, "instant");
-    PaymentMethod paymentMethod = subscription.getPaymentMethodOrThrow();
+    String paymentId = preparation.paymentId();
+
+    PortOneBillingKeyPaymentResponse response = null;
+    String requestError = null;
+
     try {
-      PortOneBillingKeyPaymentResponse response = portOneClient.chargeBillingKey(
+      response = portOneClient.chargeBillingKey(
           new PortOneBillingKeyPaymentRequest(
               paymentId,
               null,
-              paymentMethod.getBillingKeyOrThrow(),
+              preparation.billingKey(),
               null,
-              orderName(plan),
-              customer(organization),
+              orderName(preparation.plan()),
+              preparation.customer(),
               null,
-              PortOnePaymentAmountRequest.total(plan.getPrice()),
+              PortOnePaymentAmountRequest.total(preparation.amount()),
               CURRENCY_KRW,
               null,
               null,
               1,
               false
           ),
-          paymentMethod.getProvider()
+          preparation.provider()
       );
+    } catch (PortOneException e) {
+      // 요청 오류만으로 결제 실패를 확정할 수 없다. 동일 paymentId를 조회해 최종 상태를 판단한다.
+      requestError = e.getMessage();
+    }
 
-      PortOnePaymentResponse portOnePayment = verifyPaidPayment(paymentId, plan.getPrice());
-      PaymentProvider provider = paymentMethod.getProvider();
-      LocalDateTime paidAt = resolvePaidAt(response, portOnePayment, now);
-
-      Payment payment = Payment.success(
+    PortOnePaymentResponse portOnePayment;
+    try {
+      portOnePayment = portOneClient.getPayment(paymentId);
+    } catch (PortOneException e) {
+      return immediatePaymentTransactionService.markUnknown(
           paymentId,
-          subscription.getPlan(),
-          organization,
-          portOnePayment.scheduleId(),
-          (long) plan.getPrice(),
-          provider,
-          providerPaymentKey(response),
-          paidAt
-      );
-      return paymentRepository.save(payment);
-    } catch (PortOneException | ApplicationException e) {
-      Payment payment = Payment.fail(
-          paymentId,
-          subscription.getPlan(),
-          organization,
-          (long) plan.getPrice(),
-          paymentMethod.getProvider(),
-          "PORTONE_PAYMENT_FAILED",
-          e.getMessage(),
+          resolveUnknownReason(requestError, e.getMessage()),
           now
       );
-      return paymentRepository.save(payment);
     }
+
+    if (!isVerifiablePayment(portOnePayment, paymentId, preparation.amount())) {
+      return immediatePaymentTransactionService.markUnknown(
+          paymentId,
+          resolveUnknownReason(requestError, "PortOne 결제 조회 결과가 요청 정보와 일치하지 않습니다."),
+          now
+      );
+    }
+
+    if (portOnePayment.isPaid()) {
+      LocalDateTime paidAt = resolvePaidAt(response, portOnePayment, now);
+      return immediatePaymentTransactionService.completeSuccess(
+          paymentId,
+          portOnePayment.scheduleId(),
+          providerPaymentKey(response, portOnePayment),
+          paidAt
+      );
+    }
+
+    if (portOnePayment.isFailed()) {
+      return immediatePaymentTransactionService.completeFailure(
+          paymentId,
+          failureCode(portOnePayment),
+          failureReason(portOnePayment),
+          portOnePayment.failedAt() != null ? portOnePayment.failedAt().toLocalDateTime() : now
+      );
+    }
+
+    return immediatePaymentTransactionService.markUnknown(
+        paymentId,
+        "PortOne 결제 상태가 아직 확정되지 않았습니다. status=" + portOnePayment.status(),
+        now
+    );
   }
 
   @Transactional
-  public Payment fail(
-      String paymentId,
-      Organization organization,
-      Subscription subscription,
-      SubscriptionPlan plan,
-      String failureCode,
-      String failureReason,
-      LocalDateTime failedAt
+  public PortOneScheduleBillingPaymentResponse scheduleBillingPayment(
+      String subscriptionId,
+      LocalDateTime timeToPay
   ) {
-    Payment payment = Payment.fail(
-        paymentId,
-        subscription.getPlan(),
-        organization,
-        (long) plan.getPrice(),
-        resolvePaymentMethodProvider(subscription),
-        failureCode,
-        failureReason,
-        failedAt
-    );
-    return paymentRepository.save(payment);
+    Subscription subscription = subscriptionRepository.findById(subscriptionId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SUBSCRIPTION));
+    return scheduleBillingPayment(subscription, timeToPay);
   }
 
   @Transactional
@@ -134,7 +143,7 @@ public class PortOnePaymentService {
       LocalDateTime timeToPay
   ) {
     PaymentMethod paymentMethod = subscription.getPaymentMethodOrThrow();
-    String paymentId = createPaymentId(subscription, "schedule");
+    String paymentId = createPaymentId("schedule");
     PortOneScheduleBillingPaymentRequest request = new PortOneScheduleBillingPaymentRequest(
         paymentId,
         null,
@@ -208,7 +217,7 @@ public class PortOnePaymentService {
     scheduleBillingPayment(subscription, nextBillingAt);
   }
 
-  public PortOnePaymentResponse verifyPaidPayment(String paymentId, long expectedAmount) {
+  public PortOnePaymentResponse getVerifiedPayment(String paymentId, long expectedAmount) {
     PortOnePaymentResponse payment = portOneClient.getPayment(paymentId);
     if (payment == null || !payment.hasPaymentId(paymentId)) {
       throw new ApplicationException(ErrorCode.PAYMENT_FAILED);
@@ -216,13 +225,10 @@ public class PortOnePaymentService {
     if (!payment.hasTotalAmount(expectedAmount)) {
       throw new ApplicationException(ErrorCode.PAYMENT_FAILED);
     }
-    if (!payment.isPaid()) {
-      throw new ApplicationException(ErrorCode.PAYMENT_FAILED);
-    }
     return payment;
   }
 
-  private String createPaymentId(Subscription subscription, String reason) {
+  private String createPaymentId(String reason) {
     return "sub_" + reason + "_" + UUID.randomUUID();
   }
 
@@ -257,14 +263,48 @@ public class PortOnePaymentService {
     return fallback;
   }
 
-  private String providerPaymentKey(PortOneBillingKeyPaymentResponse response) {
-    if (response == null || response.payment() == null) {
-      return null;
-    }
-    return response.payment().pgTxId();
+  private boolean isVerifiablePayment(
+      PortOnePaymentResponse payment,
+      String paymentId,
+      long expectedAmount
+  ) {
+    return payment != null
+        && payment.hasPaymentId(paymentId)
+        && payment.hasTotalAmount(expectedAmount);
   }
 
-  private PaymentProvider resolvePaymentMethodProvider(Subscription subscription) {
-    return subscription.getPaymentMethodOrThrow().getProvider();
+  private String failureCode(PortOnePaymentResponse payment) {
+    if (payment.failure() == null || payment.failure().pgCode() == null) {
+      return "PORTONE_PAYMENT_FAILED";
+    }
+    return payment.failure().pgCode();
   }
+
+  private String failureReason(PortOnePaymentResponse payment) {
+    if (payment.failure() == null) {
+      return "PortOne에서 결제 실패 상태를 반환했습니다.";
+    }
+    if (payment.failure().reason() != null) {
+      return payment.failure().reason();
+    }
+    return payment.failure().pgMessage();
+  }
+
+  private String providerPaymentKey(
+      PortOneBillingKeyPaymentResponse response,
+      PortOnePaymentResponse payment
+  ) {
+    if (response != null && response.payment() != null && response.payment().pgTxId() != null) {
+      return response.payment().pgTxId();
+    }
+    return payment.transactionId();
+  }
+
+  private String resolveUnknownReason(String requestError, String verificationError) {
+    if (requestError == null || requestError.isBlank()) {
+      return verificationError;
+    }
+    return requestError + " / 결제 조회: " + verificationError;
+  }
+
 }

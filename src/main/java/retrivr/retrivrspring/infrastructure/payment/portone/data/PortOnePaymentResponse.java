@@ -35,4 +35,8 @@ public record PortOnePaymentResponse(
   public boolean isFailed() {
     return "FAILED".equals(status);
   }
+
+  public boolean isCancelled() {
+    return "CANCELLED".equals(status);
+  }
 }

@@ -1,4 +1,4 @@
-package retrivr.retrivrspring.application.service.admin.membership.pay;
+package retrivr.retrivrspring.application.service.admin.membership.pay.method;
 
 import java.time.LocalDateTime;
 import java.util.List;

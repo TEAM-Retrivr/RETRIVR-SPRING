@@ -1,6 +1,5 @@
 package retrivr.retrivrspring.infrastructure.payment.portone;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,6 +13,8 @@ import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingK
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneBillingKeyPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelScheduledPaymentResponse;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelPaymentRequest;
+import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCancelPaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOnePaymentResponse;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentRequest;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneScheduleBillingPaymentResponse;
@@ -51,7 +52,7 @@ public class PortOneClientImpl implements PortOneClient {
       return restClient().post()
           .uri("/payments/{paymentId}/billing-key", request.paymentId())
           .headers(this::setAuthorization)
-          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey())
+          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey(request.paymentId()))
           .body(body.toPortOneBody())
           .retrieve()
           .onStatus(HttpStatusCode::isError, (req, res) -> {
@@ -88,7 +89,7 @@ public class PortOneClientImpl implements PortOneClient {
       return restClient().post()
           .uri("/payments/{paymentId}/schedule", request.paymentId())
           .headers(this::setAuthorization)
-          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey())
+          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey(request.paymentId()))
           .body(body.toPortOneBody())
           .retrieve()
           .onStatus(HttpStatusCode::isError, (req, res) -> {
@@ -111,7 +112,10 @@ public class PortOneClientImpl implements PortOneClient {
       return restClient().method(HttpMethod.DELETE)
           .uri("/payment-schedules")
           .headers(this::setAuthorization)
-          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey())
+          .header(
+              IDEMPOTENCY_KEY,
+              quoteIdempotencyKey(String.join(",", request.scheduleIds()))
+          )
           .body(body)
           .retrieve()
           .onStatus(HttpStatusCode::isError, (req, res) -> {
@@ -154,7 +158,29 @@ public class PortOneClientImpl implements PortOneClient {
     headers.set(HttpHeaders.AUTHORIZATION, "PortOne " + properties.apiSecret());
   }
 
-  private String quoteIdempotencyKey() {
-    return "\"" + UUID.randomUUID() + "\"";
+  private String quoteIdempotencyKey(String key) {
+    return "\"" + key + "\"";
+  }
+
+  @Override
+  public PortOneCancelPaymentResponse cancelPayment(
+      String paymentId,
+      PortOneCancelPaymentRequest request
+  ) {
+    try {
+      return restClient().post()
+          .uri("/payments/{paymentId}/cancel", paymentId)
+          .headers(this::setAuthorization)
+          .header(IDEMPOTENCY_KEY, quoteIdempotencyKey("refund-" + paymentId))
+          .body(request)
+          .retrieve()
+          .onStatus(HttpStatusCode::isError, (req, res) -> {
+            throw new PortOneException("PortOne cancel payment failed. status="
+                + res.getStatusCode());
+          })
+          .body(PortOneCancelPaymentResponse.class);
+    } catch (RestClientException e) {
+      throw new PortOneException("PortOne cancel payment request failed.", e);
+    }
   }
 }

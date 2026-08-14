@@ -65,8 +65,7 @@ public class MembershipPassExpirationService {
     expiredPass.expire(now);
 
     // 예약 결제 건에 대한 검증 및 다음 패스 제작
-    paymentRepository.findByOrganizationAndStatus(lockedOrganization,
-        PaymentStatus.SCHEDULED)
+    paymentRepository.findByOrganizationAndStatus(lockedOrganization, PaymentStatus.SCHEDULED)
         .ifPresent(
         pendingPayment -> eventPublisher.publishEvent(
             new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())

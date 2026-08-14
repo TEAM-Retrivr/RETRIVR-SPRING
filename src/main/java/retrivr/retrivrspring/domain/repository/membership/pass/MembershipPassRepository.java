@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
+import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassType;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -16,6 +17,8 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 public interface MembershipPassRepository extends JpaRepository<MembershipPass, String> {
 
   Optional<MembershipPass> findFirstByOrganizationOrderBySequenceDesc(Organization organization);
+
+  Optional<MembershipPass> findByPayment(Payment payment);
 
   Optional<MembershipPass> findFirstByOrganizationAndStatusOrderBySequenceDesc(Organization organization, MembershipPassStatus status);
 

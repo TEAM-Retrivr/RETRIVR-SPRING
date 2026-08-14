@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassExpirationService;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
-import retrivr.retrivrspring.application.service.admin.membership.pay.PortOnePaymentService;
+import retrivr.retrivrspring.application.service.admin.membership.pay.portone.PortOnePaymentService;
 import retrivr.retrivrspring.domain.entity.membership.Coupon;
 import retrivr.retrivrspring.domain.entity.membership.CouponRegistration;
 import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
