@@ -291,6 +291,10 @@ public class Subscription extends BaseTimeEntity {
     return this.status == SubscriptionStatus.PAYMENT_FAILED;
   }
 
+  public boolean isCanceled() {
+    return this.status == SubscriptionStatus.CANCELED;
+  }
+
   public LocalDateTime getNextBillingAt() {
     if (!isActive()) {
       return null;

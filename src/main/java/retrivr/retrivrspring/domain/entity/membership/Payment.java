@@ -384,7 +384,7 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
       String failureReason,
       LocalDateTime failedAt
   ) {
-    if (!isScheduled()) {
+    if (!isScheduled() && !isScheduleCancelPending() && !isScheduleCancelUnknown()) {
       throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
     }
 
@@ -393,6 +393,67 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
     this.failureCode = failureCode;
     this.failureReason = failureReason;
     this.failedAt = failedAt;
+  }
+
+  public void requireCompensationForScheduledPayment(
+      PaymentProvider provider,
+      String providerPaymentKey,
+      LocalDateTime paidAt,
+      LocalDateTime detectedAt
+  ) {
+    if (!isScheduleCancelPending() && !isScheduleCancelUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.COMPENSATION_REQUIRED;
+    this.provider = provider;
+    this.providerPaymentKey = providerPaymentKey;
+    this.paidAt = paidAt;
+    this.failureCode = "PAYMENT_COMPLETED_DURING_SCHEDULE_CANCELLATION";
+    this.failureReason = "예약 취소 처리 중 결제가 완료되어 환불이 필요합니다.";
+    this.failedAt = detectedAt;
+  }
+
+  public void requestScheduleCancellation(LocalDateTime requestedAt) {
+    if (!isScheduled()) {
+      throw new DomainException(
+          ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION
+      );
+    }
+
+    this.status = PaymentStatus.SCHEDULE_CANCEL_PENDING;
+    this.failureCode = null;
+    this.failureReason = null;
+    this.failedAt = requestedAt;
+  }
+
+  public void completeScheduleCancellation(LocalDateTime canceledAt) {
+    if (!isScheduleCancelPending() && !isScheduleCancelUnknown()) {
+      throw new DomainException(
+          ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION
+      );
+    }
+
+    this.status = PaymentStatus.SCHEDULE_CANCELED;
+    this.canceledAt = canceledAt;
+    this.failureCode = null;
+    this.failureReason = null;
+    this.failedAt = null;
+  }
+
+  public void markScheduleCancellationUnknown(
+      String reason,
+      LocalDateTime checkedAt
+  ) {
+    if (!isScheduleCancelPending() && !isScheduleCancelUnknown()) {
+      throw new DomainException(
+          ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION
+      );
+    }
+
+    this.status = PaymentStatus.SCHEDULE_CANCEL_UNKNOWN;
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = checkedAt;
   }
 
   public boolean isSuccess() {
@@ -437,7 +498,17 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
     return this.status == PaymentStatus.SCHEDULE_UNKNOWN;
   }
 
-  public boolean isCanceled() {return this.status == PaymentStatus.SCHEDULE_CANCELED; }
+  public boolean isScheduleCancelPending() {
+    return this.status == PaymentStatus.SCHEDULE_CANCEL_PENDING;
+  }
+
+  public boolean isScheduleCancelUnknown() {
+    return this.status == PaymentStatus.SCHEDULE_CANCEL_UNKNOWN;
+  }
+
+  public boolean isScheduleCanceled() {
+    return this.status == PaymentStatus.SCHEDULE_CANCELED;
+  }
 
   public void validateOwner(Organization owner) {
     if (!Objects.equals(owner.getId(), organization.getId())) {
