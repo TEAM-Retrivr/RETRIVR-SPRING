@@ -57,7 +57,7 @@ public class Subscription extends BaseTimeEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private SubscriptionStatus status; // ACTIVE, CANCELED, PAYMENT_FAILED
+  private SubscriptionStatus status; // START_PENDING, ACTIVE, CANCELED, PAYMENT_FAILED
 
   private LocalDateTime nextBillingAt; // 다음 결제 시각
 
@@ -78,7 +78,58 @@ public class Subscription extends BaseTimeEntity {
 
   private static final int MAX_PAYMENT_FAIL_COUNT = 3;
 
+  public static Subscription prepareStart(
+      Organization organization,
+      SubscriptionPlan plan,
+      PaymentMethod paymentMethod,
+      LocalDateTime now
+  ) {
+    if (organization == null || plan == null || paymentMethod == null) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+
+    paymentMethod.validateOwner(organization);
+    paymentMethod.validateActive();
+
+    return Subscription.builder()
+        .organization(organization)
+        .plan(plan)
+        .status(SubscriptionStatus.START_PENDING)
+        .paymentMethod(paymentMethod)
+        .startedAt(now)
+        .build();
+  }
+
+  public void prepareRestart(
+      Organization organization,
+      SubscriptionPlan plan,
+      PaymentMethod paymentMethod
+  ) {
+    validateOwner(organization);
+    if (!isPaused()) {
+      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
+    }
+    if (plan == null || paymentMethod == null) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+
+    paymentMethod.validateOwner(organization);
+    paymentMethod.validateActive();
+
+    this.plan = plan;
+    this.paymentMethod = paymentMethod;
+    this.status = SubscriptionStatus.START_PENDING;
+    this.nextBillingAt = null;
+    this.paymentScheduleId = null;
+    this.paymentFailedAt = null;
+    this.canceledAt = null;
+    this.paymentFailCount = 0;
+  }
+
   public void completeSuccessfulPayment(LocalDateTime now) {
+    if (!isStartPending()) {
+      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
+    }
     this.status = SubscriptionStatus.ACTIVE;
     this.paymentFailedAt = null;
     this.paymentFailCount = 0;
@@ -221,6 +272,23 @@ public class Subscription extends BaseTimeEntity {
 
   public boolean isActive() {
     return this.status == SubscriptionStatus.ACTIVE;
+  }
+
+  public void failStart(LocalDateTime failedAt) {
+    if (!isStartPending()) {
+      throw new DomainException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
+    }
+    this.status = SubscriptionStatus.PAYMENT_FAILED;
+    this.paymentFailedAt = failedAt;
+    this.paymentFailCount++;
+  }
+
+  public boolean isStartPending() {
+    return this.status == SubscriptionStatus.START_PENDING;
+  }
+
+  public boolean isPaymentFailed() {
+    return this.status == SubscriptionStatus.PAYMENT_FAILED;
   }
 
   public LocalDateTime getNextBillingAt() {

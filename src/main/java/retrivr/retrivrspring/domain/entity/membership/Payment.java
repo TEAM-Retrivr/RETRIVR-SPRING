@@ -61,7 +61,7 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private PaymentStatus status; // SUCCESS, FAILED, SCHEDULED, SCHEDULE_CANCELED
+  private PaymentStatus status;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -93,6 +93,158 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
 
   @Column
   private LocalDateTime canceledAt;
+
+  public static Payment pending(
+      String paymentId,
+      SubscriptionPlan plan,
+      Organization organization,
+      Long amount,
+      PaymentProvider provider
+  ) {
+    return Payment.builder()
+        .id(paymentId)
+        .organization(organization)
+        .plan(plan)
+        .status(PaymentStatus.PENDING)
+        .provider(provider)
+        .amount(amount)
+        .build();
+  }
+
+  public void completeImmediatePayment(
+      String portOneScheduleId,
+      String providerPaymentKey,
+      LocalDateTime paidAt
+  ) {
+    if (!isPending()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.SUCCESS;
+    this.portOneScheduleId = portOneScheduleId;
+    this.providerPaymentKey = providerPaymentKey;
+    this.paidAt = paidAt;
+  }
+
+  public void failPendingPayment(
+      String failureCode,
+      String failureReason,
+      LocalDateTime failedAt
+  ) {
+    if (!isPending()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.FAILED;
+    this.failureCode = failureCode;
+    this.failureReason = failureReason;
+    this.failedAt = failedAt;
+  }
+
+  public void markPaymentUnknown(
+      String reason,
+      LocalDateTime occurredAt
+  ) {
+    if (!isPending()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.UNKNOWN;
+    this.failureReason = reason;
+    this.failedAt = occurredAt;
+  }
+
+  public void requireCompensation(String reason) {
+    if (!isSuccess()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.COMPENSATION_REQUIRED;
+    this.failureCode = "SUBSCRIPTION_ACTIVATION_FAILED";
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = LocalDateTime.now();
+  }
+
+  public void startRefund(LocalDateTime requestedAt) {
+    if (!isCompensationRequired() && !isRefundUnknown() && !isRefundProcessing()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.REFUND_PROCESSING;
+    this.failedAt = requestedAt;
+  }
+
+  public void completeRefund(LocalDateTime refundedAt) {
+    if (!isRefundProcessing() && !isRefundUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.REFUNDED;
+    this.canceledAt = refundedAt;
+    this.failureCode = null;
+    this.failureReason = null;
+  }
+
+  public void markRefundUnknown(String reason, LocalDateTime checkedAt) {
+    if (!isRefundProcessing() && !isRefundUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.REFUND_UNKNOWN;
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = checkedAt;
+  }
+
+  public void failRefund(String reason, LocalDateTime failedAt) {
+    if (!isRefundProcessing() && !isRefundUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.REFUND_FAILED;
+    this.failureCode = "PORTONE_REFUND_FAILED";
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = failedAt;
+  }
+
+  public void resolveUnknownAsSuccess(
+      String portOneScheduleId,
+      String providerPaymentKey,
+      LocalDateTime paidAt
+  ) {
+    if (!isUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.SUCCESS;
+    this.portOneScheduleId = portOneScheduleId;
+    this.providerPaymentKey = providerPaymentKey;
+    this.paidAt = paidAt;
+    this.failureCode = null;
+    this.failureReason = null;
+    this.failedAt = null;
+  }
+
+  public void resolveUnknownAsFailed(
+      String failureCode,
+      String failureReason,
+      LocalDateTime failedAt
+  ) {
+    if (!isUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+
+    this.status = PaymentStatus.FAILED;
+    this.failureCode = failureCode;
+    this.failureReason = failureReason;
+    this.failedAt = failedAt;
+  }
+
+  public void deferUnknownReconciliation(
+      String reason,
+      LocalDateTime retriedAt
+  ) {
+    if (!isUnknown()) {
+      return;
+    }
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = retriedAt;
+  }
 
   public static Payment success(
       String paymentId,
@@ -165,6 +317,45 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
         .build();
   }
 
+  public static Payment pendingSchedule(
+      String paymentId,
+      SubscriptionPlan plan,
+      Organization organization,
+      Long amount,
+      PaymentProvider provider,
+      LocalDateTime scheduledAt
+  ) {
+    return Payment.builder()
+        .id(paymentId)
+        .organization(organization)
+        .plan(plan)
+        .status(PaymentStatus.SCHEDULE_PENDING)
+        .provider(provider)
+        .amount(amount)
+        .failedAt(LocalDateTime.now())
+        .scheduledAt(scheduledAt)
+        .build();
+  }
+
+  public void completeSchedule(String scheduleId) {
+    if (!isSchedulePending() && !isScheduleUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.SCHEDULED;
+    this.portOneScheduleId = scheduleId;
+    this.failureReason = null;
+    this.failedAt = null;
+  }
+
+  public void markScheduleUnknown(String reason, LocalDateTime checkedAt) {
+    if (!isSchedulePending() && !isScheduleUnknown()) {
+      throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
+    }
+    this.status = PaymentStatus.SCHEDULE_UNKNOWN;
+    this.failureReason = normalizeFailureReason(reason);
+    this.failedAt = checkedAt;
+  }
+
   public void scheduledCancel(LocalDateTime canceledAt) {
     if (!isScheduled()) {
       throw new DomainException(ErrorCode.PAYMENT_STATUS_TRANSITION_EXCEPTION);
@@ -208,11 +399,43 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
     return this.status == PaymentStatus.SUCCESS;
   }
 
+  public boolean isPending() {
+    return this.status == PaymentStatus.PENDING;
+  }
+
+  public boolean isUnknown() {
+    return this.status == PaymentStatus.UNKNOWN;
+  }
+
   public boolean isFailed() {
     return this.status == PaymentStatus.FAILED;
   }
 
+  public boolean isCompensationRequired() {
+    return this.status == PaymentStatus.COMPENSATION_REQUIRED;
+  }
+
+  public boolean isRefundProcessing() {
+    return this.status == PaymentStatus.REFUND_PROCESSING;
+  }
+
+  public boolean isRefundUnknown() {
+    return this.status == PaymentStatus.REFUND_UNKNOWN;
+  }
+
+  public boolean isRefunded() {
+    return this.status == PaymentStatus.REFUNDED;
+  }
+
   public boolean isScheduled() { return this.status == PaymentStatus.SCHEDULED; }
+
+  public boolean isSchedulePending() {
+    return this.status == PaymentStatus.SCHEDULE_PENDING;
+  }
+
+  public boolean isScheduleUnknown() {
+    return this.status == PaymentStatus.SCHEDULE_UNKNOWN;
+  }
 
   public boolean isCanceled() {return this.status == PaymentStatus.SCHEDULE_CANCELED; }
 
@@ -220,5 +443,12 @@ public class Payment extends BaseTimeEntity implements Persistable<String> {
     if (!Objects.equals(owner.getId(), organization.getId())) {
       throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);//PAYMENT_OWNER_MISMATCH);
     }
+  }
+
+  private String normalizeFailureReason(String reason) {
+    String normalized = reason == null || reason.isBlank()
+        ? "구독 활성화 처리에 실패했습니다."
+        : reason;
+    return normalized.length() <= 255 ? normalized : normalized.substring(0, 255);
   }
 }

@@ -185,4 +185,10 @@ public class MembershipPass extends BaseTimeEntity {
     }
     return this.subscription;
   }
+
+  public void validateOwner(Organization organization) {
+    if (!this.organization.getId().equals(organization.getId())) {
+      throw new DomainException(ErrorCode.ORGANIZATION_MISMATCH_EXCEPTION);
+    }
+  }
 }
