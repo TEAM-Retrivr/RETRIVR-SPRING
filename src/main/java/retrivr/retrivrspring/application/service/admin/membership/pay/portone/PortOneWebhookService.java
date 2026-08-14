@@ -14,7 +14,6 @@ import retrivr.retrivrspring.application.service.admin.membership.pass.Membershi
 import retrivr.retrivrspring.application.service.admin.membership.subscription.SubscriptionService;
 import retrivr.retrivrspring.domain.entity.membership.Payment;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOnePaymentResponse;
 
@@ -51,13 +50,17 @@ public class PortOneWebhookService {
     LocalDateTime now = LocalDateTime.now();
 
     // 스케쥴러에 의해 작업이 이루어졌는지 체크
-    Optional<Payment> opPayment = paymentRepository.findByIdAndStatus(paymentId,
-        PaymentStatus.SCHEDULED);
+    Optional<Payment> opPayment = paymentRepository.findWithLockById(paymentId);
 
     if (opPayment.isEmpty()) {
       return;
     }
     Payment payment = opPayment.get();
+    boolean cancellationInProgress = payment.isScheduleCancelPending()
+        || payment.isScheduleCancelUnknown();
+    if (!payment.isScheduled() && !cancellationInProgress) {
+      return;
+    }
 
     // 실제로 결제가 이루어졌는지 체크
     PortOnePaymentResponse portOnePaymentResponse = paymentService.getVerifiedPayment(paymentId,
@@ -68,6 +71,16 @@ public class PortOneWebhookService {
       return;
     }
     if (!portOnePaymentResponse.isPaid()) {
+      return;
+    }
+
+    if (cancellationInProgress) {
+      payment.requireCompensationForScheduledPayment(
+          portOnePaymentResponse.channel().resolveProvider(),
+          portOnePaymentResponse.transactionId(),
+          portOnePaymentResponse.paidAt().toLocalDateTime(),
+          now
+      );
       return;
     }
 
@@ -96,13 +109,17 @@ public class PortOneWebhookService {
   @Transactional
   public void handleSchedulePaymentFail(String paymentId) {
     LocalDateTime now = LocalDateTime.now();
-    Optional<Payment> opPayment = paymentRepository.findByIdAndStatus(paymentId,
-        PaymentStatus.SCHEDULED);
+    Optional<Payment> opPayment = paymentRepository.findWithLockById(paymentId);
 
     if (opPayment.isEmpty()) {
       return;
     }
     Payment payment = opPayment.get();
+    boolean cancellationInProgress = payment.isScheduleCancelPending()
+        || payment.isScheduleCancelUnknown();
+    if (!payment.isScheduled() && !cancellationInProgress) {
+      return;
+    }
 
     // 실제로 결제가 이루어졌는지 체크
     PortOnePaymentResponse portOnePaymentResponse = paymentService.getVerifiedPayment(paymentId,
@@ -118,6 +135,10 @@ public class PortOneWebhookService {
         portOnePaymentResponse.failure().reason(),
         portOnePaymentResponse.failedAt().toLocalDateTime()
     );
+
+    if (cancellationInProgress) {
+      return;
+    }
 
     membershipPassExpirationService.processExpiredPass(payment.getOrganization().getId(), now);
 
