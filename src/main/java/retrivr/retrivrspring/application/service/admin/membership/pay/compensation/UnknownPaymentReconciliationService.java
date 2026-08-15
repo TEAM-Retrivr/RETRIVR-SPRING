@@ -81,10 +81,7 @@ public class UnknownPaymentReconciliationService {
     }
 
     try {
-      billingScheduleRequestService.request(
-          subscriptionResponse.subscriptionId(),
-          subscriptionResponse.nextBillingAt()
-      );
+      billingScheduleRequestService.request(subscriptionResponse.subscriptionId());
     } catch (RuntimeException ignored) {
       // 누락 예약 스케줄러가 복구한다.
     }

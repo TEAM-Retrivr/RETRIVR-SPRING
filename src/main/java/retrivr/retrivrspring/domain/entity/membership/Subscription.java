@@ -143,6 +143,11 @@ public class Subscription extends BaseTimeEntity {
     this.nextBillingAt = nextBillingAt;
   }
 
+  public void rescheduleNextBillingAt(LocalDateTime nextBillingAt) {
+    scheduleNextBillingAt(nextBillingAt);
+    this.paymentScheduleId = null;
+  }
+
   public void changePaymentMethod(PaymentMethod paymentMethod) {
     if (paymentMethod == null) {
       throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION, "paymentMethod must not be null");
@@ -160,6 +165,7 @@ public class Subscription extends BaseTimeEntity {
       throw new DomainException(ErrorCode.INVALID_SUBSCRIPTION_PLAN);
     }
     this.plan = plan;
+    this.paymentScheduleId = null;
   }
 
   public void clearPaymentMethod() {

@@ -19,8 +19,8 @@ public class BillingScheduleRequestService {
   private final BillingScheduleTransactionService transactionService;
   private final PortOneClient portOneClient;
 
-  public void request(String subscriptionId, java.time.LocalDateTime billingAt) {
-    execute(transactionService.prepare(subscriptionId, billingAt));
+  public void request(String subscriptionId) {
+    execute(transactionService.prepare(subscriptionId));
   }
 
   public void retry(String paymentId) {

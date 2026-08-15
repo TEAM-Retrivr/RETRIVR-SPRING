@@ -125,12 +125,16 @@ public class SubscriptionCancellationTransactionService {
   }
 
   @Transactional
-  public void complete(String paymentId, LocalDateTime canceledAt) {
+  public boolean complete(String paymentId, LocalDateTime canceledAt) {
     Payment payment = getPaymentWithLock(paymentId);
+    if (payment.isScheduleCanceled()) {
+      return true;
+    }
     if (!isCancellationInProgress(payment)) {
-      return;
+      return false;
     }
     payment.completeScheduleCancellation(canceledAt);
+    return true;
   }
 
   @Transactional

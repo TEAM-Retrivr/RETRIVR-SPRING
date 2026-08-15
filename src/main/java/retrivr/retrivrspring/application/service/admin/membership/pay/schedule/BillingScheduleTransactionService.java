@@ -13,6 +13,7 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentRepository;
 import retrivr.retrivrspring.domain.repository.membership.subscription.SubscriptionRepository;
+import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.infrastructure.payment.portone.data.PortOneCustomerRequest;
@@ -29,20 +30,30 @@ public class BillingScheduleTransactionService {
 
   private final SubscriptionRepository subscriptionRepository;
   private final PaymentRepository paymentRepository;
+  private final OrganizationRepository organizationRepository;
 
   @Transactional
-  public BillingSchedulePreparation prepare(String subscriptionId, LocalDateTime billingAt) {
+  public BillingSchedulePreparation prepare(String subscriptionId) {
     Subscription subscription = subscriptionRepository.findById(subscriptionId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_SUBSCRIPTION));
+    Organization organization = organizationRepository.findByIdForUpdate(
+            subscription.getOrganization().getId()
+        )
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
     Payment existing = paymentRepository
         .findFirstByOrganizationAndStatusInOrderByCreatedAtDesc(
-            subscription.getOrganization(),
+            organization,
             REUSABLE_STATUSES
         )
         .orElse(null);
 
     if (existing != null) {
       return toPreparation(subscription, existing, existing.isScheduled());
+    }
+
+    LocalDateTime currentBillingAt = subscription.getNextBillingAt();
+    if (currentBillingAt == null) {
+      throw new ApplicationException(ErrorCode.SUBSCRIPTION_STATUS_CONFLICT);
     }
 
     PaymentMethod paymentMethod = subscription.getPaymentMethodOrThrow();
@@ -53,7 +64,7 @@ public class BillingScheduleTransactionService {
             subscription.getOrganization(),
             (long) subscription.getPlan().getPrice(),
             paymentMethod.getProvider(),
-            billingAt
+            currentBillingAt
         )
     );
     return toPreparation(subscription, payment, false);

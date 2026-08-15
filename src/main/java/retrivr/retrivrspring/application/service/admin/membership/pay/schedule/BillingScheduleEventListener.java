@@ -20,7 +20,7 @@ public class BillingScheduleEventListener {
   )
   public void requestAfterCommit(BillingScheduleRequestedEvent event) {
     try {
-      requestService.request(event.subscriptionId(), event.billingAt());
+      requestService.request(event.subscriptionId());
     } catch (RuntimeException exception) {
       // 예약 레코드 또는 누락 예약 스케줄러가 후속 복구한다.
       log.error(

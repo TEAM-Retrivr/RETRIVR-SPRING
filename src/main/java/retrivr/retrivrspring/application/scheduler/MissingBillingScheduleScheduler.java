@@ -18,10 +18,16 @@ import retrivr.retrivrspring.domain.repository.membership.subscription.Subscript
 @RequiredArgsConstructor
 public class MissingBillingScheduleScheduler {
 
-  private static final List<PaymentStatus> SCHEDULE_STATUSES = List.of(
+  private static final List<PaymentStatus> BILLING_WORKFLOW_STATUSES = List.of(
       PaymentStatus.SCHEDULE_PENDING,
       PaymentStatus.SCHEDULE_UNKNOWN,
-      PaymentStatus.SCHEDULED
+      PaymentStatus.SCHEDULED,
+      PaymentStatus.SCHEDULE_CANCEL_PENDING,
+      PaymentStatus.SCHEDULE_CANCEL_UNKNOWN,
+      PaymentStatus.COMPENSATION_REQUIRED,
+      PaymentStatus.REFUND_PROCESSING,
+      PaymentStatus.REFUND_UNKNOWN,
+      PaymentStatus.REFUND_FAILED
   );
 
   private final SubscriptionRepository subscriptionRepository;
@@ -34,7 +40,7 @@ public class MissingBillingScheduleScheduler {
   public void recoverMissingSchedules() {
     List<String> subscriptionIds = subscriptionRepository.findIdsMissingBillingSchedule(
         SubscriptionStatus.ACTIVE,
-        SCHEDULE_STATUSES,
+        BILLING_WORKFLOW_STATUSES,
         PageRequest.of(0, batchSize)
     );
 
@@ -42,7 +48,7 @@ public class MissingBillingScheduleScheduler {
       try {
         Subscription subscription = subscriptionRepository.findById(subscriptionId).orElse(null);
         if (subscription != null && subscription.getNextBillingAt() != null) {
-          requestService.request(subscriptionId, subscription.getNextBillingAt());
+          requestService.request(subscriptionId);
         }
       } catch (RuntimeException exception) {
         log.error("누락된 결제 예약 복구 실패. subscriptionId={}", subscriptionId, exception);

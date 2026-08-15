@@ -18,20 +18,20 @@ public class BillingScheduleCancellationService {
   private final PortOneClient portOneClient;
   private final SubscriptionCancellationTransactionService transactionService;
 
-  public void retry(String paymentId) {
-    cancel(transactionService.prepareRetry(paymentId));
+  public boolean retry(String paymentId) {
+    return cancel(transactionService.prepareRetry(paymentId));
   }
 
-  public void cancel(BillingScheduleCancellationPreparation preparation) {
+  public boolean cancel(BillingScheduleCancellationPreparation preparation) {
     if (!preparation.cancellationRequired()) {
-      return;
+      return true;
     }
     if (preparation.scheduleId() == null || preparation.scheduleId().isBlank()) {
       transactionService.markUnknown(
           preparation.paymentId(),
           "취소할 PortOne scheduleId가 없습니다."
       );
-      return;
+      return false;
     }
 
     try {
@@ -49,7 +49,7 @@ public class BillingScheduleCancellationService {
             preparation.paymentId(),
             "PortOne 예약 취소 응답에서 요청한 scheduleId를 확인할 수 없습니다."
         );
-        return;
+        return false;
       }
 
       LocalDateTime canceledAt =
@@ -57,16 +57,16 @@ public class BillingScheduleCancellationService {
               ? response.revokedAt().toLocalDateTime()
               : LocalDateTime.now();
 
-      transactionService.complete(
+      return transactionService.complete(
           preparation.paymentId(),
           canceledAt
       );
     } catch (PortOneException exception) {
-      reconcileProcessedPayment(preparation, exception);
+      return reconcileProcessedPayment(preparation, exception);
     }
   }
 
-  private void reconcileProcessedPayment(
+  private boolean reconcileProcessedPayment(
       BillingScheduleCancellationPreparation preparation,
       PortOneException cancellationException
   ) {
@@ -80,7 +80,7 @@ public class BillingScheduleCancellationService {
               + " / 결제 조회: "
               + verificationException.getMessage()
       );
-      return;
+      return false;
     }
 
     if (payment == null
@@ -91,7 +91,7 @@ public class BillingScheduleCancellationService {
           preparation.paymentId(),
           "예약 취소 실패 후 조회한 결제 정보가 요청과 일치하지 않습니다."
       );
-      return;
+      return false;
     }
 
     if (payment.isPaid()) {
@@ -102,7 +102,7 @@ public class BillingScheduleCancellationService {
               ? payment.paidAt().toLocalDateTime()
               : LocalDateTime.now()
       );
-      return;
+      return false;
     }
 
     if (payment.isFailed()) {
@@ -118,12 +118,13 @@ public class BillingScheduleCancellationService {
               ? payment.failedAt().toLocalDateTime()
               : LocalDateTime.now()
       );
-      return;
+      return false;
     }
 
     transactionService.markUnknown(
         preparation.paymentId(),
         "예약 취소 결과와 결제 결과가 아직 확정되지 않았습니다. status=" + payment.status()
     );
+    return false;
   }
 }

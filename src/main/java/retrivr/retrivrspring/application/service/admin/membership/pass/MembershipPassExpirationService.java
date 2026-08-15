@@ -33,6 +33,22 @@ public class MembershipPassExpirationService {
 
   @Transactional
   public boolean processExpiredPass(Long organizationId, LocalDateTime now) {
+    return processExpiredPass(organizationId, now, true);
+  }
+
+  @Transactional
+  public boolean processExpiredPassWithoutPaymentReconciliation(
+      Long organizationId,
+      LocalDateTime now
+  ) {
+    return processExpiredPass(organizationId, now, false);
+  }
+
+  private boolean processExpiredPass(
+      Long organizationId,
+      LocalDateTime now,
+      boolean paymentReconciliationRequired
+  ) {
     Organization lockedOrganization = organizationRepository.findByIdForUpdate(organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
@@ -64,13 +80,15 @@ public class MembershipPassExpirationService {
 
     expiredPass.expire(now);
 
-    // 예약 결제 건에 대한 검증 및 다음 패스 제작
-    paymentRepository.findByOrganizationAndStatus(lockedOrganization, PaymentStatus.SCHEDULED)
-        .ifPresent(
-        pendingPayment -> eventPublisher.publishEvent(
-            new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())
-          )
-        );
+    if (paymentReconciliationRequired) {
+      // 예약 결제 건에 대한 검증 및 다음 패스 제작
+      paymentRepository.findByOrganizationAndStatus(lockedOrganization, PaymentStatus.SCHEDULED)
+          .ifPresent(
+              pendingPayment -> eventPublisher.publishEvent(
+                  new ScheduledPaymentReconcileRequestedEvent(pendingPayment.getId())
+              )
+          );
+    }
     return true;
   }
 
