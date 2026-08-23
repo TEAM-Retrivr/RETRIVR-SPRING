@@ -43,7 +43,9 @@ public class SecurityConfig {
                                 "/api/admin/v1/auth/logout",
                                 "/api/admin/v1/auth/password",
                                 "/api/admin/v1/auth/signup/**",
-                                "/api/public/**"
+                                "/api/public/**",
+                                "/api/internal/**"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
