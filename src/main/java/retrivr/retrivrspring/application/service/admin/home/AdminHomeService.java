@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
@@ -25,6 +26,7 @@ public class AdminHomeService {
 
     private final OrganizationRepository organizationRepository;
     private final RentalRepository rentalRepository;
+    private final ImageStoragePort imageStoragePort;
 
     public AdminHomeResponse getHome(Long organizationId) {
 
@@ -77,10 +79,14 @@ public class AdminHomeService {
                         })
                         .toList();
 
+      String profileImageUrl = organization.getProfileImageKey() == null
+          ? null
+          : imageStoragePort.createPresignedDownloadUrl(organization.getProfileImageKey());
+
         return new AdminHomeResponse(
                 organization.getName(),
                 organization.getId(),
-                organization.getProfileImageKey(), // todo: 추후 s3 연동 후 수정
+                profileImageUrl,
                 requestCount,
                 recentRequests
         );

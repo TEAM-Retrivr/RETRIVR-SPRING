@@ -11,10 +11,7 @@ public record AdminHomeResponse(
 
         Long organizationId,
 
-        @Schema(
-                description = "단체 프로필 이미지 URL",
-                example = "https://cdn.retrivr.com/organizations/5/profile/uuid.png"
-        )
+        @Schema(description = "S3 다운로드용 Presigned URL", example = "https://s3.retrivr/image")
         String profileImageUrl,
 
         @Schema(description = "승인 대기 요청 전체 건수", example = "7")
