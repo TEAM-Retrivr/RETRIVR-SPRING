@@ -17,6 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import retrivr.retrivrspring.application.port.message.NotificationChannel;
 import retrivr.retrivrspring.application.port.message.NotificationRequest;
+import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
@@ -41,6 +44,8 @@ class SendMessageServiceTest {
   private RentalRepository rentalRepository;
   @Mock
   private OrganizationRepository organizationRepository;
+  @Mock
+  private MembershipPassService membershipPassService;
 
   private SendMessageService service() {
     return new SendMessageService(
@@ -49,7 +54,8 @@ class SendMessageServiceTest {
         notificationHistoryRecorder,
         messageHistoryRepository,
         rentalRepository,
-        organizationRepository
+        organizationRepository,
+        membershipPassService
     );
   }
 
@@ -66,13 +72,14 @@ class SendMessageServiceTest {
         ))
     );
 
-    when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental)).thenReturn(request);
+    when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental, NotificationChannel.EMAIL)).thenReturn(request);
     when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
-
+    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
+        MembershipLevel.FREE);
     boolean sent = service().dispatch(MessageType.REQUEST_COMPLETED, rental);
 
     assertThat(sent).isTrue();
-    verify(notificationFactory).create(MessageType.REQUEST_COMPLETED, rental);
+    verify(notificationFactory).create(MessageType.REQUEST_COMPLETED, rental, NotificationChannel.EMAIL);
     verify(notificationDispatcher).dispatch(request, rental);
     verify(notificationHistoryRecorder).record(rental, request, result, LocalDate.now());
   }
@@ -84,8 +91,10 @@ class SendMessageServiceTest {
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(java.util.List.of());
 
-    when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental)).thenReturn(request);
+    when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental, NotificationChannel.EMAIL)).thenReturn(request);
     when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
+    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
+        MembershipLevel.FREE);
 
     boolean sent = service().dispatch(MessageType.REQUEST_COMPLETED, rental);
 
@@ -106,12 +115,14 @@ class SendMessageServiceTest {
         ))
     );
 
-    when(notificationFactory.create(MessageType.RENTAL_REJECTED, rental)).thenReturn(request);
+    when(notificationFactory.create(MessageType.RENTAL_REJECTED, rental, NotificationChannel.EMAIL)).thenReturn(request);
     when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
+    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
+        MembershipLevel.FREE);
 
     service().sendRentalRejected(rental);
 
-    verify(notificationFactory).create(MessageType.RENTAL_REJECTED, rental);
+    verify(notificationFactory).create(MessageType.RENTAL_REJECTED, rental, NotificationChannel.EMAIL);
     verify(notificationDispatcher).dispatch(request, rental);
     verify(notificationHistoryRecorder).record(rental, request, result, LocalDate.now());
   }
@@ -122,7 +133,9 @@ class SendMessageServiceTest {
     Rental rental = mockRental();
     NotificationRequest request = mock(NotificationRequest.class);
 
-    when(notificationFactory.create(MessageType.OVERDUE_REMINDER, rental)).thenReturn(request);
+    when(notificationFactory.create(MessageType.OVERDUE_REMINDER, rental, NotificationChannel.EMAIL)).thenReturn(request);
+    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
+        MembershipLevel.FREE);
     doThrow(new ApplicationException(ErrorCode.INVALID_PHONE_NUMBER_EXCEPTION))
         .when(notificationDispatcher)
         .dispatch(request, rental);
@@ -137,6 +150,11 @@ class SendMessageServiceTest {
   }
 
   private Rental mockRental() {
-    return mock(Rental.class);
+    Rental rental = mock(Rental.class);
+    Organization organization = mock(Organization.class);
+
+    when(rental.getOrganization()).thenReturn(organization);
+    when(organization.getId()).thenReturn(1L);
+    return rental;
   }
 }
