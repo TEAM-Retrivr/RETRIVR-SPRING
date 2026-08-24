@@ -4,6 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.message.NotificationChannel;
+import retrivr.retrivrspring.application.port.message.NotificationRequest;
+import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.message.MessageType;
@@ -30,6 +34,7 @@ public class SendMessageService {
   private final MessageHistoryRepository messageHistoryRepository;
   private final RentalRepository rentalRepository;
   private final OrganizationRepository organizationRepository;
+  private final MembershipPassService membershipPassService;
 
   @Transactional
   public AdminMessageSendResponse sendOverdueReminder(Long rentalId, Long loginOrganizationId) {
@@ -103,7 +108,8 @@ public class SendMessageService {
   }
 
   private boolean dispatch(MessageType messageType, Rental rental, LocalDate sentDate) {
-    var notification = notificationFactory.create(messageType, rental);
+    NotificationChannel channel = resolveChannel(membershipPassService.getMembershipLevel(rental.getOrganization().getId()));
+    NotificationRequest notification = notificationFactory.create(messageType, rental, channel);
     NotificationDispatchResult result = notificationDispatcher.dispatch(notification, rental);
     notificationHistoryRecorder.record(rental, notification, result, sentDate);
     return result.hasSuccess();
@@ -120,5 +126,12 @@ public class SendMessageService {
     }
     rentalRepository.findFetchRentalItemUnitsByRentalIn(rentals);
     return rentals;
+  }
+
+  private NotificationChannel resolveChannel(MembershipLevel level) {
+    return switch (level) {
+      case PREMIUM -> NotificationChannel.ALIM_TALK;
+      case FREE -> NotificationChannel.EMAIL;
+    };
   }
 }

@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.port.message.MessageSender;
+import retrivr.retrivrspring.application.port.message.NotificationChannel;
 import retrivr.retrivrspring.application.port.message.NotificationRecipient;
 import retrivr.retrivrspring.application.port.message.NotificationRequest;
 import retrivr.retrivrspring.domain.entity.organization.PhoneVerification;
@@ -73,6 +74,7 @@ public class PublicPhoneVerificationService {
     messageSender.send(new NotificationRequest(
         MessageType.PHONE_VERIFICATION,
         new NotificationRecipient(null, normalizedPhone.getPhone()),
+        NotificationChannel.ALIM_TALK,
         new PhoneVerificationCodeContent(rawCode, PhoneVerification.EXPIRATION_TIME_MINUTES)
     ));
 
