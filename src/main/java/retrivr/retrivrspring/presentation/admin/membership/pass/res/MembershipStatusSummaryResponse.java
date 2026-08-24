@@ -11,6 +11,7 @@ import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan
 public record MembershipStatusSummaryResponse(
     boolean subscribed,
     MembershipLevel level,
+    SubscriptionPlan subscriptionPlan,
     String passType,
     CouponInfo couponInfo,
     SubscriptionInfo subscriptionInfo,
@@ -43,6 +44,7 @@ public record MembershipStatusSummaryResponse(
         null,
         null,
         null,
+        null,
         0L
     );
   }
@@ -69,6 +71,7 @@ public record MembershipStatusSummaryResponse(
     return new MembershipStatusSummaryResponse(
         subscription.isActive(),
         membershipPass.getLevel(),
+        subscription.getPlan(),
         passType,
         null,
         new SubscriptionInfo(subscriptionName),
@@ -91,6 +94,7 @@ public record MembershipStatusSummaryResponse(
     return new MembershipStatusSummaryResponse(
         subscription.isActive(),
         membershipPass.getLevel(),
+        subscription.getPlan(),
         "쿠폰 사용",
         new CouponInfo(coupon.getName(), coupon.getDescription()),
         null,
@@ -108,6 +112,7 @@ public record MembershipStatusSummaryResponse(
     return new MembershipStatusSummaryResponse(
         false,
         membershipPass.getLevel(),
+        null,
         "쿠폰 사용",
         new CouponInfo(coupon.getName(), coupon.getDescription()),
         null,
