@@ -6,6 +6,7 @@ import retrivr.retrivrspring.domain.message.MessageType;
 public record NotificationRequest(
     MessageType messageType,
     NotificationRecipient recipient,
+    NotificationChannel channel,
     MessageContent content
 ) {
 
