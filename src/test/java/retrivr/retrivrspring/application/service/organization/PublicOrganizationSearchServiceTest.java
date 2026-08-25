@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.service.open.PublicOrganizationSearchService;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.application.vo.OrganizationSearchCursor;
@@ -36,6 +37,9 @@ class PublicOrganizationSearchServiceTest {
 
   @Mock
   private OrganizationRepository organizationRepository;
+
+  @Mock
+  private ImageStoragePort imageStoragePort;
 
   @InjectMocks
   private PublicOrganizationSearchService publicOrganizationSearchService;
@@ -240,5 +244,25 @@ class PublicOrganizationSearchServiceTest {
     verify(organizationRepository).searchRankedFirstPageByKeyword(keywordCaptor.capture(), sizePlusOneCaptor.capture());
     assertThat(keywordCaptor.getValue()).isEqualTo("abc");
     assertThat(sizePlusOneCaptor.getValue()).isEqualTo(6);
+  }
+
+  @Test
+  @DisplayName("단체 프로필 이미지가 있으면 presigned URL을 반환한다")
+  void search_withProfileImage_returnsPresignedUrl() {
+    Organization organization = mockOrg(1L, "동연");
+    when(organization.getProfileImageKey()).thenReturn("organizations/1/profile.png");
+    OrganizationSearchResultWithRank row = mock(OrganizationSearchResultWithRank.class);
+    when(row.organization()).thenReturn(organization);
+    when(imageStoragePort.createPresignedDownloadUrl("organizations/1/profile.png"))
+        .thenReturn("https://s3.retrivr/profile-image");
+    when(organizationRepository.searchRankedFirstPageByKeyword("abc", 6))
+        .thenReturn(List.of(row));
+
+    OrganizationSearchPageResponse response =
+        publicOrganizationSearchService.searchRankedPageByKeyword("abc", null, 5);
+
+    assertThat(response.organizations().getFirst().imageURL())
+        .isEqualTo("https://s3.retrivr/profile-image");
+    verify(imageStoragePort).createPresignedDownloadUrl("organizations/1/profile.png");
   }
 }

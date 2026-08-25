@@ -15,9 +15,13 @@ import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
+import retrivr.retrivrspring.domain.entity.membership.MembershipPass;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.DomainException;
@@ -40,6 +44,7 @@ class PublicItemLookupServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private OrganizationRepository organizationRepository;
+  @Mock private MembershipPassRepository membershipPassRepository;
   @Mock private ImageStoragePort imageStoragePort;
 
   @InjectMocks
@@ -176,6 +181,29 @@ class PublicItemLookupServiceTest {
     assertThat(res.borrowerRequirements()).hasSize(2);
     assertThat(res.borrowerRequirements().get(0).label()).isEqualTo("학번");
     assertThat(res.borrowerRequirements().get(0).required()).isTrue();
+    assertThat(res.level()).isEqualTo(MembershipLevel.FREE);
+  }
+
+  @Test
+  @DisplayName("IL-10: 활성 멤버십 이용권이 있으면 PREMIUM을 반환한다")
+  void detailLookup_withActiveMembership_returnsPremium() {
+    long itemId = 10L;
+    Organization organization = mockOrganization(1L, "조직1");
+    Item item = mock(Item.class);
+    MembershipPass membershipPass = mock(MembershipPass.class);
+    when(membershipPass.getLevel()).thenReturn(MembershipLevel.PREMIUM);
+    when(item.getOrganization()).thenReturn(organization);
+    when(item.getItemBorrowerFields()).thenReturn(List.of());
+    when(item.getItemManagementType()).thenReturn(ItemManagementType.NON_UNIT);
+    when(itemRepository.findFetchItemBorrowerFieldsById(itemId)).thenReturn(Optional.of(item));
+    when(membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceDesc(
+        organization, MembershipPassStatus.ACTIVE))
+        .thenReturn(Optional.of(membershipPass));
+
+    PublicItemDetailResponse response =
+        publicItemLookupService.publicOrganizationItemLookup(itemId);
+
+    assertThat(response.level()).isEqualTo(MembershipLevel.PREMIUM);
   }
 
   @Test

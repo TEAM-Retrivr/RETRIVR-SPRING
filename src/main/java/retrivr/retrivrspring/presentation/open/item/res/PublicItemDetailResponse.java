@@ -5,11 +5,13 @@ import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 
 public record PublicItemDetailResponse(
     List<PublicItemUnitSummary> itemUnits,
     List<BorrowerRequirement> borrowerRequirements,
-    ItemManagementType itemManagementType
+    ItemManagementType itemManagementType,
+    MembershipLevel level
 ) {
 
   public record PublicItemUnitSummary(

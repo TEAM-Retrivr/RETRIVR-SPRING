@@ -14,11 +14,11 @@ public record OrganizationSearchPageResponse(
       String imageURL
   ) {
 
-    public static OrganizationSearchSummary from(Organization organization) {
+    public static OrganizationSearchSummary from(Organization organization, String imageURL) {
       return new OrganizationSearchSummary(
           organization.getId(),
           organization.getName(),
-          organization.getProfileImageKey()
+          imageURL
       );
     }
   }
