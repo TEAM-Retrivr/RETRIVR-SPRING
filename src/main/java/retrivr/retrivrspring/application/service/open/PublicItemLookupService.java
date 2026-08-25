@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
@@ -27,6 +28,7 @@ public class PublicItemLookupService {
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
   private final OrganizationRepository organizationRepository;
+  private final ImageStoragePort imageStoragePort;
 
   public PublicItemListPageResponse publicOrganizationItemListLookup(Long organizationId,
       Long cursor, int size) {
@@ -51,7 +53,17 @@ public class PublicItemLookupService {
         .map(PublicItemSummary::from)
         .toList();
 
-    return new PublicItemListPageResponse(organizationId, organization.getName(), content, nextCursor);
+    String profileImageUrl = organization.getProfileImageKey() == null
+        ? null
+        : imageStoragePort.createPresignedDownloadUrl(organization.getProfileImageKey());
+
+    return new PublicItemListPageResponse(
+        organizationId,
+        organization.getName(),
+        profileImageUrl,
+        content,
+        nextCursor
+    );
   }
 
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {
