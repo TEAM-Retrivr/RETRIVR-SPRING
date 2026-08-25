@@ -31,6 +31,7 @@ public class EmailVerificationCodeSenderImpl implements EmailVerificationCodeSen
             case SIGNUP -> "[RETRIVR] 회원가입 인증 코드";
             case PASSWORD_RESET -> "[RETRIVR] 비밀번호 재설정 인증 코드";
             case EMAIL_CHANGE -> "[RETRIVR] 이메일 변경 인증 코드";
+            case BORROW -> "[RETRIVR] 대여 신청 인증 코드";
         };
     }
 
@@ -77,6 +78,7 @@ public class EmailVerificationCodeSenderImpl implements EmailVerificationCodeSen
             case SIGNUP -> "회원가입";
             case PASSWORD_RESET -> "비밀번호 재설정";
             case EMAIL_CHANGE -> "이메일 변경";
+            case BORROW -> "대여 신청";
         };
     }
 

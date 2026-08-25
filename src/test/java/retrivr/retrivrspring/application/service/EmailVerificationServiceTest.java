@@ -13,12 +13,14 @@ import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationCod
 import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.application.service.admin.profile.PasswordVerificationService;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
+import retrivr.retrivrspring.domain.entity.organization.BorrowEmailVerificationToken;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
+import retrivr.retrivrspring.domain.repository.auth.BorrowEmailVerificationTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
@@ -80,6 +82,9 @@ class EmailVerificationServiceTest {
 
     @Mock
     private PasswordVerificationService passwordVerificationService;
+
+    @Mock
+    private BorrowEmailVerificationTokenRepository borrowEmailVerificationTokenRepository;
 
     @InjectMocks
     private EmailVerificationService emailVerificationService;
@@ -353,6 +358,58 @@ class EmailVerificationServiceTest {
 
         verify(passwordResetTokenRepository, times(1)).deleteByOrganization(org);
         verify(passwordResetTokenRepository, times(1)).save(any(PasswordResetToken.class));
+    }
+
+    @Test
+    void sendPublicCode_allowsBorrowPurpose() {
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.BORROW))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-code");
+
+        emailVerificationService.sendPublicCode(
+                new EmailVerificationSendRequest(email, EmailVerificationPurpose.BORROW)
+        );
+
+        verify(emailVerificationCodeSender).sendVerificationCode(
+                eq(email), anyString(), eq(EmailVerificationPurpose.BORROW), eq(600));
+    }
+
+    @Test
+    void verify_success_borrow_generates_token() {
+        EmailVerification verification = EmailVerification.create(
+                email,
+                EmailVerificationPurpose.BORROW,
+                "hashed",
+                LocalDateTime.now().plusMinutes(10)
+        );
+        when(emailVerificationRepository.findByEmailAndPurpose(email, EmailVerificationPurpose.BORROW))
+                .thenReturn(Optional.of(verification));
+        when(passwordEncoder.matches("123456", "hashed")).thenReturn(true);
+        when(passwordEncoder.encode(anyString())).thenReturn("borrow-token-hash");
+
+        EmailCodeVerifyTokenResponse response = emailVerificationService.verify(
+                new EmailVerificationRequest(email, EmailVerificationPurpose.BORROW, "123456")
+        );
+
+        assertEquals("BORROW", response.tokenType());
+        assertTrue(response.token().startsWith("bet_"));
+        verify(borrowEmailVerificationTokenRepository).deleteByEmail(email);
+        verify(borrowEmailVerificationTokenRepository).save(any(BorrowEmailVerificationToken.class));
+    }
+
+    @Test
+    void validateAndConsumeBorrowToken_success() {
+        BorrowEmailVerificationToken token = BorrowEmailVerificationToken.builder()
+                .email(email)
+                .tokenHash("token-hash")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        when(borrowEmailVerificationTokenRepository.findByEmail(email)).thenReturn(Optional.of(token));
+        when(passwordEncoder.matches("bet_raw", "token-hash")).thenReturn(true);
+
+        emailVerificationService.validateAndConsumeBorrowToken(" TEST@test.com ", "bet_raw");
+
+        verify(borrowEmailVerificationTokenRepository).delete(token);
     }
 
     @Test
