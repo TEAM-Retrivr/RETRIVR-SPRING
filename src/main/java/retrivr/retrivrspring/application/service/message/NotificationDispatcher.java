@@ -3,6 +3,7 @@ package retrivr.retrivrspring.application.service.message;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import retrivr.retrivrspring.application.port.message.MessageSender;
@@ -28,7 +29,7 @@ public class NotificationDispatcher {
   }
 
   public NotificationDispatchResult dispatch(NotificationRequest request, Rental rental) {
-    NotificationChannel channel = DEFAULT_CHANNEL;
+    NotificationChannel channel = Objects.requireNonNullElse(request.channel(), DEFAULT_CHANNEL);
 
     if (!request.supports(channel)) {
       handleMissingRecipient(request.messageType(), rental, channel);

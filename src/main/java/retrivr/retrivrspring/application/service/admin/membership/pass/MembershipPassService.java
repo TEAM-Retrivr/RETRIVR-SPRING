@@ -209,6 +209,21 @@ public class MembershipPassService {
     return MembershipStatusSummaryResponse.couponPlanWithSubscription(membershipPass, subscription);
   }
 
+  public MembershipLevel getMembershipLevel(Long organizationId) {
+    Organization organization = organizationRepository.findById(organizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    MembershipPass membershipPass = membershipPassRepository.findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization, MembershipPassStatus.ACTIVE)
+        .orElse(null);
+
+    if (membershipPass != null) {
+      return MembershipLevel.PREMIUM;
+    }
+
+    return MembershipLevel.FREE;
+  }
+
   public CurrentSubscriptionMembershipPassResponse getCurrentSubscriptionMembershipPass(Long organizationId) {
     Organization organization = organizationRepository.findById(organizationId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));

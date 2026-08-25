@@ -58,11 +58,11 @@ public record MembershipStatusSummaryResponse(
     String subscriptionName = "";
     String passType = "";
     if (payment.getPlan() == SubscriptionPlan.MONTHLY) {
-      subscriptionName = "월간 이용권";
+      subscriptionName = "월간 구독 이용권";
       passType = "월간 구독";
     }
     else {
-      subscriptionName = "연간 이용권";
+      subscriptionName = "연간 구독 이용권";
       passType = "연간 구독";
     }
 

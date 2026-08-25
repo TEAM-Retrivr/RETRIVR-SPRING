@@ -1,6 +1,7 @@
 package retrivr.retrivrspring.application.service.message;
 
 import org.springframework.stereotype.Component;
+import retrivr.retrivrspring.application.port.message.NotificationChannel;
 import retrivr.retrivrspring.application.port.message.NotificationRecipient;
 import retrivr.retrivrspring.application.port.message.NotificationRequest;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -18,13 +19,14 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 public class RentalNotificationFactory implements NotificationFactory {
 
   @Override
-  public NotificationRequest create(MessageType messageType, Rental rental) {
+  public NotificationRequest create(MessageType messageType, Rental rental, NotificationChannel channel) {
     return new NotificationRequest(
         messageType,
         new NotificationRecipient(
             rental.getBorrower().getEmail(),
             rental.getBorrower().getPhoneNumber()
         ),
+        channel,
         createContent(messageType, rental)
     );
   }
