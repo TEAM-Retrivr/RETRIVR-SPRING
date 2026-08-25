@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.service.open.PublicItemLookupService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemBorrowerField;
@@ -39,6 +40,7 @@ class PublicItemLookupServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
   @Mock private OrganizationRepository organizationRepository;
+  @Mock private ImageStoragePort imageStoragePort;
 
   @InjectMocks
   private PublicItemLookupService publicItemLookupService;
@@ -112,6 +114,27 @@ class PublicItemLookupServiceTest {
     assertThat(res.items()).hasSize(2);
     assertThat(res.nextCursor()).isEqualTo(99L);
     assertThat(res.organizationId()).isEqualTo(orgId);
+    assertThat(res.profileImageUrl()).isNull();
+    verifyNoInteractions(imageStoragePort);
+  }
+
+  @Test
+  @DisplayName("IL-03: 단체 프로필 이미지가 있으면 presigned URL을 반환한다")
+  void listLookup_withProfileImage_returnsPresignedUrl() {
+    long orgId = 1L;
+    Organization mockOrg = mockOrganization(orgId, "조직1");
+    when(mockOrg.getProfileImageKey()).thenReturn("organizations/1/profile.png");
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(mockOrg));
+    when(itemRepository.findPageByOrganizationWithCursor(eq(orgId), isNull(), eq(3)))
+        .thenReturn(List.of());
+    when(imageStoragePort.createPresignedDownloadUrl("organizations/1/profile.png"))
+        .thenReturn("https://s3.retrivr/profile-image");
+
+    PublicItemListPageResponse res =
+        publicItemLookupService.publicOrganizationItemListLookup(orgId, null, 2);
+
+    assertThat(res.profileImageUrl()).isEqualTo("https://s3.retrivr/profile-image");
+    verify(imageStoragePort).createPresignedDownloadUrl("organizations/1/profile.png");
   }
 
   @Test
