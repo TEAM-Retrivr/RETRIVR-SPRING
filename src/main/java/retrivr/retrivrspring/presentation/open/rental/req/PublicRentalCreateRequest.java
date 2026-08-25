@@ -2,6 +2,8 @@ package retrivr.retrivrspring.presentation.open.rental.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Map;
@@ -37,6 +39,14 @@ public record PublicRentalCreateRequest(
     String phone,
 
     @Schema(
+        description = "인증을 완료한 대여자 이메일. 이메일 인증을 사용할 때 전달합니다.",
+        example = "borrower@example.com",
+        nullable = true
+    )
+    @Email
+    String email,
+
+    @Schema(
         description = "물품별 추가 대여자 정보. key는 라벨명, value는 입력값입니다.",
         example = """
             {
@@ -63,14 +73,30 @@ public record PublicRentalCreateRequest(
     @Schema(
         description = "핸드폰 인증을 완료한 후 받은 토큰 ID"
     )
-    @NotBlank
     String tokenId,
 
     @Schema(
         description = "핸드폰 인증을 완료한 후 받은 토큰"
     )
-    @NotBlank
-    String rawToken
+    String rawToken,
+
+    @Schema(
+        description = "BORROW 이메일 인증 완료 후 받은 토큰. 전달하면 핸드폰 인증 토큰 대신 사용합니다.",
+        nullable = true
+    )
+    String emailVerificationToken
 ) {
+
+  @AssertTrue(message = "핸드폰 인증 토큰 또는 이메일 인증 정보가 필요합니다.")
+  @Schema(hidden = true)
+  public boolean isVerificationProvided() {
+    boolean emailVerification = hasText(email) && hasText(emailVerificationToken);
+    boolean phoneVerification = hasText(tokenId) && hasText(rawToken);
+    return emailVerification || phoneVerification;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
+  }
 
 }

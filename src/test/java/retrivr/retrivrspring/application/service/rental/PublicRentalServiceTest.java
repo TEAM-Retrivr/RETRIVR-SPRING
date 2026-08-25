@@ -32,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
+import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.application.service.open.PublicPhoneVerificationService;
 import retrivr.retrivrspring.application.service.open.PublicRentalService;
 import retrivr.retrivrspring.domain.entity.item.Item;
@@ -63,6 +64,7 @@ class PublicRentalServiceTest {
   @Mock private PublicIdGenerator publicIdGenerator;
   @Mock private AdminCodeVerificationService adminCodeVerificationService;
   @Mock private PublicPhoneVerificationService publicPhoneVerificationService;
+  @Mock private EmailVerificationService emailVerificationService;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,7 +77,8 @@ class PublicRentalServiceTest {
         applicationEventPublisher,
         publicIdGenerator,
         adminCodeVerificationService,
-        publicPhoneVerificationService
+        publicPhoneVerificationService,
+        emailVerificationService
     );
   }
 
@@ -109,6 +112,7 @@ class PublicRentalServiceTest {
   void requestRental_itemNotFound() {
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.empty());
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
+    when(req.itemUnitId()).thenReturn(null);
 
     assertThatThrownBy(() -> service().requestRental(10L, req))
         .isInstanceOf(ApplicationException.class)
@@ -156,6 +160,39 @@ class PublicRentalServiceTest {
 
     assertThatThrownBy(() -> service().requestRental(10L, req))
         .isInstanceOf(DomainException.class);
+  }
+
+  @Test
+  @DisplayName("이메일 인증 토큰으로 대여를 요청하고 정규화된 이메일을 저장한다")
+  void requestRental_success_withEmailVerification() {
+    Organization org = mockOrg(1L);
+    Item item = mockItem(10L, true, org);
+    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+
+    PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
+    when(req.itemUnitId()).thenReturn(null);
+    when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
+    when(req.name()).thenReturn("tester");
+    when(req.phone()).thenReturn("010-0000-0000");
+    when(req.email()).thenReturn(" Borrower@Example.COM ");
+    when(req.emailVerificationToken()).thenReturn("bet_raw");
+
+    doAnswer(inv -> {
+      Rental savedRental = inv.getArgument(0);
+      setRentalId(savedRental, 1L);
+      return null;
+    }).when(rentalRepository).saveAndFlush(any(Rental.class));
+    ArgumentCaptor<Rental> rentalCaptor = ArgumentCaptor.forClass(Rental.class);
+
+    service().requestRental(10L, req);
+
+    verify(emailVerificationService).validateAndConsumeBorrowToken(
+        " Borrower@Example.COM ", "bet_raw");
+    verify(publicPhoneVerificationService, never())
+        .validateAndConsumePhoneVerificationToken(any(), any(), any());
+    verify(rentalRepository).saveAndFlush(rentalCaptor.capture());
+    assertThat(rentalCaptor.getValue().getBorrower().getEmail())
+        .isEqualTo("borrower@example.com");
   }
 
   @Test
