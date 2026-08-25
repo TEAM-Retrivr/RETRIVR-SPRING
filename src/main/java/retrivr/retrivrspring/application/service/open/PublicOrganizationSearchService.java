@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.vo.NormalizedOrganizationSearchRequest;
 import retrivr.retrivrspring.application.vo.OrganizationSearchResultWithRank;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
@@ -19,6 +20,7 @@ import retrivr.retrivrspring.presentation.open.organization.res.OrganizationSear
 public class PublicOrganizationSearchService {
 
   private final OrganizationRepository organizationRepository;
+  private final ImageStoragePort imageStoragePort;
 
   public OrganizationSearchPageResponse searchRankedPageByKeyword(String keyword, String cursor, Integer size) {
 
@@ -54,7 +56,13 @@ public class PublicOrganizationSearchService {
         hasNext ? fetchedOrg.subList(0, nrq.size()) : fetchedOrg;
 
     List<OrganizationSearchSummary> organizations = content.stream()
-        .map(row -> OrganizationSearchSummary.from(row.organization()))
+        .map(row -> {
+          String profileImageKey = row.organization().getProfileImageKey();
+          String imageURL = profileImageKey == null
+              ? null
+              : imageStoragePort.createPresignedDownloadUrl(profileImageKey);
+          return OrganizationSearchSummary.from(row.organization(), imageURL);
+        })
         .toList();
 
     String nextCursor = null;
