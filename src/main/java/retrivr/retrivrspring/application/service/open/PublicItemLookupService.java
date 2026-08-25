@@ -8,9 +8,12 @@ import retrivr.retrivrspring.application.port.image.ImageStoragePort;
 import retrivr.retrivrspring.application.vo.DefaultNormalizedCursorPageSearchSize;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
+import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -28,6 +31,7 @@ public class PublicItemLookupService {
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
   private final OrganizationRepository organizationRepository;
+  private final MembershipPassRepository membershipPassRepository;
   private final ImageStoragePort imageStoragePort;
 
   public PublicItemListPageResponse publicOrganizationItemListLookup(Long organizationId,
@@ -56,7 +60,6 @@ public class PublicItemLookupService {
     String profileImageUrl = organization.getProfileImageKey() == null
         ? null
         : imageStoragePort.createPresignedDownloadUrl(organization.getProfileImageKey());
-
     return new PublicItemListPageResponse(
         organizationId,
         organization.getName(),
@@ -74,8 +77,10 @@ public class PublicItemLookupService {
     List<BorrowerRequirement> borrowerRequirements = item.getItemBorrowerFields().stream()
         .map(BorrowerRequirement::from)
         .toList();
+    MembershipLevel membershipLevel = getMembershipLevel(item.getOrganization());
     if (!item.isUnitType()) {
-      return new PublicItemDetailResponse(List.of(), borrowerRequirements, item.getItemManagementType());
+      return new PublicItemDetailResponse(
+          List.of(), borrowerRequirements, item.getItemManagementType(), membershipLevel);
     }
 
     List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId);
@@ -84,6 +89,15 @@ public class PublicItemLookupService {
         .map(PublicItemUnitSummary::from)
         .toList();
 
-    return new PublicItemDetailResponse(list, borrowerRequirements, item.getItemManagementType());
+    return new PublicItemDetailResponse(
+        list, borrowerRequirements, item.getItemManagementType(), membershipLevel);
+  }
+
+  private MembershipLevel getMembershipLevel(Organization organization) {
+    return membershipPassRepository
+        .findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization, MembershipPassStatus.ACTIVE)
+        .map(membershipPass -> membershipPass.getLevel())
+        .orElse(MembershipLevel.FREE);
   }
 }
