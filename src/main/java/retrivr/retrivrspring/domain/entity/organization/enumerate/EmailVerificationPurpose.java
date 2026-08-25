@@ -7,6 +7,7 @@ public enum EmailVerificationPurpose {
 
     SIGNUP,
     PASSWORD_RESET,
-    EMAIL_CHANGE
+    EMAIL_CHANGE,
+    BORROW
 
 }

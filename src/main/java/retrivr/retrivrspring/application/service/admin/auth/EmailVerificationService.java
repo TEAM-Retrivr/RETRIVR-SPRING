@@ -6,12 +6,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.domain.entity.organization.EmailVerification;
+import retrivr.retrivrspring.domain.entity.organization.BorrowEmailVerificationToken;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.PasswordResetToken;
 import retrivr.retrivrspring.domain.entity.organization.SignupToken;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.EmailVerificationPurpose;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.PasswordVerificationPurpose;
 import retrivr.retrivrspring.domain.repository.auth.EmailVerificationRepository;
+import retrivr.retrivrspring.domain.repository.auth.BorrowEmailVerificationTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.PasswordResetTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.RefreshTokenRepository;
 import retrivr.retrivrspring.domain.repository.auth.SignupTokenRepository;
@@ -47,7 +49,8 @@ public class EmailVerificationService {
      */
     private static final Set<EmailVerificationPurpose> PUBLICLY_REQUESTABLE_PURPOSES = EnumSet.of(
             EmailVerificationPurpose.SIGNUP,
-            EmailVerificationPurpose.PASSWORD_RESET
+            EmailVerificationPurpose.PASSWORD_RESET,
+            EmailVerificationPurpose.BORROW
     );
 
     private final EmailVerificationRepository emailVerificationRepository;
@@ -59,6 +62,7 @@ public class EmailVerificationService {
     private final EmailVerificationCodeSender emailVerificationCodeSender;
     private final EmailVerificationProperties emailVerificationProperties;
     private final PasswordVerificationService passwordVerificationService;
+    private final BorrowEmailVerificationTokenRepository borrowEmailVerificationTokenRepository;
 
     /**
      * 인증되지 않은 경로(public API)에서의 인증 코드 발송.
@@ -113,6 +117,9 @@ public class EmailVerificationService {
                 passwordResetTokenRepository.deleteByOrganization(organization);
                 break;
             case EMAIL_CHANGE:
+                break;
+            case BORROW:
+                borrowEmailVerificationTokenRepository.deleteByEmail(email);
                 break;
         }
 
@@ -226,7 +233,36 @@ public class EmailVerificationService {
             );
         }
 
+        if (purpose == EmailVerificationPurpose.BORROW) {
+            verification.markVerified(now);
+
+            String rawBorrowToken = "bet_" + UUID.randomUUID();
+            String tokenHash = passwordEncoder.encode(rawBorrowToken);
+
+            borrowEmailVerificationTokenRepository.deleteByEmail(email);
+            borrowEmailVerificationTokenRepository.save(BorrowEmailVerificationToken.builder()
+                    .email(email)
+                    .tokenHash(tokenHash)
+                    .expiresAt(now.plusSeconds(emailVerificationProperties.getExpiresSeconds()))
+                    .build());
+
+            return EmailCodeVerifyTokenResponse.borrowToken(
+                    rawBorrowToken,
+                    emailVerificationProperties.getExpiresSeconds()
+            );
+        }
+
         throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+
+    public void validateAndConsumeBorrowToken(String requestedEmail, String rawToken) {
+        String email = normalizeEmail(requestedEmail);
+        BorrowEmailVerificationToken token = borrowEmailVerificationTokenRepository.findByEmail(email)
+                .orElseThrow(() -> new ApplicationException(
+                        ErrorCode.BORROW_EMAIL_VERIFICATION_TOKEN_NOT_FOUND));
+
+        token.assertUsable(email, rawToken, passwordEncoder, LocalDateTime.now());
+        borrowEmailVerificationTokenRepository.delete(token);
     }
 
     /**

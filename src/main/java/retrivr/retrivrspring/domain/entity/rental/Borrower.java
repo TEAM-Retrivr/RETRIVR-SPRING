@@ -36,14 +36,27 @@ public class Borrower extends BaseTimeEntity {
   @Embedded
   private PhoneNumber phone;
 
+  @Column(length = 255)
+  private String email;
+
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "additional_borrower_info", columnDefinition = "jsonb")
   private JsonNode additionalBorrowerInfo;
 
   public static Borrower create(String name, PhoneNumber phone, JsonNode additionalBorrowerInfo) {
+    return create(name, phone, null, additionalBorrowerInfo);
+  }
+
+  public static Borrower create(
+      String name,
+      PhoneNumber phone,
+      String email,
+      JsonNode additionalBorrowerInfo
+  ) {
     return Borrower.builder()
         .name(name)
         .phone(phone)
+        .email(email)
         .additionalBorrowerInfo(additionalBorrowerInfo)
         .build();
   }
@@ -59,6 +72,13 @@ public class Borrower extends BaseTimeEntity {
   }
 
   public String getEmail() {
+    if (email != null && !email.isBlank()) {
+      return email;
+    }
+    return getEmailFromAdditionalInfo();
+  }
+
+  private String getEmailFromAdditionalInfo() {
     if (additionalBorrowerInfo == null || additionalBorrowerInfo.isNull()) {
       return null;
     }

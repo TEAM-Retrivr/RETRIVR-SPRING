@@ -41,7 +41,7 @@ public class EmailVerificationController {
     @Operation(
             summary = "public 이메일 인증 코드 발송",
             description = "이메일과 인증 목적에 따라 6자리 인증 코드를 발송한다. "
-                    + "SIGNUP, PASSWORD_RESET 목적만 허용한다. "
+                    + "SIGNUP, PASSWORD_RESET, BORROW 목적만 허용한다. "
                     + "재발송 대기 중이면 429(7104)를 반환하며, 이때 detail 에 남은 대기 시간(초)이 담긴다."
     )
     @ApiResponse(

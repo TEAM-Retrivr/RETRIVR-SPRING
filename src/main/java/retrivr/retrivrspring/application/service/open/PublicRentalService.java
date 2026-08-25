@@ -13,6 +13,7 @@ import retrivr.retrivrspring.application.event.RentalRejectedEvent;
 import retrivr.retrivrspring.application.event.RentalRequestedEvent;
 import retrivr.retrivrspring.application.port.id.PublicIdGenerator;
 import retrivr.retrivrspring.application.service.admin.auth.AdminCodeVerificationService;
+import retrivr.retrivrspring.application.service.admin.auth.EmailVerificationService;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
@@ -51,6 +52,7 @@ public class PublicRentalService {
   private final PublicIdGenerator publicIdGenerator;
   private final AdminCodeVerificationService adminCodeVerificationService;
   private final PublicPhoneVerificationService publicPhoneVerificationService;
+  private final EmailVerificationService emailVerificationService;
 
   private static final int MAX_PUBLIC_ID_RETRY = 5;
 
@@ -63,7 +65,7 @@ public class PublicRentalService {
     // 탈퇴/비활성 단체의 물건에는 신규 대여를 요청할 수 없다. (인증 토큰이 소모되기 전에 검증)
     targetItem.getOrganization().assertOperating();
 
-    publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
+    validateAndConsumeBorrowerVerification(request);
 
     // 2. ItemUnit 조회
     ItemUnit targetItemUnit = null;
@@ -79,6 +81,7 @@ public class PublicRentalService {
     Borrower borrower = Borrower.create(
         request.name(),
         new PhoneNumber(request.phone()),
+        normalizeNullableEmail(request.email()),
         objectMapper.valueToTree(request.renterFields())
     );
 
@@ -98,6 +101,29 @@ public class PublicRentalService {
 
     return new PublicRentalCreateResponse(requestedRental.getId(), targetItem.getId(),
         request.itemUnitId(), requestedRental.getRequestedAt());
+  }
+
+  private void validateAndConsumeBorrowerVerification(PublicRentalCreateRequest request) {
+    if (hasText(request.email()) && hasText(request.emailVerificationToken())) {
+      emailVerificationService.validateAndConsumeBorrowToken(
+          request.email(), request.emailVerificationToken());
+      return;
+    }
+
+    if (hasText(request.email()) || hasText(request.emailVerificationToken())) {
+      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+
+    publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(
+        request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
+  }
+
+  private String normalizeNullableEmail(String email) {
+    return hasText(email) ? email.trim().toLowerCase(java.util.Locale.ROOT) : null;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   public PublicRentalDetailResponse checkRentalStatusAndDetail(Long rentalId, String token) {
