@@ -9,6 +9,7 @@ import retrivr.retrivrspring.application.port.message.NotificationRequest;
 import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.message.MessageType;
 import retrivr.retrivrspring.domain.message.SendAllOverdueReminderPolicy;
@@ -108,7 +109,7 @@ public class SendMessageService {
   }
 
   private boolean dispatch(MessageType messageType, Rental rental, LocalDate sentDate) {
-    NotificationChannel channel = resolveChannel(membershipPassService.getMembershipLevel(rental.getOrganization().getId()));
+    NotificationChannel channel = resolveChannel(membershipPassService.getMembershipLevel(rental.getOrganization().getId()), rental.getBorrower());
     NotificationRequest notification = notificationFactory.create(messageType, rental, channel);
     NotificationDispatchResult result = notificationDispatcher.dispatch(notification, rental);
     notificationHistoryRecorder.record(rental, notification, result, sentDate);
@@ -128,7 +129,12 @@ public class SendMessageService {
     return rentals;
   }
 
-  private NotificationChannel resolveChannel(MembershipLevel level) {
+  private NotificationChannel resolveChannel(MembershipLevel level, Borrower borrower) {
+    if (borrower != null) {
+      if (borrower.getPhone() != null) return NotificationChannel.ALIM_TALK;
+      else if (borrower.getEmail() != null) return NotificationChannel.EMAIL;
+    }
+
     return switch (level) {
       case PREMIUM -> NotificationChannel.ALIM_TALK;
       case FREE -> NotificationChannel.EMAIL;
