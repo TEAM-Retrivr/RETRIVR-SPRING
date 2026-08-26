@@ -12,7 +12,7 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 @NoArgsConstructor
 public class PhoneNumber {
 
-  @Column(nullable = false)
+  @Column
   private String phone;
 
   public PhoneNumber(String phone) {

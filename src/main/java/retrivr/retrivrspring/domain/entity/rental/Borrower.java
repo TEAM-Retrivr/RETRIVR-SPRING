@@ -68,7 +68,7 @@ public class Borrower extends BaseTimeEntity {
   }
 
   public boolean isValidPhoneFormat() {
-    return phone.isValid();
+    return phone != null && phone.isValid();
   }
 
   public String getEmail() {

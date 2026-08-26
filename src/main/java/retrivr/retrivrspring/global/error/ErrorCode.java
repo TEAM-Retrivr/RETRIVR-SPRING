@@ -132,6 +132,7 @@ public enum ErrorCode {
 
     // 10000: Borrower Error
     INVALID_PHONE_NUMBER_EXCEPTION(HttpStatus.BAD_REQUEST, 10000, "유효하지 않은 전화번호입니다."),
+    BORROWER_CONTACT_NOT_FOUND(HttpStatus.BAD_REQUEST, 10001, "대여자 연락처가 없습니다."),
 
     // 11000: File Storage Error
     NOT_ALLOWED_IMAGE_CONTENT_TYPE(HttpStatus.BAD_REQUEST, 11000, "저장할 수 없는 이미지 컨텐츠 유형입니다."),
