@@ -29,9 +29,8 @@ public record PublicRentalCreateRequest(
     @Schema(
         description = "대여자 전화번호. 숫자, 하이픈(-), 공백, + 입력이 가능합니다.",
         example = "010-1234-5678",
-        requiredMode = Schema.RequiredMode.REQUIRED
+        nullable = true
     )
-    @NotBlank(message = "전화번호는 필수입니다.")
     @Pattern(
         regexp = "^[0-9\\-+ ]{7,20}$",
         message = "전화번호 형식이 올바르지 않습니다."
@@ -87,12 +86,20 @@ public record PublicRentalCreateRequest(
     String emailVerificationToken
 ) {
 
-  @AssertTrue(message = "핸드폰 인증 토큰 또는 이메일 인증 정보가 필요합니다.")
+  @AssertTrue(message = "핸드폰 인증 또는 이메일 인증 중 하나만 선택해야 합니다.")
   @Schema(hidden = true)
   public boolean isVerificationProvided() {
-    boolean emailVerification = hasText(email) && hasText(emailVerificationToken);
-    boolean phoneVerification = hasText(tokenId) && hasText(rawToken);
-    return emailVerification || phoneVerification;
+    boolean emailVerification = hasText(email)
+        && hasText(emailVerificationToken)
+        && !hasText(phone)
+        && !hasText(tokenId)
+        && !hasText(rawToken);
+    boolean phoneVerification = hasText(phone)
+        && hasText(tokenId)
+        && hasText(rawToken)
+        && !hasText(email)
+        && !hasText(emailVerificationToken);
+    return emailVerification ^ phoneVerification;
   }
 
   private boolean hasText(String value) {

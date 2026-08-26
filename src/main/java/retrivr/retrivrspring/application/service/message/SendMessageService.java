@@ -6,8 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import retrivr.retrivrspring.application.port.message.NotificationChannel;
 import retrivr.retrivrspring.application.port.message.NotificationRequest;
-import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
@@ -35,7 +33,6 @@ public class SendMessageService {
   private final MessageHistoryRepository messageHistoryRepository;
   private final RentalRepository rentalRepository;
   private final OrganizationRepository organizationRepository;
-  private final MembershipPassService membershipPassService;
 
   @Transactional
   public AdminMessageSendResponse sendOverdueReminder(Long rentalId, Long loginOrganizationId) {
@@ -109,7 +106,7 @@ public class SendMessageService {
   }
 
   private boolean dispatch(MessageType messageType, Rental rental, LocalDate sentDate) {
-    NotificationChannel channel = resolveChannel(membershipPassService.getMembershipLevel(rental.getOrganization().getId()), rental.getBorrower());
+    NotificationChannel channel = resolveChannel(rental.getBorrower());
     NotificationRequest notification = notificationFactory.create(messageType, rental, channel);
     NotificationDispatchResult result = notificationDispatcher.dispatch(notification, rental);
     notificationHistoryRecorder.record(rental, notification, result, sentDate);
@@ -129,15 +126,21 @@ public class SendMessageService {
     return rentals;
   }
 
-  private NotificationChannel resolveChannel(MembershipLevel level, Borrower borrower) {
-    if (borrower != null) {
-      if (borrower.getPhone() != null) return NotificationChannel.ALIM_TALK;
-      else if (borrower.getEmail() != null) return NotificationChannel.EMAIL;
+  private NotificationChannel resolveChannel(Borrower borrower) {
+    if (borrower == null) {
+      throw new ApplicationException(ErrorCode.BORROWER_CONTACT_NOT_FOUND);
     }
 
-    return switch (level) {
-      case PREMIUM -> NotificationChannel.ALIM_TALK;
-      case FREE -> NotificationChannel.EMAIL;
-    };
+    if (hasText(borrower.getPhoneNumber())) {
+      return NotificationChannel.ALIM_TALK;
+    }
+    if (hasText(borrower.getEmail())) {
+      return NotificationChannel.EMAIL;
+    }
+    throw new ApplicationException(ErrorCode.BORROWER_CONTACT_NOT_FOUND);
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }

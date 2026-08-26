@@ -17,9 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import retrivr.retrivrspring.application.port.message.NotificationChannel;
 import retrivr.retrivrspring.application.port.message.NotificationRequest;
-import retrivr.retrivrspring.application.service.admin.membership.pass.MembershipPassService;
-import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipLevel;
-import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.domain.entity.rental.Borrower;
+import retrivr.retrivrspring.domain.entity.rental.PhoneNumber;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.message.MessageSendStatus;
 import retrivr.retrivrspring.domain.message.MessageType;
@@ -44,9 +43,6 @@ class SendMessageServiceTest {
   private RentalRepository rentalRepository;
   @Mock
   private OrganizationRepository organizationRepository;
-  @Mock
-  private MembershipPassService membershipPassService;
-
   private SendMessageService service() {
     return new SendMessageService(
         notificationFactory,
@@ -54,15 +50,14 @@ class SendMessageServiceTest {
         notificationHistoryRecorder,
         messageHistoryRepository,
         rentalRepository,
-        organizationRepository,
-        membershipPassService
+        organizationRepository
     );
   }
 
   @Test
   @DisplayName("dispatch: request completed uses email recipient and saves success history")
   void dispatch_requestCompleted_success() {
-    Rental rental = mockRental();
+    Rental rental = mockRental(Borrower.create("tester", null, "test@example.com", null));
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(
         java.util.List.of(new NotificationDispatchAttempt(
@@ -74,8 +69,6 @@ class SendMessageServiceTest {
 
     when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental, NotificationChannel.EMAIL)).thenReturn(request);
     when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
-    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
-        MembershipLevel.FREE);
     boolean sent = service().dispatch(MessageType.REQUEST_COMPLETED, rental);
 
     assertThat(sent).isTrue();
@@ -85,27 +78,23 @@ class SendMessageServiceTest {
   }
 
   @Test
-  @DisplayName("dispatch: request completed skips when phone number is missing")
-  void dispatch_requestCompleted_skipWhenPhoneMissing() {
-    Rental rental = mockRental();
-    NotificationRequest request = mock(NotificationRequest.class);
-    NotificationDispatchResult result = new NotificationDispatchResult(java.util.List.of());
+  @DisplayName("dispatch: borrower contact is missing")
+  void dispatch_throwWhenBorrowerContactMissing() {
+    Rental rental = mockRental(Borrower.create("tester", null, null, null));
 
-    when(notificationFactory.create(MessageType.REQUEST_COMPLETED, rental, NotificationChannel.EMAIL)).thenReturn(request);
-    when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
-    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
-        MembershipLevel.FREE);
+    assertThatThrownBy(() -> service().dispatch(MessageType.REQUEST_COMPLETED, rental))
+        .isInstanceOf(ApplicationException.class)
+        .satisfies(exception -> assertThat(((ApplicationException) exception).getErrorCode())
+            .isEqualTo(ErrorCode.BORROWER_CONTACT_NOT_FOUND));
 
-    boolean sent = service().dispatch(MessageType.REQUEST_COMPLETED, rental);
-
-    assertThat(sent).isFalse();
-    verify(notificationHistoryRecorder).record(rental, request, result, LocalDate.now());
+    verify(notificationFactory, never()).create(any(), any(), any());
+    verify(notificationHistoryRecorder, never()).record(any(), any(), any(), any());
   }
 
   @Test
   @DisplayName("sendRentalRejected: dispatches rejected notification")
   void sendRentalRejected_dispatch() {
-    Rental rental = mockRental();
+    Rental rental = mockRental(Borrower.create("tester", null, "test@example.com", null));
     NotificationRequest request = mock(NotificationRequest.class);
     NotificationDispatchResult result = new NotificationDispatchResult(
         java.util.List.of(new NotificationDispatchAttempt(
@@ -117,9 +106,6 @@ class SendMessageServiceTest {
 
     when(notificationFactory.create(MessageType.RENTAL_REJECTED, rental, NotificationChannel.EMAIL)).thenReturn(request);
     when(notificationDispatcher.dispatch(request, rental)).thenReturn(result);
-    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
-        MembershipLevel.FREE);
-
     service().sendRentalRejected(rental);
 
     verify(notificationFactory).create(MessageType.RENTAL_REJECTED, rental, NotificationChannel.EMAIL);
@@ -130,12 +116,11 @@ class SendMessageServiceTest {
   @Test
   @DisplayName("dispatch: overdue reminder throws when phone number is missing")
   void dispatch_overdueReminder_throwWhenPhoneMissing() {
-    Rental rental = mockRental();
+    Rental rental = mockRental(
+        Borrower.create("tester", new PhoneNumber("010-1234-5678"), null));
     NotificationRequest request = mock(NotificationRequest.class);
 
-    when(notificationFactory.create(MessageType.OVERDUE_REMINDER, rental, NotificationChannel.EMAIL)).thenReturn(request);
-    when(membershipPassService.getMembershipLevel(rental.getOrganization().getId())).thenReturn(
-        MembershipLevel.FREE);
+    when(notificationFactory.create(MessageType.OVERDUE_REMINDER, rental, NotificationChannel.ALIM_TALK)).thenReturn(request);
     doThrow(new ApplicationException(ErrorCode.INVALID_PHONE_NUMBER_EXCEPTION))
         .when(notificationDispatcher)
         .dispatch(request, rental);
@@ -149,12 +134,9 @@ class SendMessageServiceTest {
         .record(any(Rental.class), any(NotificationRequest.class), any(), any(LocalDate.class));
   }
 
-  private Rental mockRental() {
+  private Rental mockRental(Borrower borrower) {
     Rental rental = mock(Rental.class);
-    Organization organization = mock(Organization.class);
-
-    when(rental.getOrganization()).thenReturn(organization);
-    when(organization.getId()).thenReturn(1L);
+    when(rental.getBorrower()).thenReturn(borrower);
     return rental;
   }
 }

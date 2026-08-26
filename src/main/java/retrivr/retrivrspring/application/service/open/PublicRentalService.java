@@ -80,7 +80,7 @@ public class PublicRentalService {
     // 4. Borrower 생성
     Borrower borrower = Borrower.create(
         request.name(),
-        new PhoneNumber(request.phone()),
+        hasText(request.phone()) ? new PhoneNumber(request.phone()) : null,
         normalizeNullableEmail(request.email()),
         objectMapper.valueToTree(request.renterFields())
     );
@@ -104,18 +104,30 @@ public class PublicRentalService {
   }
 
   private void validateAndConsumeBorrowerVerification(PublicRentalCreateRequest request) {
-    if (hasText(request.email()) && hasText(request.emailVerificationToken())) {
+    boolean emailVerification = hasText(request.email())
+        && hasText(request.emailVerificationToken())
+        && !hasText(request.phone())
+        && !hasText(request.tokenId())
+        && !hasText(request.rawToken());
+    boolean phoneVerification = hasText(request.phone())
+        && hasText(request.tokenId())
+        && hasText(request.rawToken())
+        && !hasText(request.email())
+        && !hasText(request.emailVerificationToken());
+
+    if (emailVerification) {
       emailVerificationService.validateAndConsumeBorrowToken(
           request.email(), request.emailVerificationToken());
       return;
     }
 
-    if (hasText(request.email()) || hasText(request.emailVerificationToken())) {
-      throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    if (phoneVerification) {
+      publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(
+          request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
+      return;
     }
 
-    publicPhoneVerificationService.validateAndConsumePhoneVerificationToken(
-        request.tokenId(), request.rawToken(), PhoneVerificationPurpose.BORROW);
+    throw new ApplicationException(ErrorCode.INVALID_VALUE_EXCEPTION);
   }
 
   private String normalizeNullableEmail(String email) {

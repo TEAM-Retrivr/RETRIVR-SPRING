@@ -154,6 +154,8 @@ class PublicRentalServiceTest {
     when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
     when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
+    when(req.tokenId()).thenReturn("token-id");
+    when(req.rawToken()).thenReturn("raw-token");
 
     doThrow(new DomainException(ErrorCode.ILLEGAL_BORROWER_LABEL, "bad fields"))
         .when(item).validationItemBorrowerFieldsWith(anyMap());
@@ -173,7 +175,6 @@ class PublicRentalServiceTest {
     when(req.itemUnitId()).thenReturn(null);
     when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
     when(req.name()).thenReturn("tester");
-    when(req.phone()).thenReturn("010-0000-0000");
     when(req.email()).thenReturn(" Borrower@Example.COM ");
     when(req.emailVerificationToken()).thenReturn("bet_raw");
 
@@ -193,6 +194,7 @@ class PublicRentalServiceTest {
     verify(rentalRepository).saveAndFlush(rentalCaptor.capture());
     assertThat(rentalCaptor.getValue().getBorrower().getEmail())
         .isEqualTo("borrower@example.com");
+    assertThat(rentalCaptor.getValue().getBorrower().getPhone()).isNull();
   }
 
   @Test
@@ -207,6 +209,8 @@ class PublicRentalServiceTest {
     when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
     when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
+    when(req.tokenId()).thenReturn("token-id");
+    when(req.rawToken()).thenReturn("raw-token");
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
     ArgumentCaptor<Rental> rentalCaptor = ArgumentCaptor.forClass(Rental.class);
@@ -240,6 +244,8 @@ class PublicRentalServiceTest {
     when(req.renterFields()).thenReturn(Map.of("department", "engineering"));
     when(req.name()).thenReturn("tester");
     when(req.phone()).thenReturn("010-0000-0000");
+    when(req.tokenId()).thenReturn("token-id");
+    when(req.rawToken()).thenReturn("raw-token");
 
     doNothing().when(item).validationItemBorrowerFieldsWith(anyMap());
     doAnswer(inv -> {
