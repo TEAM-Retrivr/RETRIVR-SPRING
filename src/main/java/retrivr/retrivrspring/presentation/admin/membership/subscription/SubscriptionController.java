@@ -8,18 +8,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import retrivr.retrivrspring.application.service.admin.membership.subscription.SubscriptionService;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionPlanChangeRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionStartRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionCancelResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPlanChangeResponse;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPaymentPreviewResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionStartResponse;
 
 @RestController
@@ -29,6 +33,26 @@ import retrivr.retrivrspring.presentation.admin.membership.subscription.res.Subs
 public class SubscriptionController {
 
   private final SubscriptionService subscriptionService;
+
+  @GetMapping("/preview")
+  @Operation(
+      summary = "구독 결제 정보 미리보기",
+      description = """
+          조직의 현재 이용권 상태와 선택한 플랜을 기준으로 즉시 결제 정보와 다음 결제 정보를 조회합니다.
+          실제 구독 시작 시점에는 최신 상태를 기준으로 결제 정보가 다시 계산됩니다.
+          """
+  )
+  @ApiResponse(
+      responseCode = "200",
+      description = "구독 결제 정보 조회 성공",
+      content = @Content(schema = @Schema(implementation = SubscriptionPaymentPreviewResponse.class))
+  )
+  public SubscriptionPaymentPreviewResponse getSubscriptionPaymentPreview(
+      @Parameter(hidden = true) @AuthOrg AuthUser loginUser,
+      @RequestParam SubscriptionPlan plan
+  ) {
+    return subscriptionService.getSubscriptionPaymentPreview(loginUser.organizationId(), plan);
+  }
 
   @PostMapping
   @Operation(
