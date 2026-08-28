@@ -14,6 +14,7 @@ import retrivr.retrivrspring.domain.entity.membership.PaymentMethod;
 import retrivr.retrivrspring.domain.entity.membership.Subscription;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.MembershipPassStatus;
 import retrivr.retrivrspring.domain.entity.membership.enumerate.PaymentStatus;
+import retrivr.retrivrspring.domain.entity.membership.enumerate.SubscriptionPlan;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.repository.membership.pass.MembershipPassRepository;
 import retrivr.retrivrspring.domain.repository.membership.payment.PaymentMethodRepository;
@@ -26,6 +27,7 @@ import retrivr.retrivrspring.presentation.admin.membership.subscription.req.Subs
 import retrivr.retrivrspring.presentation.admin.membership.subscription.req.SubscriptionStartRequest;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionCancelResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPlanChangeResponse;
+import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionPaymentPreviewResponse;
 import retrivr.retrivrspring.presentation.admin.membership.subscription.res.SubscriptionStartResponse;
 
 @Service
@@ -41,6 +43,45 @@ public class SubscriptionService {
   private final MembershipPassService membershipPassService;
   private final PortOnePaymentService paymentService;
   private final PaymentMethodService paymentMethodService;
+
+  public SubscriptionPaymentPreviewResponse getSubscriptionPaymentPreview(
+      Long loginOrganizationId,
+      SubscriptionPlan requestedPlan
+  ) {
+    if (requestedPlan == null) {
+      throw new ApplicationException(ErrorCode.INVALID_SUBSCRIPTION_PLAN);
+    }
+
+    Organization organization = organizationRepository.findById(loginOrganizationId)
+        .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+
+    Subscription subscription = subscriptionRepository.findByOrganization(organization)
+        .filter(Subscription::isActive)
+        .orElse(null);
+
+    if (subscription != null) {
+      throw new ApplicationException(ErrorCode.ALREADY_SUBSCRIPTION_STARTED);
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    MembershipPass lastPass = membershipPassRepository
+        .findFirstByOrganizationAndStatusOrderBySequenceDesc(
+            organization,
+            MembershipPassStatus.REGISTERED
+        )
+        .orElseGet(() -> membershipPassRepository
+            .findFirstByOrganizationAndStatusOrderBySequenceAsc(
+                organization,
+                MembershipPassStatus.ACTIVE
+            )
+            .orElse(null));
+
+    if (lastPass != null && !lastPass.isOverDue(now)) {
+      return SubscriptionPaymentPreviewResponse.deferred(requestedPlan, lastPass.getEndAt());
+    }
+
+    return SubscriptionPaymentPreviewResponse.immediate(requestedPlan, now);
+  }
 
   @Transactional
   public SubscriptionStartResponse startSubscription(
@@ -104,8 +145,8 @@ public class SubscriptionService {
       }
       else {
         // 결제 예약
-        paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
         subscription.scheduleNextBillingAt(lastRegisteredPass.getEndAt());
+        paymentService.scheduleBillingPayment(subscription, subscription.getNextBillingAt());
         return new SubscriptionStartResponse(
             subscription.getId(),
             subscription.getPlan(),
