@@ -33,4 +33,12 @@ public class PhoneNumber {
   public boolean isValid() {
     return this.phone != null && this.phone.matches("^010\\d{8}$");
   }
+
+  public String formatted() {
+    return phone.substring(0, 3)
+        + "-"
+        + phone.substring(3, 7)
+        + "-"
+        + phone.substring(7);
+  }
 }
