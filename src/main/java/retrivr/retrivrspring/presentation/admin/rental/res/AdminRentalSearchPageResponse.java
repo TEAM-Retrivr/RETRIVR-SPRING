@@ -19,7 +19,7 @@ public record AdminRentalSearchPageResponse(
       return new RentalSearchSummary(
           rental.getId(),
           rental.getBorrower().getName(),
-          rental.getBorrower().getPhone() != null ? rental.getBorrower().getPhone().getPhone() : null,
+          rental.getBorrower().getContact(),
           rental.getItem().getName()
       );
     }

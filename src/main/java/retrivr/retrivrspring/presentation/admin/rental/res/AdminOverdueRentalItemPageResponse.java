@@ -39,7 +39,7 @@ public record AdminOverdueRentalItemPageResponse(
           itemUnit != null ? itemUnit.getId() : null,
           itemUnit != null ? itemUnit.getLabel() : null,
           borrower.getName(),
-          borrower.getPhoneNumber(),
+          borrower.getContact(),
           item.getRentalDuration(),
           rental.getDecidedAt().toLocalDate(),
           rental.getDueDate(),

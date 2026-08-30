@@ -48,7 +48,7 @@ public record AdminRentalRequestPageResponse(
           item.getTotalQuantity(),
           item.getAvailableQuantity(),
           borrower.getName(),
-          borrower.getPhoneNumber(),
+          borrower.getContact(),
           item.getGuaranteedGoods(),
           rental.getRequestedAt()
       );

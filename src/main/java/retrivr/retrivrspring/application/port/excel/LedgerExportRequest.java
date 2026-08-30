@@ -35,7 +35,7 @@ public record LedgerExportRequest(
           rental.getItem().getName(),
           rental.getItemUnit() != null ? rental.getItemUnit().getLabel() : null,
           rental.getBorrower().getName(),
-          rental.getBorrower().getPhoneNumber(),
+          rental.getBorrower().getContact(),
           rental.getBorrower().getAllAdditionalInfo(),
           rental.getStatus().getKorean(),
           rental.getRequestedAt(),

@@ -104,4 +104,8 @@ public class Borrower extends BaseTimeEntity {
   public String getAllAdditionalInfo() {
     return additionalBorrowerInfo != null ? additionalBorrowerInfo.toString() : "";
   }
+
+  public String getContact() {
+    return getEmail() != null ? getEmail() : getPhoneNumber();
+  }
 }

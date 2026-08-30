@@ -156,7 +156,7 @@ public class PublicRentalService {
     }
 
     String borrowerName = rental.getBorrower().getName();
-    String contact = rental.getBorrower().getPhoneNumber();
+    String contact = rental.getBorrower().getContact();
     Map<String, String> borrowerField = new HashMap<>();
     if (rental.getBorrower().hasAdditionalInfo()) {
       borrowerField = objectMapper.convertValue(
