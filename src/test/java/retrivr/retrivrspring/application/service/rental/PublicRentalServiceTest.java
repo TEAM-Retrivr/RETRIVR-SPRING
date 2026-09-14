@@ -123,6 +123,24 @@ class PublicRentalServiceTest {
   }
 
   @Test
+  @DisplayName("deleted item is not rentable")
+  void requestRental_deletedItem() {
+    Item item = mock(Item.class);
+    when(item.isDeleted()).thenReturn(true);
+    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
+
+    assertThatThrownBy(() -> service().requestRental(10L, req))
+        .isInstanceOf(ApplicationException.class)
+        .extracting(e -> ((ApplicationException) e).getErrorCode())
+        .isEqualTo(ErrorCode.NOT_FOUND_ITEM);
+
+    verify(publicPhoneVerificationService, never())
+        .validateAndConsumePhoneVerificationToken(any(), any(), any());
+    verify(rentalRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("PR-02: 탈퇴한 단체의 물건에는 대여를 요청할 수 없고 인증 토큰도 소모되지 않는다")
   void requestRental_withdrawnOrg() {
     Organization org = mockOrg(1L);
@@ -299,7 +317,7 @@ class PublicRentalServiceTest {
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(borrower.getName()).thenReturn("tester");
-    when(borrower.getPhoneNumber()).thenReturn("01000000000");
+    when(borrower.getContact()).thenReturn("010-0000-0000");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(1L)).thenReturn(Optional.of(rental));
@@ -310,7 +328,7 @@ class PublicRentalServiceTest {
     assertThat(res.rentalDuration()).isEqualTo(3);
     assertThat(res.itemUnitLabel()).isNull();
     assertThat(res.borrowerName()).isEqualTo("tester");
-    assertThat(res.contact()).isEqualTo("01000000000");
+    assertThat(res.contact()).isEqualTo("010-0000-0000");
     assertThat(res.guaranteedGoods()).isEqualTo("student-id");
     assertThat(res.borrowerField()).containsEntry("department", "engineering");
     assertThat(res.requestNote()).isEqualTo("need charger");
@@ -348,7 +366,7 @@ class PublicRentalServiceTest {
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(borrower.getName()).thenReturn("kim");
-    when(borrower.getPhoneNumber()).thenReturn("01012345678");
+    when(borrower.getContact()).thenReturn("010-1234-5678");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(2L)).thenReturn(Optional.of(rental));
@@ -359,7 +377,7 @@ class PublicRentalServiceTest {
     assertThat(res.rentalDuration()).isEqualTo(7);
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
     assertThat(res.borrowerName()).isEqualTo("kim");
-    assertThat(res.contact()).isEqualTo("01012345678");
+    assertThat(res.contact()).isEqualTo("010-1234-5678");
     assertThat(res.guaranteedGoods()).isEqualTo("government-id");
     assertThat(res.borrowerField()).containsEntry("studentNo", "20251234");
     assertThat(res.requestNote()).isEqualTo("need adapter too");

@@ -17,17 +17,22 @@ import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.AdminCodeVerificationPurpose;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.AdminItemActivationUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemActivationUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDeleteResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
@@ -47,6 +52,7 @@ public class AdminItemService {
     private final ItemRepository itemRepository;
     private final ItemBorrowerFieldRepository itemBorrowerFieldRepository;
     private final ItemUnitRepository itemUnitRepository;
+    private final RentalRepository rentalRepository;
     private final AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
     private final PublicIdGenerator publicIdGenerator;
     private final AdminCodeVerificationService adminCodeVerificationService;
@@ -75,8 +81,9 @@ public class AdminItemService {
         Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+        assertNotDeleted(item);
 
-        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(itemId);
+        List<ItemUnit> itemUnits = findActiveItemUnits(itemId);
         return AdminItemDetailResponse.from(item, item.getItemBorrowerFields(), itemUnits);
     }
 
@@ -108,8 +115,12 @@ public class AdminItemService {
         Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+        assertNotDeleted(item);
 
-        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId());
+        List<ItemUnit> allItemUnits = itemUnitRepository.findAllByItemId(item.getId());
+        List<ItemUnit> currentItemUnits = allItemUnits.stream()
+            .filter(itemUnit -> !itemUnit.isDeleted())
+            .toList();
         ItemManagementType previousItemManagementType = item.getItemManagementType();
         Integer previousTotalQuantity = item.getTotalQuantity();
         AdminItemUnitChangeSet requestedUnitChangeSet = adminItemUnitChangeClassifier.classify(
@@ -125,6 +136,7 @@ public class AdminItemService {
                 requestedUnitChangeSet.createLabels(),
                 requestedUnitChangeSet.renameCommands()
         );
+        validateNoDeletedItemUnitLabelReuse(allItemUnits, unitChangeSet);
         item.validateUnitChangesForTargetType(
                 request.itemManagementType(),
                 unitChangeSet.createLabels().size(),
@@ -137,10 +149,6 @@ public class AdminItemService {
                 unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
                 unitChangeSet.renameCommands().stream().map(command -> command.label()).toList()
         );
-        if (!deletedItemUnits.isEmpty()) {
-            itemUnitRepository.deleteAll(deletedItemUnits);
-        }
-
         item.overwriteAdmin(
                 request.name(),
                 request.description(),
@@ -157,9 +165,24 @@ public class AdminItemService {
         item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
                 currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
 
+        List<ItemUnit> hardDeletedItemUnits = new ArrayList<>();
+        List<ItemUnit> softDeletedItemUnits = new ArrayList<>();
+        for (ItemUnit deletedItemUnit : deletedItemUnits) {
+            if (rentalRepository.existsByRentalItemUnits_ItemUnit_Id(deletedItemUnit.getId())) {
+                softDeletedItemUnits.add(deletedItemUnit);
+            } else {
+                hardDeletedItemUnits.add(deletedItemUnit);
+            }
+        }
+
+        softDeletedItemUnits.forEach(ItemUnit::delete);
+        if (!hardDeletedItemUnits.isEmpty()) {
+            itemUnitRepository.deleteAll(hardDeletedItemUnits);
+        }
+
         itemBorrowerFieldRepository.deleteByItem(item);
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
-        List<ItemUnit> itemUnits = itemUnitRepository.findAllByItemId(item.getId());
+        List<ItemUnit> itemUnits = findActiveItemUnits(item.getId());
 
         return AdminItemUpdateResponse.from(item, borrowerFields, itemUnits);
     }
@@ -171,10 +194,12 @@ public class AdminItemService {
 
         Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+        assertNotDeleted(item);
 
         ItemUnit itemUnit = itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId,
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
+        assertNotDeleted(itemUnit);
 
         boolean wasAvailable = itemUnit.getStatus() == ItemUnitStatus.AVAILABLE;
         itemUnit.changeAvailability(request.isAvailable());
@@ -186,6 +211,74 @@ public class AdminItemService {
         }
 
         return AdminItemUnitMutationResponse.from(item, itemUnit);
+    }
+
+    @Transactional
+    public AdminItemActivationUpdateResponse updateActivation(Long organizationId, Long itemId,
+        AdminItemActivationUpdateRequest request) {
+        Item item = getNotDeletedItem(organizationId, itemId);
+        if (request.isActive()) {
+            item.activate();
+        } else {
+            item.deactivate();
+        }
+        return AdminItemActivationUpdateResponse.from(item);
+    }
+
+    @Transactional
+    public AdminItemDeleteResponse deleteItem(Long organizationId, Long itemId) {
+        Item item = getNotDeletedItem(organizationId, itemId);
+        if (rentalRepository.existsByRentalItems_Item_IdAndStatusIn(
+            itemId, List.of(RentalStatus.REQUESTED, RentalStatus.RENTED))) {
+            throw new ApplicationException(ErrorCode.ITEM_DELETE_WITH_ACTIVE_RENTAL);
+        }
+        item.delete();
+        return AdminItemDeleteResponse.from(item);
+    }
+
+    private Item getNotDeletedItem(Long organizationId, Long itemId) {
+        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+            .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+        assertNotDeleted(item);
+        return item;
+    }
+
+    private void assertNotDeleted(Item item) {
+        if (item.isDeleted()) {
+            throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM);
+        }
+    }
+
+    private void assertNotDeleted(ItemUnit itemUnit) {
+        if (itemUnit.isDeleted()) {
+            throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
+        }
+    }
+
+    private List<ItemUnit> findActiveItemUnits(Long itemId) {
+        return itemUnitRepository.findAllByItemId(itemId).stream()
+            .filter(itemUnit -> !itemUnit.isDeleted())
+            .toList();
+    }
+
+    private void validateNoDeletedItemUnitLabelReuse(
+        List<ItemUnit> allItemUnits,
+        AdminItemUnitChangeSet unitChangeSet
+    ) {
+        List<String> deletedLabels = allItemUnits.stream()
+            .filter(ItemUnit::isDeleted)
+            .map(ItemUnit::getLabel)
+            .toList();
+
+        boolean reusesDeletedLabel = unitChangeSet.createLabels().stream()
+            .anyMatch(deletedLabels::contains)
+            || unitChangeSet.renameCommands().stream()
+            .map(command -> command.label())
+            .anyMatch(deletedLabels::contains);
+
+        if (reusesDeletedLabel) {
+            throw new ApplicationException(ErrorCode.DELETED_ITEM_UNIT_LABEL);
+        }
     }
 
     private List<ItemBorrowerField> createBorrowerFields(

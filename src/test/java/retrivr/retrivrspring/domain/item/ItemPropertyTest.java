@@ -43,6 +43,45 @@ class ItemPropertyTest extends ItemTestFixture {
   }
 
   @Nested
+  @DisplayName("activation and deletion")
+  class ActivationAndDeletionTest {
+
+    @Test
+    void deactivationStopsNewRentalsAndActivationRestoresAvailability() {
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
+
+      item.deactivate();
+      assertThat(item.isRentalAble()).isFalse();
+
+      item.activate();
+      assertThat(item.isRentalAble()).isTrue();
+    }
+
+    @Test
+    void deletionDeactivatesItemAndRecordsDeletionTime() {
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
+
+      item.delete();
+
+      assertThat(item.isDeleted()).isTrue();
+      assertThat(item.getDeletedAt()).isNotNull();
+      assertThat(item.isActive()).isFalse();
+      assertThat(item.isRentalAble()).isFalse();
+    }
+
+    @Test
+    void deletedItemCannotBeReactivated() {
+      Item item = createItem(1L, ItemManagementType.NON_UNIT, true, 10, 3);
+      item.delete();
+
+      assertThatThrownBy(item::activate)
+          .isInstanceOf(DomainException.class)
+          .extracting("errorCode")
+          .isEqualTo(ErrorCode.ALREADY_DELETE_EXCEPTION);
+    }
+  }
+
+  @Nested
   @DisplayName("isUnitType")
   class IsUnitTypeTest {
 

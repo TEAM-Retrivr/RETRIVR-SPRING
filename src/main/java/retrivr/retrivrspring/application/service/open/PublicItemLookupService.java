@@ -72,6 +72,9 @@ public class PublicItemLookupService {
   public PublicItemDetailResponse publicOrganizationItemLookup(Long itemId) {
     Item item = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+    if (item.isDeleted()) {
+      throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM);
+    }
     item.getOrganization().assertOperating();
 
     List<BorrowerRequirement> borrowerRequirements = item.getItemBorrowerFields().stream()
@@ -83,7 +86,9 @@ public class PublicItemLookupService {
           List.of(), borrowerRequirements, item.getItemManagementType(), membershipLevel);
     }
 
-    List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId);
+    List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId).stream()
+        .filter(itemUnit -> !itemUnit.isDeleted())
+        .toList();
 
     List<PublicItemUnitSummary> list = allByItemId.stream()
         .map(PublicItemUnitSummary::from)

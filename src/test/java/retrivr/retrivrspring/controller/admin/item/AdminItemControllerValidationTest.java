@@ -110,4 +110,20 @@ class AdminItemControllerValidationTest {
             .content(requestBody))
         .andExpect(status().isBadRequest());
   }
+
+  @Test
+  void updateActivation_nullIsActive_returns400() throws Exception {
+    String requestBody = """
+        {
+          "isActive": null
+        }
+        """;
+
+    mockMvc.perform(patch("/api/admin/v1/items/{itemId}/activation", 1L)
+            .contentType(APPLICATION_JSON)
+            .content(requestBody))
+        .andExpect(status().isBadRequest());
+
+    then(adminItemService).should(never()).updateActivation(anyLong(), anyLong(), any());
+  }
 }
