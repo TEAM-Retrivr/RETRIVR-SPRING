@@ -50,6 +50,34 @@ class ItemUnitPropertyTest extends ItemUnitTestFixture {
   }
 
   @Nested
+  @DisplayName("logical deletion")
+  class LogicalDeletionTest {
+
+    @Test
+    void deletedUnitIsNotRentableAndKeepsItsRow() {
+      Item item = createItem(1L);
+      ItemUnit itemUnit = createItemUnit(10L, item, ItemUnitStatus.AVAILABLE);
+
+      itemUnit.delete();
+
+      assertThat(itemUnit.isDeleted()).isTrue();
+      assertThat(itemUnit.getDeletedAt()).isNotNull();
+      assertThat(itemUnit.isRentalAble()).isFalse();
+    }
+
+    @Test
+    void rentedUnitCannotBeDeleted() {
+      Item item = createItem(1L);
+      ItemUnit itemUnit = createItemUnit(10L, item, ItemUnitStatus.RENTED);
+
+      assertThatThrownBy(itemUnit::delete)
+          .isInstanceOf(DomainException.class)
+          .extracting("errorCode")
+          .isEqualTo(ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL);
+    }
+  }
+
+  @Nested
   @DisplayName("isBelongTo")
   class BelongsToTest {
 

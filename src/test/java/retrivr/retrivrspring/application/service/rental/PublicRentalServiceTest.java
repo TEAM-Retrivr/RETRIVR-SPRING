@@ -123,6 +123,24 @@ class PublicRentalServiceTest {
   }
 
   @Test
+  @DisplayName("deleted item is not rentable")
+  void requestRental_deletedItem() {
+    Item item = mock(Item.class);
+    when(item.isDeleted()).thenReturn(true);
+    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
+
+    assertThatThrownBy(() -> service().requestRental(10L, req))
+        .isInstanceOf(ApplicationException.class)
+        .extracting(e -> ((ApplicationException) e).getErrorCode())
+        .isEqualTo(ErrorCode.NOT_FOUND_ITEM);
+
+    verify(publicPhoneVerificationService, never())
+        .validateAndConsumePhoneVerificationToken(any(), any(), any());
+    verify(rentalRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("PR-02: 탈퇴한 단체의 물건에는 대여를 요청할 수 없고 인증 토큰도 소모되지 않는다")
   void requestRental_withdrawnOrg() {
     Organization org = mockOrg(1L);
