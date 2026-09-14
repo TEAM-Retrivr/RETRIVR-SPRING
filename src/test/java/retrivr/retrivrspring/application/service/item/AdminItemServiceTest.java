@@ -27,16 +27,23 @@ import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.organization.enumerate.OrganizationStatus;
+import retrivr.retrivrspring.domain.entity.rental.enumerate.RentalStatus;
 import retrivr.retrivrspring.domain.repository.item.ItemBorrowerFieldRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemRepository;
 import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
+import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
+import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.AdminItemActivationUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitChangeRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.BorrowerRequirementRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemActivationUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDeleteResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
@@ -49,6 +56,7 @@ class AdminItemServiceTest {
   @Mock private ItemRepository itemRepository;
   @Mock private ItemBorrowerFieldRepository itemBorrowerFieldRepository;
   @Mock private ItemUnitRepository itemUnitRepository;
+  @Mock private RentalRepository rentalRepository;
   @Mock private AdminItemUnitChangeClassifier adminItemUnitChangeClassifier;
   @Mock private PublicIdGenerator publicIdGenerator;
   @Mock private AdminCodeVerificationService adminCodeVerificationService;
@@ -57,6 +65,42 @@ class AdminItemServiceTest {
   private AdminItemService adminItemService;
 
   private final AdminItemUnitChangeClassifier realClassifier = new AdminItemUnitChangeClassifier();
+
+  @Test
+  void updateActivation_changesOnlyActivationState() {
+    Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
+    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+
+    AdminItemActivationUpdateResponse response = adminItemService.updateActivation(
+        1L, 1L, new AdminItemActivationUpdateRequest(false));
+
+    assertThat(response.isActive()).isFalse();
+  }
+
+  @Test
+  void deleteItem_recordsSoftDeletionWhenNoActiveRentalExists() {
+    Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
+    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+
+    AdminItemDeleteResponse response = adminItemService.deleteItem(1L, 1L);
+
+    assertThat(response.itemId()).isEqualTo(1L);
+    assertThat(response.deletedAt()).isNotNull();
+    assertThat(item.isActive()).isFalse();
+  }
+
+  @Test
+  void deleteItem_rejectsWhenRequestedOrRentedRentalExists() {
+    Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
+    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(rentalRepository.existsByRentalItems_Item_IdAndStatusIn(
+        1L, List.of(RentalStatus.REQUESTED, RentalStatus.RENTED))).thenReturn(true);
+
+    assertThatThrownBy(() -> adminItemService.deleteItem(1L, 1L))
+        .isInstanceOf(ApplicationException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.ITEM_DELETE_WITH_ACTIVE_RENTAL);
+  }
 
   @Test
   @DisplayName("getItems returns desc cursor page")
@@ -162,8 +206,8 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem deletes requested unit by label")
-  void updateItem_deleteRequestedUnitByLabel() {
+  @DisplayName("updateItem logically deletes a unit with rental history")
+  void updateItem_logicallyDeletesUnitWithRentalHistory() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -177,17 +221,50 @@ class AdminItemServiceTest {
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit));
+    when(rentalRepository.existsByRentalItemUnits_ItemUnit_Id(201L)).thenReturn(true);
 
     AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange("unit-a", null)));
     stubUnitChangeClassification(List.of(firstUnit, lastUnit), request);
 
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit), List.of(lastUnit));
+    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(
+        List.of(firstUnit, lastUnit), List.of(firstUnit, lastUnit));
 
     AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
 
     assertThat(response.itemUnits()).hasSize(1);
     assertThat(response.itemUnits().get(0).label()).isEqualTo("unit-b");
+    assertThat(firstUnit.isDeleted()).isTrue();
+    assertThat(response.deletedItemUnits()).singleElement()
+        .extracting("deletionType")
+        .isEqualTo(
+            retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitDeletionResult.ItemUnitDeletionType.SOFT_DELETE);
+  }
+
+  @Test
+  void updateItem_rejectsReuseOfLogicallyDeletedUnitLabel() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 1, 0);
+    ItemUnit deletedUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
+    deletedUnit.delete();
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(deletedUnit));
+
+    AdminItemUpdateRequest request = updateRequest(
+        1, ItemManagementType.UNIT, List.of(unitChange(null, "unit-a")));
+    stubUnitChangeClassification(List.of(), request);
+
+    assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
+        .isInstanceOf(ApplicationException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DELETED_ITEM_UNIT_LABEL);
   }
 
   @Test
@@ -230,8 +307,8 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem converts unit item to non-unit by deleting all existing units")
-  void updateItem_convertUnitToNonUnit_deletesAllUnits() {
+  @DisplayName("updateItem converts unit item to non-unit by physically deleting units without rental history")
+  void updateItem_convertUnitToNonUnit_physicallyDeletesUnusedUnits() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -256,6 +333,9 @@ class AdminItemServiceTest {
 
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.NON_UNIT);
     assertThat(response.itemUnits()).isEmpty();
+    assertThat(response.deletedItemUnits()).allSatisfy(result ->
+        assertThat(result.deletionType()).isEqualTo(
+            retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitDeletionResult.ItemUnitDeletionType.HARD_DELETE));
     verify(itemUnitRepository).deleteAll(List.of(firstUnit, secondUnit));
   }
 

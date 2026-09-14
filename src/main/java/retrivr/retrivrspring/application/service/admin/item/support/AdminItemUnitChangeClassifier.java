@@ -51,8 +51,7 @@ public class AdminItemUnitChangeClassifier {
             }
 
             if (!seenLabels.add(currentLabel)) {
-                throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Duplicated item unit label in update request.");
+                throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
             }
 
             ItemUnit targetItemUnit = currentUnitMap.get(currentLabel);
@@ -95,8 +94,7 @@ public class AdminItemUnitChangeClassifier {
             String label
     ) {
         if (currentUnitMap.containsKey(label) || createLabels.contains(label)) {
-            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                    "Duplicated item unit label.");
+            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
         }
     }
 
@@ -114,8 +112,7 @@ public class AdminItemUnitChangeClassifier {
                 .anyMatch(command -> newLabel.equals(command.label()));
 
         if (!ownedBySameUnit && (currentOwner != null || duplicatedCreateLabel || duplicatedRenameLabel)) {
-            throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                    "Duplicated item unit label.");
+            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
         }
     }
 

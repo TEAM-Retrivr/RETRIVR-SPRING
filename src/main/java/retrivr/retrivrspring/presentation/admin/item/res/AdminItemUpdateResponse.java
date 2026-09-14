@@ -51,13 +51,17 @@ public record AdminItemUpdateResponse(
     List<AdminItemUnitResponse> itemUnits,
 
     @Schema(description = "대여자 입력 요구 정보 목록")
-    List<BorrowerRequirementResponse> borrowerRequirements
+    List<BorrowerRequirementResponse> borrowerRequirements,
+
+    @Schema(description = "이번 수정에서 제거된 고유번호와 삭제 방식")
+    List<AdminItemUnitDeletionResult> deletedItemUnits
 ) {
 
   public static AdminItemUpdateResponse from(
       Item item,
       List<ItemBorrowerField> borrowerFields,
-      List<ItemUnit> itemUnits
+      List<ItemUnit> itemUnits,
+      List<AdminItemUnitDeletionResult> deletedItemUnits
   ) {
     return new AdminItemUpdateResponse(
         item.getId(),
@@ -73,7 +77,8 @@ public record AdminItemUpdateResponse(
             .toList(),
         borrowerFields.stream()
             .map(BorrowerRequirementResponse::from)
-            .toList()
+            .toList(),
+        deletedItemUnits
     );
   }
 }

@@ -2,6 +2,7 @@ package retrivr.retrivrspring.domain.repository.rental;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -57,6 +58,11 @@ public interface RentalRepository
 
     // 전체 REQUESTED 개수
     int countByOrganization_IdAndStatus(Long organizationId, RentalStatus status);
+
+    boolean existsByRentalItems_Item_IdAndStatusIn(Long itemId,
+        Collection<RentalStatus> statuses);
+
+    boolean existsByRentalItemUnits_ItemUnit_Id(Long itemUnitId);
 
     // 최신 2건 Projection
     @Query("""
