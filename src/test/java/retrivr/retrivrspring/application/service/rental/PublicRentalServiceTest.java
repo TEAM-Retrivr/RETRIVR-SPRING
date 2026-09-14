@@ -317,7 +317,7 @@ class PublicRentalServiceTest {
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(borrower.getName()).thenReturn("tester");
-    when(borrower.getPhoneNumber()).thenReturn("01000000000");
+    when(borrower.getContact()).thenReturn("010-0000-0000");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(1L)).thenReturn(Optional.of(rental));
@@ -328,7 +328,7 @@ class PublicRentalServiceTest {
     assertThat(res.rentalDuration()).isEqualTo(3);
     assertThat(res.itemUnitLabel()).isNull();
     assertThat(res.borrowerName()).isEqualTo("tester");
-    assertThat(res.contact()).isEqualTo("01000000000");
+    assertThat(res.contact()).isEqualTo("010-0000-0000");
     assertThat(res.guaranteedGoods()).isEqualTo("student-id");
     assertThat(res.borrowerField()).containsEntry("department", "engineering");
     assertThat(res.requestNote()).isEqualTo("need charger");
@@ -366,7 +366,7 @@ class PublicRentalServiceTest {
     when(borrower.getAdditionalBorrowerInfo()).thenReturn(info);
     when(borrower.hasAdditionalInfo()).thenReturn(true);
     when(borrower.getName()).thenReturn("kim");
-    when(borrower.getPhoneNumber()).thenReturn("01012345678");
+    when(borrower.getContact()).thenReturn("010-1234-5678");
     when(rental.getBorrower()).thenReturn(borrower);
 
     when(rentalRepository.findById(2L)).thenReturn(Optional.of(rental));
@@ -377,7 +377,7 @@ class PublicRentalServiceTest {
     assertThat(res.rentalDuration()).isEqualTo(7);
     assertThat(res.itemUnitLabel()).isEqualTo("unit-001");
     assertThat(res.borrowerName()).isEqualTo("kim");
-    assertThat(res.contact()).isEqualTo("01012345678");
+    assertThat(res.contact()).isEqualTo("010-1234-5678");
     assertThat(res.guaranteedGoods()).isEqualTo("government-id");
     assertThat(res.borrowerField()).containsEntry("studentNo", "20251234");
     assertThat(res.requestNote()).isEqualTo("need adapter too");
