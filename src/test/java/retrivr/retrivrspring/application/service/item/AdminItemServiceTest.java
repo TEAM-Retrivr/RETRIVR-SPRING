@@ -235,10 +235,6 @@ class AdminItemServiceTest {
     assertThat(response.itemUnits()).hasSize(1);
     assertThat(response.itemUnits().get(0).label()).isEqualTo("unit-b");
     assertThat(firstUnit.isDeleted()).isTrue();
-    assertThat(response.deletedItemUnits()).singleElement()
-        .extracting("deletionType")
-        .isEqualTo(
-            retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitDeletionResult.ItemUnitDeletionType.SOFT_DELETE);
   }
 
   @Test
@@ -333,9 +329,6 @@ class AdminItemServiceTest {
 
     assertThat(response.itemManagementType()).isEqualTo(ItemManagementType.NON_UNIT);
     assertThat(response.itemUnits()).isEmpty();
-    assertThat(response.deletedItemUnits()).allSatisfy(result ->
-        assertThat(result.deletionType()).isEqualTo(
-            retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitDeletionResult.ItemUnitDeletionType.HARD_DELETE));
     verify(itemUnitRepository).deleteAll(List.of(firstUnit, secondUnit));
   }
 

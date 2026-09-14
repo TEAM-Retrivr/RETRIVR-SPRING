@@ -37,7 +37,6 @@ import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemListResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
-import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitDeletionResult;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUpdateResponse;
 
 import java.util.ArrayList;
@@ -185,13 +184,7 @@ public class AdminItemService {
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(item, requirements);
         List<ItemUnit> itemUnits = findActiveItemUnits(item.getId());
 
-        List<AdminItemUnitDeletionResult> deletionResults = new ArrayList<>();
-        hardDeletedItemUnits.forEach(
-            itemUnit -> deletionResults.add(AdminItemUnitDeletionResult.hardDelete(itemUnit)));
-        softDeletedItemUnits.forEach(
-            itemUnit -> deletionResults.add(AdminItemUnitDeletionResult.softDelete(itemUnit)));
-
-        return AdminItemUpdateResponse.from(item, borrowerFields, itemUnits, deletionResults);
+        return AdminItemUpdateResponse.from(item, borrowerFields, itemUnits);
     }
 
 
