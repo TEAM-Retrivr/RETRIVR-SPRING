@@ -10,6 +10,7 @@ import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,9 @@ public class Item extends BaseTimeEntity {
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
 
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
   @Builder.Default
   @OneToMany(mappedBy = "item", fetch = FetchType.LAZY)
   private List<ItemUnit> itemUnits = new ArrayList<>();
@@ -74,7 +78,29 @@ public class Item extends BaseTimeEntity {
    * 비활성 상태가 아니고, 대여 가능 수량이 1개 이상이어야 한다.
    */
   public boolean isRentalAble() {
-    return this.isActive && this.availableQuantity > 0;
+    return !isDeleted() && this.isActive && this.availableQuantity > 0;
+  }
+
+  public boolean isDeleted() {
+    return this.deletedAt != null;
+  }
+
+  public void activate() {
+    validateNotDeleted();
+    this.isActive = true;
+  }
+
+  public void deactivate() {
+    validateNotDeleted();
+    this.isActive = false;
+  }
+
+  public void delete() {
+    if (isDeleted()) {
+      throw new DomainException(ErrorCode.ALREADY_DELETE_EXCEPTION);
+    }
+    this.isActive = false;
+    this.deletedAt = LocalDateTime.now();
   }
 
   /**
@@ -314,10 +340,17 @@ public class Item extends BaseTimeEntity {
     return value == null || value.isBlank();
   }
 
+  private void validateNotDeleted() {
+    if (isDeleted()) {
+      throw new DomainException(ErrorCode.ALREADY_DELETE_EXCEPTION);
+    }
+  }
+
 
   public void overwriteAdmin(String name, String description, Integer rentalDuration,
       Integer totalQuantity, ItemManagementType itemManagementType,
       Boolean useMessageAlarmService, String guaranteedGoods, Boolean isActive) {
+    validateNotDeleted();
     this.name = name;
     this.description = description;
     this.rentalDuration = rentalDuration;
@@ -356,10 +389,7 @@ public class Item extends BaseTimeEntity {
     Set<String> seenLabels = new HashSet<>();
     for (String unitLabel : unitLabels) {
       if (!seenLabels.add(unitLabel)) {
-        throw new DomainException(
-            ErrorCode.BAD_REQUEST_EXCEPTION,
-            "Duplicated item unit label."
-        );
+        throw new DomainException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
       }
       createdItemUnits.add(createUnit(unitLabel));
     }

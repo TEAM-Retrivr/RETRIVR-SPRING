@@ -23,6 +23,7 @@ public class ItemLookupRepositoryImpl implements ItemLookupRepository {
         .selectFrom(item)
         .where(
             item.organization.id.eq(organizationId),
+            item.deletedAt.isNull(),
             cursorLt(item, cursor)
         )
         .orderBy(item.id.desc())

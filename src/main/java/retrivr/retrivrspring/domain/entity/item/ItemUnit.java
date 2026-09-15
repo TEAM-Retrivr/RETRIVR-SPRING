@@ -7,6 +7,8 @@ import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
+import java.time.LocalDateTime;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -33,13 +35,25 @@ public class ItemUnit extends BaseTimeEntity {
   @Column(nullable = false, length = 20)
   private ItemUnitStatus status;
 
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
   /**
    * 현재 유닛이 대여 가능한 상태인지 확인한다.
    * AVAILABLE 상태일 때만 새 대여 요청을 받을 수 있다.
    */
   public boolean isRentalAble() {
     validateStatusExists();
-    return this.status == ItemUnitStatus.AVAILABLE;
+    return !isDeleted() && this.status == ItemUnitStatus.AVAILABLE;
+  }
+
+  public boolean isDeleted() {
+    return this.deletedAt != null;
+  }
+
+  public void delete() {
+    validateDeletable();
+    this.deletedAt = LocalDateTime.now();
   }
 
   /**
@@ -186,8 +200,7 @@ public class ItemUnit extends BaseTimeEntity {
 
     if (this.status == ItemUnitStatus.RENTED || this.status == ItemUnitStatus.RENTAL_PENDING) {
       throw new DomainException(
-          ErrorCode.BAD_REQUEST_EXCEPTION,
-          "대여 중이거나 대여 요청 중인 유닛은 삭제할 수 없습니다."
+          ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL
       );
     }
   }

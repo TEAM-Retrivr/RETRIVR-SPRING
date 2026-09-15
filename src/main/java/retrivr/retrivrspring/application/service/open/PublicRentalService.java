@@ -61,6 +61,9 @@ public class PublicRentalService {
     // 1. 대여할 Item 조회
     Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
+    if (targetItem.isDeleted()) {
+      throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM);
+    }
 
     // 탈퇴/비활성 단체의 물건에는 신규 대여를 요청할 수 없다. (인증 토큰이 소모되기 전에 검증)
     targetItem.getOrganization().assertOperating();
@@ -72,6 +75,9 @@ public class PublicRentalService {
     if (request.itemUnitId() != null) {
       targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
           .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
+      if (targetItemUnit.isDeleted()) {
+        throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
+      }
     }
 
     // 3. itemBorrower Field 를 통해서 request.rentalFields를 검증

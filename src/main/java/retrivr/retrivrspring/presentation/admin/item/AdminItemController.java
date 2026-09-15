@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,9 +23,12 @@ import retrivr.retrivrspring.global.auth.AuthUser;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.global.swagger.annotation.ApiErrorCodeExamples;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
+import retrivr.retrivrspring.presentation.admin.item.req.AdminItemActivationUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUnitAvailabilityUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemUpdateRequest;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemCreateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemActivationUpdateResponse;
+import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDeleteResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemDetailResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.item.res.AdminItemUnitMutationResponse;
@@ -98,7 +102,10 @@ public class AdminItemController {
   @ApiErrorCodeExamples({
       ErrorCode.NOT_FOUND_ORGANIZATION,
       ErrorCode.NOT_FOUND_ITEM,
-      ErrorCode.BAD_REQUEST_EXCEPTION
+      ErrorCode.BAD_REQUEST_EXCEPTION,
+      ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL,
+      ErrorCode.DUPLICATE_ITEM_UNIT_LABEL,
+      ErrorCode.DELETED_ITEM_UNIT_LABEL
   })
   public AdminItemUpdateResponse updateItem(
       @PathVariable Long itemId,
@@ -107,6 +114,31 @@ public class AdminItemController {
   ) {
     Long organizationId = authUser.organizationId();
     return adminItemService.updateItem(organizationId, itemId, request);
+  }
+
+  @PatchMapping("/{itemId}/activation")
+  @Operation(summary = "물품 활성화 상태 변경")
+  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ITEM, ErrorCode.ALREADY_DELETE_EXCEPTION})
+  public AdminItemActivationUpdateResponse updateActivation(
+      @PathVariable Long itemId,
+      @Valid @RequestBody AdminItemActivationUpdateRequest request,
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser
+  ) {
+    return adminItemService.updateActivation(authUser.organizationId(), itemId, request);
+  }
+
+  @DeleteMapping("/{itemId}")
+  @Operation(summary = "물품 논리 삭제")
+  @ApiErrorCodeExamples({
+      ErrorCode.NOT_FOUND_ITEM,
+      ErrorCode.ALREADY_DELETE_EXCEPTION,
+      ErrorCode.ITEM_DELETE_WITH_ACTIVE_RENTAL
+  })
+  public AdminItemDeleteResponse deleteItem(
+      @PathVariable Long itemId,
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser
+  ) {
+    return adminItemService.deleteItem(authUser.organizationId(), itemId);
   }
 
   @PatchMapping("/{itemId}/units/{itemUnitId}/availability")
