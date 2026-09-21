@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "item_unit", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"item_id", "label"})
-})
+@Table(name = "item_unit")
 public class ItemUnit extends BaseTimeEntity {
 
   @Id
