@@ -205,10 +205,6 @@ public class ItemUnit extends BaseTimeEntity {
     }
   }
 
-  public boolean hasLabelIn(java.util.Set<String> labels) {
-    return this.label != null && labels.contains(this.label);
-  }
-
   public static ItemUnit create(Item item, String label) {
     if (item == null) {
       throw new DomainException(

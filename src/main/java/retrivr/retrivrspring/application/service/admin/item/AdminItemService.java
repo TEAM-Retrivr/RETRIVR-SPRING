@@ -117,8 +117,7 @@ public class AdminItemService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
-        List<ItemUnit> allItemUnits = itemUnitRepository.findAllByItemId(item.getId());
-        List<ItemUnit> currentItemUnits = allItemUnits.stream()
+        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId()).stream()
             .filter(itemUnit -> !itemUnit.isDeleted())
             .toList();
         ItemManagementType previousItemManagementType = item.getItemManagementType();
@@ -136,7 +135,6 @@ public class AdminItemService {
                 requestedUnitChangeSet.createLabels(),
                 requestedUnitChangeSet.renameCommands()
         );
-        validateNoDeletedItemUnitLabelReuse(allItemUnits, unitChangeSet);
         item.validateUnitChangesForTargetType(
                 request.itemManagementType(),
                 unitChangeSet.createLabels().size(),
@@ -146,9 +144,7 @@ public class AdminItemService {
 
         List<ItemUnit> deletedItemUnits = item.getDeletableUnits(
                 currentItemUnits,
-                unitChangeSet.deleteItemUnits().stream()
-                        .map(ItemUnit::getLabel)
-                        .toList()
+                unitChangeSet.deleteItemUnits()
         );
         item.renameUnits(
                 unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
@@ -264,26 +260,6 @@ public class AdminItemService {
         return itemUnitRepository.findAllByItemId(itemId).stream()
             .filter(itemUnit -> !itemUnit.isDeleted())
             .toList();
-    }
-
-    private void validateNoDeletedItemUnitLabelReuse(
-        List<ItemUnit> allItemUnits,
-        AdminItemUnitChangeSet unitChangeSet
-    ) {
-        List<String> deletedLabels = allItemUnits.stream()
-            .filter(ItemUnit::isDeleted)
-            .map(ItemUnit::getLabel)
-            .toList();
-
-        boolean reusesDeletedLabel = unitChangeSet.createLabels().stream()
-            .anyMatch(deletedLabels::contains)
-            || unitChangeSet.renameCommands().stream()
-            .map(command -> command.label())
-            .anyMatch(deletedLabels::contains);
-
-        if (reusesDeletedLabel) {
-            throw new ApplicationException(ErrorCode.DELETED_ITEM_UNIT_LABEL);
-        }
     }
 
     private List<ItemBorrowerField> createBorrowerFields(

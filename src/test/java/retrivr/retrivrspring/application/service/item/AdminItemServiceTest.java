@@ -238,7 +238,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  void updateItem_rejectsReuseOfLogicallyDeletedUnitLabel() {
+  void updateItem_allowsReuseOfLogicallyDeletedUnitLabel() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -247,20 +247,37 @@ class AdminItemServiceTest {
     setQuantities(item, 1, 0);
     ItemUnit deletedUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
     deletedUnit.delete();
+    List<ItemUnit> createdUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(deletedUnit));
+    when(itemUnitRepository.findAllByItemId(itemId))
+        .thenReturn(List.of(deletedUnit))
+        .thenAnswer(invocation -> {
+          List<ItemUnit> allUnits = new ArrayList<>();
+          allUnits.add(deletedUnit);
+          allUnits.addAll(createdUnits);
+          return allUnits;
+        });
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> units = invocation.getArgument(0);
+      ReflectionTestUtils.setField(units.getFirst(), "id", 301L);
+      createdUnits.addAll(units);
+      return units;
+    });
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     AdminItemUpdateRequest request = updateRequest(
         1, ItemManagementType.UNIT, List.of(unitChange(null, "unit-a")));
     stubUnitChangeClassification(List.of(), request);
 
-    assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
-        .isInstanceOf(ApplicationException.class)
-        .extracting("errorCode")
-        .isEqualTo(ErrorCode.DELETED_ITEM_UNIT_LABEL);
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).hasSize(1);
+    assertThat(response.itemUnits().getFirst().itemUnitId()).isEqualTo(301L);
+    assertThat(response.itemUnits().getFirst().label()).isEqualTo("unit-a");
+    assertThat(deletedUnit.isDeleted()).isTrue();
   }
 
   @Test

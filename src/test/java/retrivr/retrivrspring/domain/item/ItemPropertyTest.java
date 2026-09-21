@@ -3,11 +3,15 @@ package retrivr.retrivrspring.domain.item;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import retrivr.retrivrspring.domain.entity.item.Item;
+import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.item.enumerate.ItemManagementType;
+import retrivr.retrivrspring.domain.entity.item.enumerate.ItemUnitStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -110,6 +114,38 @@ class ItemPropertyTest extends ItemTestFixture {
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
           .isEqualTo(ErrorCode.INVALID_ITEM);
+    }
+  }
+
+  @Nested
+  @DisplayName("ItemUnit 변경")
+  class ItemUnitChangeTest {
+
+    @Test
+    @DisplayName("동일한 label을 가진 ItemUnit을 여러 개 생성할 수 있다")
+    void createsUnitsWithDuplicatedLabels() {
+      Item item = createItem(1L, ItemManagementType.UNIT, true, 2, 2);
+
+      List<ItemUnit> createdUnits = item.createUnits(List.of("same-label", "same-label"));
+
+      assertThat(createdUnits).hasSize(2);
+      assertThat(createdUnits).extracting("label")
+          .containsExactly("same-label", "same-label");
+    }
+
+    @Test
+    @DisplayName("동일한 label의 ItemUnit 중 요청한 ID만 삭제 대상으로 선택한다")
+    void resolvesDeletableUnitByItemUnitId() {
+      Item item = createItem(1L, ItemManagementType.UNIT, true, 2, 2);
+      ItemUnit firstUnit = createItemUnit(101L, item, ItemUnitStatus.AVAILABLE);
+      ItemUnit secondUnit = createItemUnit(102L, item, ItemUnitStatus.AVAILABLE);
+      ReflectionTestUtils.setField(firstUnit, "label", "same-label");
+      ReflectionTestUtils.setField(secondUnit, "label", "same-label");
+
+      List<ItemUnit> deletableUnits =
+          item.getDeletableUnits(List.of(firstUnit, secondUnit), List.of(firstUnit));
+
+      assertThat(deletableUnits).containsExactly(firstUnit);
     }
   }
 }
