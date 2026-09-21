@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier;
 import retrivr.retrivrspring.application.service.admin.item.support.AdminItemUnitChangeClassifier.AdminItemUnitChangeSet;
@@ -17,6 +18,7 @@ class AdminItemUnitChangeClassifierTest {
   private final AdminItemUnitChangeClassifier classifier = new AdminItemUnitChangeClassifier();
 
   @Test
+  @DisplayName("itemUnitId로 이름 변경 대상을 찾는다")
   void classify_resolvesRenameTargetByItemUnitId() {
     ItemUnit firstUnit = itemUnit(101L, "unit-a");
     ItemUnit secondUnit = itemUnit(102L, "unit-b");
@@ -32,6 +34,7 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  @DisplayName("label이 같아도 itemUnitId로 삭제 대상을 구분한다")
   void classify_resolvesDeleteTargetByItemUnitIdWhenLabelsAreSame() {
     ItemUnit firstUnit = itemUnit(101L, "same-label");
     ItemUnit secondUnit = itemUnit(102L, "same-label");
@@ -45,6 +48,7 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  @DisplayName("label을 유닛 중복 식별자로 사용하지 않는다")
   void classify_doesNotUseLabelAsDuplicateIdentifier() {
     ItemUnit firstUnit = itemUnit(101L, "unit-a");
     ItemUnit secondUnit = itemUnit(102L, "same-label");
@@ -63,6 +67,7 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  @DisplayName("변경 요청에 동일한 itemUnitId가 중복되면 거부한다")
   void classify_rejectsDuplicatedItemUnitId() {
     ItemUnit itemUnit = itemUnit(101L, "unit-a");
 
@@ -79,6 +84,7 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  @DisplayName("공백 label을 삭제 요청으로 처리하지 않고 거부한다")
   void classify_rejectsBlankLabelInsteadOfTreatingItAsDelete() {
     ItemUnit itemUnit = itemUnit(101L, "unit-a");
 
@@ -92,6 +98,7 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  @DisplayName("현재 물품에 존재하지 않는 itemUnitId를 거부한다")
   void classify_rejectsUnknownItemUnitId() {
     ItemUnit itemUnit = itemUnit(101L, "unit-a");
 

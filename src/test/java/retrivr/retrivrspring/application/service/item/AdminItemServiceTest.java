@@ -2,6 +2,7 @@ package retrivr.retrivrspring.application.service.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -103,7 +104,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("getItems returns desc cursor page")
+  @DisplayName("물품 목록을 내림차순 커서 페이지로 조회한다")
   void getItems_returnsDescCursorPage() {
     Long organizationId = 1L;
     Item item13 = createItem(13L, "item13", ItemManagementType.UNIT);
@@ -120,7 +121,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("getItem returns item detail for edit page")
+  @DisplayName("수정 화면에 필요한 물품 상세 정보를 조회한다")
   void getItem_returnsDetail() {
     Long organizationId = 1L;
     Long itemId = 41L;
@@ -153,7 +154,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("createItem creates unit item with labels")
+  @DisplayName("UNIT 물품 생성 시 유닛 label을 함께 생성한다")
   void createItem_unitItem_withoutUnits() {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
@@ -181,7 +182,48 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem renames unit by itemUnitId")
+  @DisplayName("동일한 label의 유닛들을 서로 다른 ID로 생성한다")
+  void createItem_createsDuplicatedLabelsWithDistinctIds() {
+    Long organizationId = 1L;
+    Organization organization = createOrganization(organizationId);
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.saveAndFlush(any(Item.class))).thenAnswer(invocation -> {
+      Item saved = invocation.getArgument(0);
+      ReflectionTestUtils.setField(saved, "id", 12L);
+      return saved;
+    });
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> savedUnits = invocation.getArgument(0);
+      ReflectionTestUtils.setField(savedUnits.get(0), "id", 101L);
+      ReflectionTestUtils.setField(savedUnits.get(1), "id", 102L);
+      return savedUnits;
+    });
+    when(publicIdGenerator.generateItemId(any())).thenReturn("public-id");
+
+    AdminItemCreateResponse response = adminItemService.createItem(
+        organizationId,
+        new AdminItemCreateRequest(
+            "unit item",
+            "description",
+            7,
+            2,
+            ItemManagementType.UNIT,
+            false,
+            null,
+            List.of("same-label", "same-label"),
+            null
+        )
+    );
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(
+            tuple(101L, "same-label"),
+            tuple(102L, "same-label")
+        );
+  }
+
+  @Test
+  @DisplayName("itemUnitId로 유닛 이름을 변경한다")
   void updateItem_renameUnit() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -208,7 +250,115 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem logically deletes a unit with rental history")
+  @DisplayName("활성 유닛의 label이 같아도 요청한 ID의 유닛만 이름을 변경한다")
+  void updateItem_renamesOnlyRequestedUnitWhenLabelsAreSame() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 2, 2);
+    ItemUnit firstUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    ItemUnit secondUnit = createItemUnit(202L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(activeUnits);
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        2, ItemManagementType.UNIT, List.of(unitChange(201L, "renamed-unit")));
+    stubUnitChangeClassification(activeUnits, request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(
+            tuple(201L, "renamed-unit"),
+            tuple(202L, "same-label")
+        );
+  }
+
+  @Test
+  @DisplayName("활성 유닛의 label이 같아도 요청한 ID의 유닛만 삭제한다")
+  void updateItem_deletesOnlyRequestedUnitWhenLabelsAreSame() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 2, 2);
+    ItemUnit firstUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    ItemUnit secondUnit = createItemUnit(202L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(activeUnits)
+        .thenReturn(List.of(secondUnit));
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        1, ItemManagementType.UNIT, List.of(unitChange(201L, null)));
+    stubUnitChangeClassification(activeUnits, request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(tuple(202L, "same-label"));
+    verify(itemUnitRepository).deleteAll(List.of(firstUnit));
+    assertThat(item.getTotalQuantity()).isEqualTo(1);
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("유닛 삭제와 동일 label 재생성을 한 요청에서 처리하고 새 ID를 발급한다")
+  void updateItem_deletesAndRecreatesSameLabelWithNewId() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 1, 1);
+    ItemUnit existingUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> createdUnits = new ArrayList<>();
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit))
+        .thenAnswer(invocation -> new ArrayList<>(createdUnits));
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> units = invocation.getArgument(0);
+      ReflectionTestUtils.setField(units.getFirst(), "id", 301L);
+      createdUnits.addAll(units);
+      return units;
+    });
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        1,
+        ItemManagementType.UNIT,
+        List.of(unitChange(201L, null), unitChange(null, "same-label"))
+    );
+    stubUnitChangeClassification(List.of(existingUnit), request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(tuple(301L, "same-label"));
+    verify(itemUnitRepository).deleteAll(List.of(existingUnit));
+    assertThat(item.getTotalQuantity()).isEqualTo(1);
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("대여 이력이 있는 유닛을 논리 삭제한다")
   void updateItem_logicallyDeletesUnitWithRentalHistory() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -279,7 +429,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem converts non-unit item to unit item with new labels")
+  @DisplayName("NON_UNIT 물품을 새 유닛과 함께 UNIT 물품으로 전환한다")
   void updateItem_convertNonUnitToUnit() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -320,7 +470,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem converts unit item to non-unit by physically deleting units without rental history")
+  @DisplayName("대여 이력이 없는 유닛을 물리 삭제하며 UNIT 물품을 NON_UNIT으로 전환한다")
   void updateItem_convertUnitToNonUnit_physicallyDeletesUnusedUnits() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -350,7 +500,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem rejects duplicate itemUnitIds in change request")
+  @DisplayName("변경 요청에 동일한 itemUnitId가 중복되면 거부한다")
   void updateItem_rejectsDuplicatedItemUnitId() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -379,7 +529,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateUnitAvailability changes available unit to inactive")
+  @DisplayName("대여 가능한 유닛을 비활성 상태로 변경한다")
   void updateUnitAvailability_availableToInactive() {
     Long organizationId = 1L;
     Long itemId = 10L;
