@@ -180,7 +180,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem renames unit by label")
+  @DisplayName("updateItem renames unit by itemUnitId")
   void updateItem_renameUnit() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -196,7 +196,7 @@ class AdminItemServiceTest {
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
 
-    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange("unit-a", "renamed-unit")));
+    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, "renamed-unit")));
     stubUnitChangeClassification(List.of(existingUnit), request);
 
     AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
@@ -223,7 +223,7 @@ class AdminItemServiceTest {
     when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit));
     when(rentalRepository.existsByRentalItemUnits_ItemUnit_Id(201L)).thenReturn(true);
 
-    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange("unit-a", null)));
+    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, null)));
     stubUnitChangeClassification(List.of(firstUnit, lastUnit), request);
 
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -333,8 +333,8 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem rejects duplicate unit labels in change request")
-  void updateItem_rejectsDuplicatedUnitLabel() {
+  @DisplayName("updateItem rejects duplicate itemUnitIds in change request")
+  void updateItem_rejectsDuplicatedItemUnitId() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -351,10 +351,10 @@ class AdminItemServiceTest {
     AdminItemUpdateRequest request = updateRequest(
         1,
         ItemManagementType.UNIT,
-        List.of(unitChange("unit-a", null), unitChange("unit-a", "renamed-unit"))
+        List.of(unitChange(201L, null), unitChange(201L, "renamed-unit"))
     );
     when(adminItemUnitChangeClassifier.classify(eq(List.of(existingUnit)), eq(request.unitChanges())))
-        .thenThrow(new RuntimeException("Duplicated item unit label in update request."));
+        .thenThrow(new RuntimeException("Duplicated itemUnitId in update request."));
 
     assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
         .isInstanceOf(RuntimeException.class);
@@ -404,8 +404,8 @@ class AdminItemServiceTest {
     );
   }
 
-  private AdminItemUnitChangeRequest unitChange(String currentLabel, String label) {
-    return new AdminItemUnitChangeRequest(currentLabel, label);
+  private AdminItemUnitChangeRequest unitChange(Long itemUnitId, String label) {
+    return new AdminItemUnitChangeRequest(itemUnitId, label);
   }
 
   private void stubUnitChangeClassification(List<ItemUnit> currentItemUnits, AdminItemUpdateRequest request) {

@@ -104,6 +104,7 @@ public class AdminItemController {
       ErrorCode.NOT_FOUND_ITEM,
       ErrorCode.BAD_REQUEST_EXCEPTION,
       ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL,
+      ErrorCode.DUPLICATE_ITEM_UNIT_ID_IN_REQUEST,
       ErrorCode.DUPLICATE_ITEM_UNIT_LABEL,
       ErrorCode.DELETED_ITEM_UNIT_LABEL
   })
