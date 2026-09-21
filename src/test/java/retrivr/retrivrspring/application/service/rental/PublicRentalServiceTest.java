@@ -255,7 +255,8 @@ class PublicRentalServiceTest {
     ItemUnit unit = mockUnit(10L, 99L, true, "unit-99");
 
     when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
-    when(itemUnitRepository.findById(99L)).thenReturn(Optional.of(unit));
+    when(itemUnitRepository.findByIdAndItemIdAndDeletedAtIsNull(99L, item.getId()))
+        .thenReturn(Optional.of(unit));
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(99L);

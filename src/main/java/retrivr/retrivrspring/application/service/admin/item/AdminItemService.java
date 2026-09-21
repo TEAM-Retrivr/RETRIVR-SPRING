@@ -117,9 +117,8 @@ public class AdminItemService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
-        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemId(item.getId()).stream()
-            .filter(itemUnit -> !itemUnit.isDeleted())
-            .toList();
+        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(
+                item.getId());
         ItemManagementType previousItemManagementType = item.getItemManagementType();
         Integer previousTotalQuantity = item.getTotalQuantity();
         AdminItemUnitChangeSet requestedUnitChangeSet = adminItemUnitChangeClassifier.classify(
@@ -197,10 +196,10 @@ public class AdminItemService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
-        ItemUnit itemUnit = itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId,
-                        organizationId)
+        ItemUnit itemUnit = itemUnitRepository
+                .findByIdAndItemIdAndItemOrganizationIdAndDeletedAtIsNull(
+                        itemUnitId, itemId, organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
-        assertNotDeleted(itemUnit);
 
         boolean wasAvailable = itemUnit.getStatus() == ItemUnitStatus.AVAILABLE;
         itemUnit.changeAvailability(request.isAvailable());
@@ -250,16 +249,8 @@ public class AdminItemService {
         }
     }
 
-    private void assertNotDeleted(ItemUnit itemUnit) {
-        if (itemUnit.isDeleted()) {
-            throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
-        }
-    }
-
     private List<ItemUnit> findActiveItemUnits(Long itemId) {
-        return itemUnitRepository.findAllByItemId(itemId).stream()
-            .filter(itemUnit -> !itemUnit.isDeleted())
-            .toList();
+        return itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId);
     }
 
     private List<ItemBorrowerField> createBorrowerFields(

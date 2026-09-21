@@ -141,7 +141,8 @@ class AdminItemServiceTest {
 
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, secondUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(firstUnit, secondUnit));
 
     AdminItemDetailResponse response = adminItemService.getItem(organizationId, itemId);
 
@@ -194,7 +195,8 @@ class AdminItemServiceTest {
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit));
 
     AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, "renamed-unit")));
     stubUnitChangeClassification(List.of(existingUnit), request);
@@ -220,15 +222,16 @@ class AdminItemServiceTest {
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(firstUnit, lastUnit));
     when(rentalRepository.existsByRentalItemUnits_ItemUnit_Id(201L)).thenReturn(true);
 
     AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, null)));
     stubUnitChangeClassification(List.of(firstUnit, lastUnit), request);
 
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(
-        List.of(firstUnit, lastUnit), List.of(firstUnit, lastUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(
+        List.of(firstUnit, lastUnit), List.of(lastUnit));
 
     AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
 
@@ -252,14 +255,9 @@ class AdminItemServiceTest {
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId))
-        .thenReturn(List.of(deletedUnit))
-        .thenAnswer(invocation -> {
-          List<ItemUnit> allUnits = new ArrayList<>();
-          allUnits.add(deletedUnit);
-          allUnits.addAll(createdUnits);
-          return allUnits;
-        });
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of())
+        .thenAnswer(invocation -> new ArrayList<>(createdUnits));
     when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
       List<ItemUnit> units = invocation.getArgument(0);
       ReflectionTestUtils.setField(units.getFirst(), "id", 301L);
@@ -294,7 +292,9 @@ class AdminItemServiceTest {
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of()).thenAnswer(invocation -> new ArrayList<>(savedUnits));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of())
+        .thenAnswer(invocation -> new ArrayList<>(savedUnits));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
     when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
       List<ItemUnit> units = invocation.getArgument(0);
@@ -334,7 +334,7 @@ class AdminItemServiceTest {
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId))
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(firstUnit, secondUnit))
         .thenReturn(List.of());
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -363,7 +363,8 @@ class AdminItemServiceTest {
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit));
 
     AdminItemUpdateRequest request = updateRequest(
         1,
@@ -390,7 +391,8 @@ class AdminItemServiceTest {
     ItemUnit itemUnit = createItemUnit(itemUnitId, item, "NB-001", ItemUnitStatus.AVAILABLE);
 
     when(itemRepository.findByIdAndOrganization_Id(itemId, organizationId)).thenReturn(Optional.of(item));
-    when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId, organizationId))
+    when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationIdAndDeletedAtIsNull(
+        itemUnitId, itemId, organizationId))
         .thenReturn(Optional.of(itemUnit));
 
     AdminItemUnitMutationResponse response = adminItemService.updateUnitAvailability(

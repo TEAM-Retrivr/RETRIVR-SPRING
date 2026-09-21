@@ -73,11 +73,9 @@ public class PublicRentalService {
     // 2. ItemUnit 조회
     ItemUnit targetItemUnit = null;
     if (request.itemUnitId() != null) {
-      targetItemUnit = itemUnitRepository.findById(request.itemUnitId())
+      targetItemUnit = itemUnitRepository.findByIdAndItemIdAndDeletedAtIsNull(
+              request.itemUnitId(), targetItem.getId())
           .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
-      if (targetItemUnit.isDeleted()) {
-        throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
-      }
     }
 
     // 3. itemBorrower Field 를 통해서 request.rentalFields를 검증
