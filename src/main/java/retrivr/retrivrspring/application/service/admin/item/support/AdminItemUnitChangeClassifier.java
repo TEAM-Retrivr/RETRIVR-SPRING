@@ -25,14 +25,12 @@ public class AdminItemUnitChangeClassifier {
         }
 
         Map<Long, ItemUnit> currentUnitById = new LinkedHashMap<>();
-        Map<String, ItemUnit> currentUnitByLabel = new LinkedHashMap<>();
         for (ItemUnit currentItemUnit : currentItemUnits) {
             currentUnitById.put(currentItemUnit.getId(), currentItemUnit);
-            currentUnitByLabel.put(currentItemUnit.getLabel(), currentItemUnit);
         }
 
         Set<Long> seenItemUnitIds = new LinkedHashSet<>();
-        List<String> deleteUnitLabels = new ArrayList<>();
+        List<ItemUnit> deleteItemUnits = new ArrayList<>();
         List<String> createLabels = new ArrayList<>();
         List<UnitRenameCommand> renameCommands = new ArrayList<>();
 
@@ -47,7 +45,6 @@ public class AdminItemUnitChangeClassifier {
 
             if (itemUnitId == null) {
                 String createLabel = requireLabel(label);
-                validateCreateLabel(currentUnitByLabel, createLabels, createLabel);
                 createLabels.add(createLabel);
                 continue;
             }
@@ -62,15 +59,14 @@ public class AdminItemUnitChangeClassifier {
             }
 
             if (label == null) {
-                deleteUnitLabels.add(targetItemUnit.getLabel());
+                deleteItemUnits.add(targetItemUnit);
                 continue;
             }
 
-            validateRenameLabel(currentUnitByLabel, createLabels, renameCommands, targetItemUnit, label);
             renameCommands.add(new UnitRenameCommand(targetItemUnit, label));
         }
 
-        return new AdminItemUnitChangeSet(deleteUnitLabels, createLabels, renameCommands);
+        return new AdminItemUnitChangeSet(deleteItemUnits, createLabels, renameCommands);
     }
 
     private String requireLabel(String label) {
@@ -95,39 +91,11 @@ public class AdminItemUnitChangeClassifier {
         return trimmed;
     }
 
-    private void validateCreateLabel(
-            Map<String, ItemUnit> currentUnitMap,
-            List<String> createLabels,
-            String label
-    ) {
-        if (currentUnitMap.containsKey(label) || createLabels.contains(label)) {
-            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
-        }
-    }
-
-    private void validateRenameLabel(
-            Map<String, ItemUnit> currentUnitMap,
-            List<String> createLabels,
-            List<UnitRenameCommand> renameCommands,
-            ItemUnit targetItemUnit,
-            String newLabel
-    ) {
-        ItemUnit currentOwner = currentUnitMap.get(newLabel);
-        boolean ownedBySameUnit = currentOwner != null && currentOwner == targetItemUnit;
-        boolean duplicatedCreateLabel = createLabels.contains(newLabel);
-        boolean duplicatedRenameLabel = renameCommands.stream()
-                .anyMatch(command -> newLabel.equals(command.label()));
-
-        if (!ownedBySameUnit && (currentOwner != null || duplicatedCreateLabel || duplicatedRenameLabel)) {
-            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
-        }
-    }
-
     public record UnitRenameCommand(ItemUnit itemUnit, String label) {
     }
 
     public record AdminItemUnitChangeSet(
-            List<String> deleteUnitLabels,
+            List<ItemUnit> deleteItemUnits,
             List<String> createLabels,
             List<UnitRenameCommand> renameCommands
     ) {

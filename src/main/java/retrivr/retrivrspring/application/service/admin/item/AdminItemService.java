@@ -127,12 +127,12 @@ public class AdminItemService {
                 currentItemUnits,
                 request.unitChanges()
         );
+        List<ItemUnit> resolvedDeleteItemUnits = previousItemManagementType == ItemManagementType.UNIT
+                && request.itemManagementType() == ItemManagementType.NON_UNIT
+                ? currentItemUnits
+                : requestedUnitChangeSet.deleteItemUnits();
         AdminItemUnitChangeSet unitChangeSet = new AdminItemUnitChangeSet(
-                item.resolveDeleteUnitLabelsForTargetType(
-                        request.itemManagementType(),
-                        currentItemUnits,
-                        requestedUnitChangeSet.deleteUnitLabels()
-                ),
+                resolvedDeleteItemUnits,
                 requestedUnitChangeSet.createLabels(),
                 requestedUnitChangeSet.renameCommands()
         );
@@ -144,7 +144,12 @@ public class AdminItemService {
         );
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
-        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitLabels());
+        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(
+                currentItemUnits,
+                unitChangeSet.deleteItemUnits().stream()
+                        .map(ItemUnit::getLabel)
+                        .toList()
+        );
         item.renameUnits(
                 unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
                 unitChangeSet.renameCommands().stream().map(command -> command.label()).toList()

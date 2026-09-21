@@ -32,6 +32,37 @@ class AdminItemUnitChangeClassifierTest {
   }
 
   @Test
+  void classify_resolvesDeleteTargetByItemUnitIdWhenLabelsAreSame() {
+    ItemUnit firstUnit = itemUnit(101L, "same-label");
+    ItemUnit secondUnit = itemUnit(102L, "same-label");
+
+    AdminItemUnitChangeSet result = classifier.classify(
+        List.of(firstUnit, secondUnit),
+        List.of(new AdminItemUnitChangeRequest(101L, null))
+    );
+
+    assertThat(result.deleteItemUnits()).containsExactly(firstUnit);
+  }
+
+  @Test
+  void classify_doesNotUseLabelAsDuplicateIdentifier() {
+    ItemUnit firstUnit = itemUnit(101L, "unit-a");
+    ItemUnit secondUnit = itemUnit(102L, "same-label");
+
+    AdminItemUnitChangeSet result = classifier.classify(
+        List.of(firstUnit, secondUnit),
+        List.of(
+            new AdminItemUnitChangeRequest(101L, "same-label"),
+            new AdminItemUnitChangeRequest(null, "same-label")
+        )
+    );
+
+    assertThat(result.renameCommands()).hasSize(1);
+    assertThat(result.renameCommands().getFirst().itemUnit()).isSameAs(firstUnit);
+    assertThat(result.createLabels()).containsExactly("same-label");
+  }
+
+  @Test
   void classify_rejectsDuplicatedItemUnitId() {
     ItemUnit itemUnit = itemUnit(101L, "unit-a");
 
