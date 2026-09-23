@@ -219,7 +219,7 @@ public class ItemUnit extends BaseTimeEntity {
 
     return ItemUnit.builder()
         .item(item)
-        .label(label)
+        .label(label.trim())
         .status(ItemUnitStatus.AVAILABLE)
         .build();
   }
@@ -231,7 +231,7 @@ public class ItemUnit extends BaseTimeEntity {
           "Item unit label의 값이 빈 값일 수 없습니다."
       );
     }
-    this.label = label;
+    this.label = label.trim();
   }
 
   /**

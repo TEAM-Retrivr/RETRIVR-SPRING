@@ -35,6 +35,7 @@ import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemActivationUpdateRequest;
@@ -182,8 +183,8 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("동일한 label의 유닛들을 서로 다른 ID로 생성한다")
-  void createItem_createsDuplicatedLabelsWithDistinctIds() {
+  @DisplayName("앞뒤 공백을 제거한 유닛 이름이 중복되면 물품을 생성할 수 없다")
+  void createItem_rejectsDuplicatedTrimmedUnitLabels() {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
@@ -192,34 +193,17 @@ class AdminItemServiceTest {
       ReflectionTestUtils.setField(saved, "id", 12L);
       return saved;
     });
-    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
-      List<ItemUnit> savedUnits = invocation.getArgument(0);
-      ReflectionTestUtils.setField(savedUnits.get(0), "id", 101L);
-      ReflectionTestUtils.setField(savedUnits.get(1), "id", 102L);
-      return savedUnits;
-    });
     when(publicIdGenerator.generateItemId(any())).thenReturn("public-id");
 
-    AdminItemCreateResponse response = adminItemService.createItem(
+    assertThatThrownBy(() -> adminItemService.createItem(
         organizationId,
-        new AdminItemCreateRequest(
-            "unit item",
-            "description",
-            7,
-            2,
-            ItemManagementType.UNIT,
-            false,
-            null,
-            List.of("same-label", "same-label"),
-            null
-        )
-    );
-
-    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
-        .containsExactly(
-            tuple(101L, "same-label"),
-            tuple(102L, "same-label")
-        );
+        new AdminItemCreateRequest("unit item", "description", 7, 2,
+            ItemManagementType.UNIT, false, null,
+            List.of(" same-label ", "same-label"), null)
+    ))
+        .isInstanceOf(DomainException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
   }
 
   @Test
@@ -234,7 +218,7 @@ class AdminItemServiceTest {
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
@@ -263,7 +247,7 @@ class AdminItemServiceTest {
     List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(activeUnits);
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -295,7 +279,7 @@ class AdminItemServiceTest {
     List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(activeUnits)
@@ -328,7 +312,7 @@ class AdminItemServiceTest {
     List<ItemUnit> createdUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(existingUnit))
@@ -370,7 +354,7 @@ class AdminItemServiceTest {
     ItemUnit lastUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(firstUnit, lastUnit));
@@ -403,7 +387,7 @@ class AdminItemServiceTest {
     List<ItemUnit> createdUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of())
@@ -440,7 +424,7 @@ class AdminItemServiceTest {
     List<ItemUnit> savedUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of())
@@ -482,7 +466,7 @@ class AdminItemServiceTest {
     ItemUnit secondUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(firstUnit, secondUnit))
@@ -511,7 +495,7 @@ class AdminItemServiceTest {
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(existingUnit));

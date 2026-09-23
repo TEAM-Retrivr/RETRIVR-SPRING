@@ -122,15 +122,25 @@ class ItemPropertyTest extends ItemTestFixture {
   class ItemUnitChangeTest {
 
     @Test
-    @DisplayName("동일한 label을 가진 ItemUnit을 여러 개 생성할 수 있다")
-    void createsUnitsWithDuplicatedLabels() {
+    @DisplayName("앞뒤 공백을 제거한 label이 같으면 ItemUnit을 생성할 수 없다")
+    void rejectsUnitsWithDuplicatedTrimmedLabels() {
       Item item = createItem(1L, ItemManagementType.UNIT, true, 2, 2);
 
-      List<ItemUnit> createdUnits = item.createUnits(List.of("same-label", "same-label"));
+      assertThatThrownBy(() -> item.createUnits(List.of(" unit-a ", "unit-a")))
+          .isInstanceOf(DomainException.class)
+          .extracting("errorCode")
+          .isEqualTo(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+    }
 
-      assertThat(createdUnits).hasSize(2);
+    @Test
+    @DisplayName("대소문자가 다르면 서로 다른 ItemUnit 이름으로 생성한다")
+    void createsUnitsWithCaseSensitiveLabels() {
+      Item item = createItem(1L, ItemManagementType.UNIT, true, 2, 2);
+
+      List<ItemUnit> createdUnits = item.createUnits(List.of(" Unit-A ", "unit-a"));
+
       assertThat(createdUnits).extracting("label")
-          .containsExactly("same-label", "same-label");
+          .containsExactly("Unit-A", "unit-a");
     }
 
     @Test

@@ -83,7 +83,11 @@ public class AdminItemController {
       description = "물품 생성 성공",
       content = @Content(schema = @Schema(implementation = AdminItemCreateResponse.class))
   )
-  @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.BAD_REQUEST_EXCEPTION})
+  @ApiErrorCodeExamples({
+      ErrorCode.NOT_FOUND_ORGANIZATION,
+      ErrorCode.BAD_REQUEST_EXCEPTION,
+      ErrorCode.DUPLICATE_ITEM_UNIT_LABEL
+  })
   public AdminItemCreateResponse createItem(
       @Valid @RequestBody AdminItemCreateRequest request,
       @Parameter(hidden = true) @AuthOrg AuthUser authUser
@@ -104,6 +108,7 @@ public class AdminItemController {
       ErrorCode.NOT_FOUND_ITEM,
       ErrorCode.BAD_REQUEST_EXCEPTION,
       ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL,
+      ErrorCode.DUPLICATE_ITEM_UNIT_LABEL,
       ErrorCode.DUPLICATE_ITEM_UNIT_ID_IN_REQUEST
   })
   public AdminItemUpdateResponse updateItem(

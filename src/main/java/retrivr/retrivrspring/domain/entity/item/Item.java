@@ -388,7 +388,22 @@ public class Item extends BaseTimeEntity {
     for (String unitLabel : unitLabels) {
       createdItemUnits.add(createUnit(unitLabel));
     }
+    validateUniqueUnitLabels(createdItemUnits);
     return createdItemUnits;
+  }
+
+  /**
+   * 한 물품 안에서 활성 유닛 이름은 앞뒤 공백을 제거한 값으로 유일해야 한다.
+   * 대소문자는 서로 다른 이름으로 취급한다.
+   */
+  public void validateUniqueUnitLabels(List<ItemUnit> itemUnits) {
+    Set<String> labels = new HashSet<>();
+    for (ItemUnit itemUnit : itemUnits) {
+      String normalizedLabel = itemUnit.getLabel().trim();
+      if (!labels.add(normalizedLabel)) {
+        throw new DomainException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+      }
+    }
   }
 
   public void renameUnits(List<ItemUnit> itemUnits, List<String> labels) {

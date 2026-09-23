@@ -97,7 +97,9 @@ public class AdminItemService {
         Item savedItem = issuePublicIdAndSaveItem(organization, request);
 
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
-        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(savedItem.createUnits(request.unitLabels()));
+        List<ItemUnit> createdItemUnits = savedItem.createUnits(request.unitLabels());
+        savedItem.validateUniqueUnitLabels(createdItemUnits);
+        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(createdItemUnits);
 
         return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
@@ -112,7 +114,7 @@ public class AdminItemService {
         adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
             organization, AdminCodeVerificationPurpose.ITEM_UPDATE, request.adminCodeVerificationToken());
 
-        Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId,
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
@@ -160,7 +162,12 @@ public class AdminItemService {
                 request.isActive()
         );
 
-        List<ItemUnit> createdItemUnits = itemUnitRepository.saveAll(item.createUnits(unitChangeSet.createLabels()));
+        List<ItemUnit> createdItemUnits = item.createUnits(unitChangeSet.createLabels());
+        List<ItemUnit> finalItemUnits = new ArrayList<>(currentItemUnits);
+        finalItemUnits.removeAll(deletedItemUnits);
+        finalItemUnits.addAll(createdItemUnits);
+        item.validateUniqueUnitLabels(finalItemUnits);
+        createdItemUnits = itemUnitRepository.saveAll(createdItemUnits);
 
         item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
                 currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
