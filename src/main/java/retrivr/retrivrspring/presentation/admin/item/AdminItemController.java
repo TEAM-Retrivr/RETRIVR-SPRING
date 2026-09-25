@@ -106,6 +106,7 @@ public class AdminItemController {
   @ApiErrorCodeExamples({
       ErrorCode.NOT_FOUND_ORGANIZATION,
       ErrorCode.NOT_FOUND_ITEM,
+      ErrorCode.NOT_FOUND_ITEM_UNIT,
       ErrorCode.BAD_REQUEST_EXCEPTION,
       ErrorCode.ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL,
       ErrorCode.DUPLICATE_ITEM_UNIT_LABEL,
