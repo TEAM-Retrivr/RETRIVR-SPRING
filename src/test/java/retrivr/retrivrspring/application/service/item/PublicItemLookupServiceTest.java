@@ -172,7 +172,7 @@ class PublicItemLookupServiceTest {
     Organization org = mockOrganization(1, "조직1");
     when(item.getOrganization()).thenReturn(org);
     when(itemRepository.findFetchItemBorrowerFieldsById(itemId)).thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(units);
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(units);
 
     PublicItemDetailResponse res = publicItemLookupService.publicOrganizationItemLookup(itemId);
 
@@ -237,6 +237,6 @@ class PublicItemLookupServiceTest {
         .extracting("errorCode")
         .isEqualTo(ErrorCode.NOT_FOUND_ORGANIZATION);
 
-    verify(itemUnitRepository, never()).findAllByItemId(anyLong());
+    verify(itemUnitRepository, never()).findAllByItemIdAndDeletedAtIsNull(anyLong());
   }
 }

@@ -24,52 +24,49 @@ public class AdminItemUnitChangeClassifier {
             return AdminItemUnitChangeSet.empty();
         }
 
-        Map<String, ItemUnit> currentUnitMap = new LinkedHashMap<>();
+        Map<Long, ItemUnit> currentUnitById = new LinkedHashMap<>();
         for (ItemUnit currentItemUnit : currentItemUnits) {
-            currentUnitMap.put(currentItemUnit.getLabel(), currentItemUnit);
+            currentUnitById.put(currentItemUnit.getId(), currentItemUnit);
         }
 
-        Set<String> seenLabels = new LinkedHashSet<>();
-        List<String> deleteUnitLabels = new ArrayList<>();
+        Set<Long> seenItemUnitIds = new LinkedHashSet<>();
+        List<ItemUnit> deleteItemUnits = new ArrayList<>();
         List<String> createLabels = new ArrayList<>();
         List<UnitRenameCommand> renameCommands = new ArrayList<>();
 
         for (AdminItemUnitChangeRequest unitChange : unitChanges) {
-            String currentLabel = normalize(unitChange.currentLabel());
+            Long itemUnitId = unitChange.itemUnitId();
             String label = normalize(unitChange.label());
 
-            if (currentLabel == null && label == null) {
+            if (itemUnitId == null && label == null) {
                 throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Item unit change must contain currentLabel or label.");
+                        "Item unit change must contain itemUnitId or label.");
             }
 
-            if (currentLabel == null) {
+            if (itemUnitId == null) {
                 String createLabel = requireLabel(label);
-                validateCreateLabel(currentUnitMap, createLabels, createLabel);
                 createLabels.add(createLabel);
                 continue;
             }
 
-            if (!seenLabels.add(currentLabel)) {
-                throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+            if (!seenItemUnitIds.add(itemUnitId)) {
+                throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_ID_IN_REQUEST);
             }
 
-            ItemUnit targetItemUnit = currentUnitMap.get(currentLabel);
+            ItemUnit targetItemUnit = currentUnitById.get(itemUnitId);
             if (targetItemUnit == null) {
-                throw new ApplicationException(ErrorCode.BAD_REQUEST_EXCEPTION,
-                        "Item unit label does not exist.");
+                throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
             }
 
             if (label == null) {
-                deleteUnitLabels.add(currentLabel);
+                deleteItemUnits.add(targetItemUnit);
                 continue;
             }
 
-            validateRenameLabel(currentUnitMap, createLabels, renameCommands, targetItemUnit, label);
             renameCommands.add(new UnitRenameCommand(targetItemUnit, label));
         }
 
-        return new AdminItemUnitChangeSet(deleteUnitLabels, createLabels, renameCommands);
+        return new AdminItemUnitChangeSet(deleteItemUnits, createLabels, renameCommands);
     }
 
     private String requireLabel(String label) {
@@ -85,42 +82,20 @@ public class AdminItemUnitChangeClassifier {
             return null;
         }
         String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private void validateCreateLabel(
-            Map<String, ItemUnit> currentUnitMap,
-            List<String> createLabels,
-            String label
-    ) {
-        if (currentUnitMap.containsKey(label) || createLabels.contains(label)) {
-            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+        if (trimmed.isEmpty()) {
+            throw new ApplicationException(
+                    ErrorCode.BAD_REQUEST_EXCEPTION,
+                    "Item unit label must not be blank."
+            );
         }
-    }
-
-    private void validateRenameLabel(
-            Map<String, ItemUnit> currentUnitMap,
-            List<String> createLabels,
-            List<UnitRenameCommand> renameCommands,
-            ItemUnit targetItemUnit,
-            String newLabel
-    ) {
-        ItemUnit currentOwner = currentUnitMap.get(newLabel);
-        boolean ownedBySameUnit = currentOwner != null && currentOwner == targetItemUnit;
-        boolean duplicatedCreateLabel = createLabels.contains(newLabel);
-        boolean duplicatedRenameLabel = renameCommands.stream()
-                .anyMatch(command -> newLabel.equals(command.label()));
-
-        if (!ownedBySameUnit && (currentOwner != null || duplicatedCreateLabel || duplicatedRenameLabel)) {
-            throw new ApplicationException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
-        }
+        return trimmed;
     }
 
     public record UnitRenameCommand(ItemUnit itemUnit, String label) {
     }
 
     public record AdminItemUnitChangeSet(
-            List<String> deleteUnitLabels,
+            List<ItemUnit> deleteItemUnits,
             List<String> createLabels,
             List<UnitRenameCommand> renameCommands
     ) {

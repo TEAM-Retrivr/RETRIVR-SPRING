@@ -25,8 +25,7 @@ public interface RentalRepository
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Rental r where r.id = :rentalId")
-    @EntityGraph(attributePaths = {"rentalItems", "organization"})
-    Optional<Rental> findFetchRentalItemAndOrganizationByIdWithLock(@Param("rentalId") Long rentalId);
+    Optional<Rental> findByIdForUpdate(@Param("rentalId") Long rentalId);
 
     @Query("select r from Rental r where r.id in :rentalIds")
     @EntityGraph(attributePaths = {"borrower", "rentalItems", "organization"})

@@ -2,6 +2,7 @@ package retrivr.retrivrspring.application.service.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -34,6 +35,7 @@ import retrivr.retrivrspring.domain.repository.item.ItemUnitRepository;
 import retrivr.retrivrspring.domain.repository.organization.OrganizationRepository;
 import retrivr.retrivrspring.domain.repository.rental.RentalRepository;
 import retrivr.retrivrspring.global.error.ApplicationException;
+import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemCreateRequest;
 import retrivr.retrivrspring.presentation.admin.item.req.AdminItemActivationUpdateRequest;
@@ -69,7 +71,7 @@ class AdminItemServiceTest {
   @Test
   void updateActivation_changesOnlyActivationState() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
 
     AdminItemActivationUpdateResponse response = adminItemService.updateActivation(
         1L, 1L, new AdminItemActivationUpdateRequest(false));
@@ -80,7 +82,7 @@ class AdminItemServiceTest {
   @Test
   void deleteItem_recordsSoftDeletionWhenNoActiveRentalExists() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
 
     AdminItemDeleteResponse response = adminItemService.deleteItem(1L, 1L);
 
@@ -92,7 +94,7 @@ class AdminItemServiceTest {
   @Test
   void deleteItem_rejectsWhenRequestedOrRentedRentalExists() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
     when(rentalRepository.existsByRentalItems_Item_IdAndStatusIn(
         1L, List.of(RentalStatus.REQUESTED, RentalStatus.RENTED))).thenReturn(true);
 
@@ -103,7 +105,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("getItems returns desc cursor page")
+  @DisplayName("물품 목록을 내림차순 커서 페이지로 조회한다")
   void getItems_returnsDescCursorPage() {
     Long organizationId = 1L;
     Item item13 = createItem(13L, "item13", ItemManagementType.UNIT);
@@ -120,7 +122,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("getItem returns item detail for edit page")
+  @DisplayName("수정 화면에 필요한 물품 상세 정보를 조회한다")
   void getItem_returnsDetail() {
     Long organizationId = 1L;
     Long itemId = 41L;
@@ -141,7 +143,8 @@ class AdminItemServiceTest {
 
     when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, secondUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(firstUnit, secondUnit));
 
     AdminItemDetailResponse response = adminItemService.getItem(organizationId, itemId);
 
@@ -152,7 +155,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("createItem creates unit item with labels")
+  @DisplayName("UNIT 물품 생성 시 유닛 label을 함께 생성한다")
   void createItem_unitItem_withoutUnits() {
     Long organizationId = 1L;
     Organization organization = createOrganization(organizationId);
@@ -180,7 +183,31 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem renames unit by label")
+  @DisplayName("앞뒤 공백을 제거한 유닛 이름이 중복되면 물품을 생성할 수 없다")
+  void createItem_rejectsDuplicatedTrimmedUnitLabels() {
+    Long organizationId = 1L;
+    Organization organization = createOrganization(organizationId);
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.saveAndFlush(any(Item.class))).thenAnswer(invocation -> {
+      Item saved = invocation.getArgument(0);
+      ReflectionTestUtils.setField(saved, "id", 12L);
+      return saved;
+    });
+    when(publicIdGenerator.generateItemId(any())).thenReturn("public-id");
+
+    assertThatThrownBy(() -> adminItemService.createItem(
+        organizationId,
+        new AdminItemCreateRequest("unit item", "description", 7, 2,
+            ItemManagementType.UNIT, false, null,
+            List.of(" same-label ", "same-label"), null)
+    ))
+        .isInstanceOf(DomainException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+  }
+
+  @Test
+  @DisplayName("itemUnitId로 유닛 이름을 변경한다")
   void updateItem_renameUnit() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -191,12 +218,13 @@ class AdminItemServiceTest {
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit));
 
-    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange("unit-a", "renamed-unit")));
+    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, "renamed-unit")));
     stubUnitChangeClassification(List.of(existingUnit), request);
 
     AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
@@ -206,7 +234,115 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem logically deletes a unit with rental history")
+  @DisplayName("활성 유닛의 label이 같아도 요청한 ID의 유닛만 이름을 변경한다")
+  void updateItem_renamesOnlyRequestedUnitWhenLabelsAreSame() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 2, 2);
+    ItemUnit firstUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    ItemUnit secondUnit = createItemUnit(202L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(activeUnits);
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        2, ItemManagementType.UNIT, List.of(unitChange(201L, "renamed-unit")));
+    stubUnitChangeClassification(activeUnits, request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(
+            tuple(201L, "renamed-unit"),
+            tuple(202L, "same-label")
+        );
+  }
+
+  @Test
+  @DisplayName("활성 유닛의 label이 같아도 요청한 ID의 유닛만 삭제한다")
+  void updateItem_deletesOnlyRequestedUnitWhenLabelsAreSame() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 2, 2);
+    ItemUnit firstUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    ItemUnit secondUnit = createItemUnit(202L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> activeUnits = List.of(firstUnit, secondUnit);
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(activeUnits)
+        .thenReturn(List.of(secondUnit));
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        1, ItemManagementType.UNIT, List.of(unitChange(201L, null)));
+    stubUnitChangeClassification(activeUnits, request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(tuple(202L, "same-label"));
+    verify(itemUnitRepository).deleteAll(List.of(firstUnit));
+    assertThat(item.getTotalQuantity()).isEqualTo(1);
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("유닛 삭제와 동일 label 재생성을 한 요청에서 처리하고 새 ID를 발급한다")
+  void updateItem_deletesAndRecreatesSameLabelWithNewId() {
+    Long organizationId = 1L;
+    Long itemId = 101L;
+    Organization organization = createOrganization(organizationId);
+    Item item = createItem(itemId, "old", ItemManagementType.UNIT);
+    ReflectionTestUtils.setField(item, "organization", organization);
+    setQuantities(item, 1, 1);
+    ItemUnit existingUnit = createItemUnit(201L, item, "same-label", ItemUnitStatus.AVAILABLE);
+    List<ItemUnit> createdUnits = new ArrayList<>();
+
+    when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
+        .thenReturn(Optional.of(item));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit))
+        .thenAnswer(invocation -> new ArrayList<>(createdUnits));
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> units = invocation.getArgument(0);
+      ReflectionTestUtils.setField(units.getFirst(), "id", 301L);
+      createdUnits.addAll(units);
+      return units;
+    });
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    AdminItemUpdateRequest request = updateRequest(
+        1,
+        ItemManagementType.UNIT,
+        List.of(unitChange(201L, null), unitChange(null, "same-label"))
+    );
+    stubUnitChangeClassification(List.of(existingUnit), request);
+
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).extracting("itemUnitId", "label")
+        .containsExactly(tuple(301L, "same-label"));
+    verify(itemUnitRepository).deleteAll(List.of(existingUnit));
+    assertThat(item.getTotalQuantity()).isEqualTo(1);
+    assertThat(item.getAvailableQuantity()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("대여 이력이 있는 유닛을 논리 삭제한다")
   void updateItem_logicallyDeletesUnitWithRentalHistory() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -218,17 +354,18 @@ class AdminItemServiceTest {
     ItemUnit lastUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(firstUnit, lastUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(firstUnit, lastUnit));
     when(rentalRepository.existsByRentalItemUnits_ItemUnit_Id(201L)).thenReturn(true);
 
-    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange("unit-a", null)));
+    AdminItemUpdateRequest request = updateRequest(1, ItemManagementType.UNIT, List.of(unitChange(201L, null)));
     stubUnitChangeClassification(List.of(firstUnit, lastUnit), request);
 
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(
-        List.of(firstUnit, lastUnit), List.of(firstUnit, lastUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId)).thenReturn(
+        List.of(firstUnit, lastUnit), List.of(lastUnit));
 
     AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
 
@@ -238,7 +375,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  void updateItem_rejectsReuseOfLogicallyDeletedUnitLabel() {
+  void updateItem_allowsReuseOfLogicallyDeletedUnitLabel() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -247,24 +384,36 @@ class AdminItemServiceTest {
     setQuantities(item, 1, 0);
     ItemUnit deletedUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
     deletedUnit.delete();
+    List<ItemUnit> createdUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(deletedUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of())
+        .thenAnswer(invocation -> new ArrayList<>(createdUnits));
+    when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
+      List<ItemUnit> units = invocation.getArgument(0);
+      ReflectionTestUtils.setField(units.getFirst(), "id", 301L);
+      createdUnits.addAll(units);
+      return units;
+    });
+    when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     AdminItemUpdateRequest request = updateRequest(
         1, ItemManagementType.UNIT, List.of(unitChange(null, "unit-a")));
     stubUnitChangeClassification(List.of(), request);
 
-    assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
-        .isInstanceOf(ApplicationException.class)
-        .extracting("errorCode")
-        .isEqualTo(ErrorCode.DELETED_ITEM_UNIT_LABEL);
+    AdminItemUpdateResponse response = adminItemService.updateItem(organizationId, itemId, request);
+
+    assertThat(response.itemUnits()).hasSize(1);
+    assertThat(response.itemUnits().getFirst().itemUnitId()).isEqualTo(301L);
+    assertThat(response.itemUnits().getFirst().label()).isEqualTo("unit-a");
+    assertThat(deletedUnit.isDeleted()).isTrue();
   }
 
   @Test
-  @DisplayName("updateItem converts non-unit item to unit item with new labels")
+  @DisplayName("NON_UNIT 물품을 새 유닛과 함께 UNIT 물품으로 전환한다")
   void updateItem_convertNonUnitToUnit() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -275,9 +424,11 @@ class AdminItemServiceTest {
     List<ItemUnit> savedUnits = new ArrayList<>();
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of()).thenAnswer(invocation -> new ArrayList<>(savedUnits));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of())
+        .thenAnswer(invocation -> new ArrayList<>(savedUnits));
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
     when(itemUnitRepository.saveAll(any())).thenAnswer(invocation -> {
       List<ItemUnit> units = invocation.getArgument(0);
@@ -303,7 +454,7 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem converts unit item to non-unit by physically deleting units without rental history")
+  @DisplayName("대여 이력이 없는 유닛을 물리 삭제하며 UNIT 물품을 NON_UNIT으로 전환한다")
   void updateItem_convertUnitToNonUnit_physicallyDeletesUnusedUnits() {
     Long organizationId = 1L;
     Long itemId = 101L;
@@ -315,9 +466,9 @@ class AdminItemServiceTest {
     ItemUnit secondUnit = createItemUnit(202L, item, "unit-b", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId))
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
         .thenReturn(List.of(firstUnit, secondUnit))
         .thenReturn(List.of());
     when(itemBorrowerFieldRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -333,8 +484,8 @@ class AdminItemServiceTest {
   }
 
   @Test
-  @DisplayName("updateItem rejects duplicate unit labels in change request")
-  void updateItem_rejectsDuplicatedUnitLabel() {
+  @DisplayName("변경 요청에 동일한 itemUnitId가 중복되면 거부한다")
+  void updateItem_rejectsDuplicatedItemUnitId() {
     Long organizationId = 1L;
     Long itemId = 101L;
     Organization organization = createOrganization(organizationId);
@@ -344,24 +495,25 @@ class AdminItemServiceTest {
     ItemUnit existingUnit = createItemUnit(201L, item, "unit-a", ItemUnitStatus.AVAILABLE);
 
     when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
-    when(itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId))
         .thenReturn(Optional.of(item));
-    when(itemUnitRepository.findAllByItemId(itemId)).thenReturn(List.of(existingUnit));
+    when(itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId))
+        .thenReturn(List.of(existingUnit));
 
     AdminItemUpdateRequest request = updateRequest(
         1,
         ItemManagementType.UNIT,
-        List.of(unitChange("unit-a", null), unitChange("unit-a", "renamed-unit"))
+        List.of(unitChange(201L, null), unitChange(201L, "renamed-unit"))
     );
     when(adminItemUnitChangeClassifier.classify(eq(List.of(existingUnit)), eq(request.unitChanges())))
-        .thenThrow(new RuntimeException("Duplicated item unit label in update request."));
+        .thenThrow(new RuntimeException("Duplicated itemUnitId in update request."));
 
     assertThatThrownBy(() -> adminItemService.updateItem(organizationId, itemId, request))
         .isInstanceOf(RuntimeException.class);
   }
 
   @Test
-  @DisplayName("updateUnitAvailability changes available unit to inactive")
+  @DisplayName("대여 가능한 유닛을 비활성 상태로 변경한다")
   void updateUnitAvailability_availableToInactive() {
     Long organizationId = 1L;
     Long itemId = 10L;
@@ -372,8 +524,9 @@ class AdminItemServiceTest {
     setQuantities(item, 2, 2);
     ItemUnit itemUnit = createItemUnit(itemUnitId, item, "NB-001", ItemUnitStatus.AVAILABLE);
 
-    when(itemRepository.findByIdAndOrganization_Id(itemId, organizationId)).thenReturn(Optional.of(item));
-    when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId, organizationId))
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)).thenReturn(Optional.of(item));
+    when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationIdAndDeletedAtIsNull(
+        itemUnitId, itemId, organizationId))
         .thenReturn(Optional.of(itemUnit));
 
     AdminItemUnitMutationResponse response = adminItemService.updateUnitAvailability(
@@ -404,8 +557,8 @@ class AdminItemServiceTest {
     );
   }
 
-  private AdminItemUnitChangeRequest unitChange(String currentLabel, String label) {
-    return new AdminItemUnitChangeRequest(currentLabel, label);
+  private AdminItemUnitChangeRequest unitChange(Long itemUnitId, String label) {
+    return new AdminItemUnitChangeRequest(itemUnitId, label);
   }
 
   private void stubUnitChangeClassification(List<ItemUnit> currentItemUnits, AdminItemUpdateRequest request) {

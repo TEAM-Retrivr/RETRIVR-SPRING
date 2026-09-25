@@ -52,6 +52,7 @@ public enum ErrorCode {
     ITEM_UNIT_DELETE_WITH_ACTIVE_RENTAL(HttpStatus.CONFLICT, 4015, "대여 요청이 진행 중이거나 대여 중인 물품은 삭제할 수 없습니다."),
     DUPLICATE_ITEM_UNIT_LABEL(HttpStatus.BAD_REQUEST, 4016, "이미 사용 중인 이름입니다. 다른 이름을 입력해 주세요."),
     DELETED_ITEM_UNIT_LABEL(HttpStatus.BAD_REQUEST, 4017, "이전에 삭제한 물품과 같은 이름은 다시 사용할 수 없습니다. 다른 이름을 입력해 주세요."),
+    DUPLICATE_ITEM_UNIT_ID_IN_REQUEST(HttpStatus.BAD_REQUEST, 4018, "한 요청에서 동일한 물품 고유번호를 중복으로 사용할 수 없습니다."),
 
     //5000: Rental Error
     ILLEGAL_BORROWER_LABEL(HttpStatus.BAD_REQUEST, 5000, "대여자 라벨이 잘못되었습니다."),

@@ -43,20 +43,19 @@ public class AdminCodeVerificationService {
     // 새로운 토큰 값 생성
     String rawToken = "cvt_" + UUID.randomUUID();
     String encodedToken = passwordEncoder.encode(rawToken);
-    LocalDateTime now = LocalDateTime.now();
 
     // 이미 토큰이 존재한다면 변경, 존재하지 않는다면 생성하여 저장
     AdminCodeVerificationToken token = adminCodeVerificationTokenRepository
-        .findByOrganizationAndPurpose(organization, request.purpose())
+        .findForUpdateByOrganizationAndPurpose(organization, request.purpose())
         .map(existing -> {
-          existing.refresh(encodedToken, now);
+          existing.refresh(encodedToken, LocalDateTime.now());
           return existing;
         })
         .orElseGet(() -> AdminCodeVerificationToken.create(
             organization,
             encodedToken,
             request.purpose(),
-            now
+            LocalDateTime.now()
         ));
 
     adminCodeVerificationTokenRepository.save(token);
@@ -79,20 +78,19 @@ public class AdminCodeVerificationService {
     // 새로운 토큰 값 생성
     String rawToken = "cvt_" + UUID.randomUUID();
     String encodedToken = passwordEncoder.encode(rawToken);
-    LocalDateTime now = LocalDateTime.now();
 
     // 이미 토큰이 존재한다면 변경, 존재하지 않는다면 생성하여 저장
     AdminCodeVerificationToken token = adminCodeVerificationTokenRepository
-        .findByOrganizationAndPurpose(organization, request.purpose())
+        .findForUpdateByOrganizationAndPurpose(organization, request.purpose())
         .map(existing -> {
-          existing.refresh(encodedToken, now);
+          existing.refresh(encodedToken, LocalDateTime.now());
           return existing;
         })
         .orElseGet(() -> AdminCodeVerificationToken.create(
             organization,
             encodedToken,
             request.purpose(),
-            now
+            LocalDateTime.now()
         ));
 
     adminCodeVerificationTokenRepository.save(token);
@@ -102,9 +100,7 @@ public class AdminCodeVerificationService {
 
   @Transactional
   public void validateAndConsumeAdminCodeVerificationToken(Organization organization, AdminCodeVerificationPurpose purpose, String rawToken) {
-    LocalDateTime now = LocalDateTime.now();
-    
-    AdminCodeVerificationToken token = adminCodeVerificationTokenRepository.findByOrganizationAndPurpose(
+    AdminCodeVerificationToken token = adminCodeVerificationTokenRepository.findForUpdateByOrganizationAndPurpose(
             organization, purpose)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ADMIN_CODE_VERIFICATION_TOKEN));
 
@@ -113,6 +109,8 @@ public class AdminCodeVerificationService {
       throw new ApplicationException(ErrorCode.ADMIN_CODE_VERIFICATION_TOKEN_MISMATCH);
     }
 
+    // 락 대기 및 토큰 값 검증 이후의 시각으로 만료 여부를 판단한다.
+    LocalDateTime now = LocalDateTime.now();
     // 토큰 만료 여부 검증
     if (token.isExpired(now)) {
       throw new ApplicationException(ErrorCode.EXPIRED_ADMIN_CODE_VERIFICATION_TOKEN);

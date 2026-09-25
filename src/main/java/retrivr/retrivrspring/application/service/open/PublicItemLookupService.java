@@ -86,11 +86,9 @@ public class PublicItemLookupService {
           List.of(), borrowerRequirements, item.getItemManagementType(), membershipLevel);
     }
 
-    List<ItemUnit> allByItemId = itemUnitRepository.findAllByItemId(itemId).stream()
-        .filter(itemUnit -> !itemUnit.isDeleted())
-        .toList();
+    List<ItemUnit> activeItemUnits = itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId);
 
-    List<PublicItemUnitSummary> list = allByItemId.stream()
+    List<PublicItemUnitSummary> list = activeItemUnits.stream()
         .map(PublicItemUnitSummary::from)
         .toList();
 
