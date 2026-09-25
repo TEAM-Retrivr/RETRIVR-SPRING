@@ -199,7 +199,7 @@ public class AdminItemService {
     public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
                                                                 Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {
 
-        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
@@ -244,7 +244,7 @@ public class AdminItemService {
     }
 
     private Item getNotDeletedItem(Long organizationId, Long itemId) {
-        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)
             .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
         return item;

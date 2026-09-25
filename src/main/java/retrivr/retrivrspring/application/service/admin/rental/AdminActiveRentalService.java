@@ -2,6 +2,7 @@ package retrivr.retrivrspring.application.service.admin.rental;
 
 import java.time.LocalDate;
 import java.util.List;
+import retrivr.retrivrspring.application.service.support.RentalItemLockService;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class AdminActiveRentalService {
   private final ItemRepository itemRepository;
   private final ItemUnitRepository itemUnitRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
+  private final RentalItemLockService rentalItemLockService;
 
   /**
    * 연체된 물품 리스트 조회 (status 기반)
@@ -199,7 +201,7 @@ public class AdminActiveRentalService {
       AdminRentalReturnRequest request
   ) {
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findByIdWithItems(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인된 조직 정보 조회
@@ -207,6 +209,7 @@ public class AdminActiveRentalService {
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     // 3. 반납 처리
+    rentalItemLockService.lockItems(List.of(rental));
     rental.markReturned(request.adminNameToConfirm(), loginOrganization);
     applicationEventPublisher.publishEvent(new RentalReturnedEvent(rental.getId()));
 
@@ -224,7 +227,7 @@ public class AdminActiveRentalService {
       AdminRentalDueDateUpdateRequest request
   ) {
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findFetchOrganizationById(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인한 조직 정보 조회

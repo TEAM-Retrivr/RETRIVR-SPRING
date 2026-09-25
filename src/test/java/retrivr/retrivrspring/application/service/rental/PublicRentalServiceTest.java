@@ -78,7 +78,8 @@ class PublicRentalServiceTest {
         publicIdGenerator,
         adminCodeVerificationService,
         publicPhoneVerificationService,
-        emailVerificationService
+        emailVerificationService,
+        mock(retrivr.retrivrspring.application.service.support.RentalItemLockService.class)
     );
   }
 
@@ -110,7 +111,7 @@ class PublicRentalServiceTest {
   @Test
   @DisplayName("PR-01: item not found")
   void requestRental_itemNotFound() {
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.empty());
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.empty());
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
 
@@ -127,7 +128,7 @@ class PublicRentalServiceTest {
   void requestRental_deletedItem() {
     Item item = mock(Item.class);
     when(item.isDeleted()).thenReturn(true);
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
 
     assertThatThrownBy(() -> service().requestRental(10L, req))
@@ -147,7 +148,7 @@ class PublicRentalServiceTest {
     doThrow(new DomainException(ErrorCode.NOT_FOUND_ORGANIZATION))
         .when(org).assertOperating();
     Item item = mockItem(10L, true, org);
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
 
     assertThatThrownBy(() -> service().requestRental(10L, req))
@@ -165,7 +166,7 @@ class PublicRentalServiceTest {
   void requestRental_borrowerFieldValidationFail() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
@@ -187,7 +188,7 @@ class PublicRentalServiceTest {
   void requestRental_success_withEmailVerification() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
@@ -220,7 +221,7 @@ class PublicRentalServiceTest {
   void requestRental_success_withoutUnit() {
     Organization org = mockOrg(1L);
     Item item = mockItem(10L, true, org);
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
 
     PublicRentalCreateRequest req = mock(PublicRentalCreateRequest.class);
     when(req.itemUnitId()).thenReturn(null);
@@ -254,7 +255,7 @@ class PublicRentalServiceTest {
     Item item = mockItem(10L, true, org);
     ItemUnit unit = mockUnit(10L, 99L, true, "unit-99");
 
-    when(itemRepository.findFetchItemBorrowerFieldsById(10L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findByIdAndItemIdAndDeletedAtIsNull(99L, item.getId()))
         .thenReturn(Optional.of(unit));
 

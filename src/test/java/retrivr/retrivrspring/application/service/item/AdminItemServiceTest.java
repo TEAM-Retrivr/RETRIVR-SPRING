@@ -71,7 +71,7 @@ class AdminItemServiceTest {
   @Test
   void updateActivation_changesOnlyActivationState() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
 
     AdminItemActivationUpdateResponse response = adminItemService.updateActivation(
         1L, 1L, new AdminItemActivationUpdateRequest(false));
@@ -82,7 +82,7 @@ class AdminItemServiceTest {
   @Test
   void deleteItem_recordsSoftDeletionWhenNoActiveRentalExists() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
 
     AdminItemDeleteResponse response = adminItemService.deleteItem(1L, 1L);
 
@@ -94,7 +94,7 @@ class AdminItemServiceTest {
   @Test
   void deleteItem_rejectsWhenRequestedOrRentedRentalExists() {
     Item item = createItem(1L, "charger", ItemManagementType.NON_UNIT);
-    when(itemRepository.findByIdAndOrganization_Id(1L, 1L)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(1L, 1L)).thenReturn(Optional.of(item));
     when(rentalRepository.existsByRentalItems_Item_IdAndStatusIn(
         1L, List.of(RentalStatus.REQUESTED, RentalStatus.RENTED))).thenReturn(true);
 
@@ -524,7 +524,7 @@ class AdminItemServiceTest {
     setQuantities(item, 2, 2);
     ItemUnit itemUnit = createItemUnit(itemUnitId, item, "NB-001", ItemUnitStatus.AVAILABLE);
 
-    when(itemRepository.findByIdAndOrganization_Id(itemId, organizationId)).thenReturn(Optional.of(item));
+    when(itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)).thenReturn(Optional.of(item));
     when(itemUnitRepository.findByIdAndItemIdAndItemOrganizationIdAndDeletedAtIsNull(
         itemUnitId, itemId, organizationId))
         .thenReturn(Optional.of(itemUnit));

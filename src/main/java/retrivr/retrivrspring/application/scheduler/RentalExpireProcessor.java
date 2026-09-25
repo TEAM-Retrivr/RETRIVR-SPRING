@@ -2,6 +2,7 @@ package retrivr.retrivrspring.application.scheduler;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import retrivr.retrivrspring.application.service.support.RentalItemLockService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,16 +17,19 @@ public class RentalExpireProcessor {
   private final long REQUEST_EXPIRE_MINUTES;
   private final RentalRepository rentalRepository;
   private final AdminRequestedRentalService adminRequestedRentalService;
+  private final RentalItemLockService rentalItemLockService;
 
   public RentalExpireProcessor(
       @Value("${scheduler.rental-expire.request-expire-minutes}")
       int requestExpireMinutes,
       RentalRepository rentalRepository,
-      AdminRequestedRentalService adminRequestedRentalService
+      AdminRequestedRentalService adminRequestedRentalService,
+      RentalItemLockService rentalItemLockService
   ) {
     this.rentalRepository = rentalRepository;
     this.REQUEST_EXPIRE_MINUTES = requestExpireMinutes;
     this.adminRequestedRentalService = adminRequestedRentalService;
+    this.rentalItemLockService = rentalItemLockService;
   }
 
   @Transactional
@@ -34,6 +38,7 @@ public class RentalExpireProcessor {
 
     List<Long> rentalIds = rentalRepository.findExpiredRequestedIdsForUpdateSkipLocked(threshold, batchSize);
     List<Rental> rentals = rentalRepository.findFetchBorrowerAndRentalItemAndOrganizationAllById(rentalIds);
+    rentalItemLockService.lockItems(rentals);
     int rejectedCount = 0;
 
     for (Rental rental : rentals) {

@@ -34,6 +34,8 @@ import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalCreateResp
 import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalDetailResponse;
 
 import java.util.HashMap;
+import java.util.List;
+import retrivr.retrivrspring.application.service.support.RentalItemLockService;
 import java.util.Map;
 import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalImmediateApproveResponse;
 import retrivr.retrivrspring.presentation.open.rental.res.PublicRentalImmediateRejectResponse;
@@ -53,13 +55,14 @@ public class PublicRentalService {
   private final AdminCodeVerificationService adminCodeVerificationService;
   private final PublicPhoneVerificationService publicPhoneVerificationService;
   private final EmailVerificationService emailVerificationService;
+  private final RentalItemLockService rentalItemLockService;
 
   private static final int MAX_PUBLIC_ID_RETRY = 5;
 
   @Transactional
   public PublicRentalCreateResponse requestRental(Long itemId, PublicRentalCreateRequest request) {
     // 1. 대여할 Item 조회
-    Item targetItem = itemRepository.findFetchItemBorrowerFieldsById(itemId)
+    Item targetItem = itemRepository.findByIdForUpdate(itemId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
     if (targetItem.isDeleted()) {
       throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM);
@@ -204,7 +207,7 @@ public class PublicRentalService {
   @Transactional
   public PublicRentalImmediateApproveResponse approveRentalRequest(Long rentalId, PublicRentalImmediateApproveRequest request) {
     // 요청된 Rental 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     Organization organization = rental.getOrganization();
@@ -214,6 +217,7 @@ public class PublicRentalService {
         organization, AdminCodeVerificationPurpose.IMMEDIATE_APPROVAL, request.adminCodeVerificationToken());
 
     // 대여 요청 승인
+    rentalItemLockService.lockItems(List.of(rental));
     rental.approve(request.adminNameToApprove(), organization);
     applicationEventPublisher.publishEvent(new RentalApprovedEvent(rental.getId()));
 
@@ -224,7 +228,7 @@ public class PublicRentalService {
   public PublicRentalImmediateRejectResponse rejectRentalRequest(Long rentalId, PublicRentalImmediateRejectRequest request) {
 
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인된 조직 조회
@@ -236,6 +240,7 @@ public class PublicRentalService {
 
 
     // 3. 대여 거부
+    rentalItemLockService.lockItems(List.of(rental));
     rental.reject(request.adminNameToReject(), organization);
     applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
 

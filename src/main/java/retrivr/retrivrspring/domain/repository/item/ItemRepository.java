@@ -23,6 +23,10 @@ public interface ItemRepository extends JpaRepository<Item, Long>, ItemLookupRep
 
   Optional<Item> findByIdAndOrganization_Id(Long itemId, Long organizationId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select i from Item i where i.id = :itemId")
+  Optional<Item> findByIdForUpdate(@Param("itemId") Long itemId);
+
   // 유닛 라벨 수정 시 부모 물품에 PESSIMISTIC_WRITE 락을 잡은 뒤 활성 유닛을 조회한다.
   // 같은 물품의 수정 요청은 순차 처리되어, 앞선 변경을 반영한 상태로 중복을 검사한다.
   @Lock(LockModeType.PESSIMISTIC_WRITE)

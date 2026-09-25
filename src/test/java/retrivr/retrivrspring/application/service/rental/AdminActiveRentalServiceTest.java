@@ -41,6 +41,8 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResp
 @ExtendWith(MockitoExtension.class)
 class AdminActiveRentalServiceTest {
 
+  @Mock private retrivr.retrivrspring.application.service.support.RentalItemLockService rentalItemLockService;
+
   @Mock
   RentalRepository rentalRepository;
   @Mock
@@ -107,7 +109,7 @@ class AdminActiveRentalServiceTest {
   @Test
   @DisplayName("confirmReturn: rental not found")
   void confirmReturn_rentalNotFound() {
-    when(rentalRepository.findByIdWithItems(1L)).thenReturn(Optional.empty());
+    when(rentalRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.confirmReturn(10L, 1L, new AdminRentalReturnRequest("admin")))
         .isInstanceOf(ApplicationException.class)
@@ -121,14 +123,17 @@ class AdminActiveRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization organization = mock(Organization.class);
 
-    when(rentalRepository.findByIdWithItems(1L)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(10L)).thenReturn(Optional.of(organization));
     when(rental.getId()).thenReturn(1L);
 
     AdminRentalReturnResponse response =
         service.confirmReturn(10L, 1L, new AdminRentalReturnRequest("admin"));
 
-    verify(rental).markReturned("admin", organization);
+    org.mockito.InOrder order = org.mockito.Mockito.inOrder(rentalRepository, rentalItemLockService, rental);
+    order.verify(rentalRepository).findByIdForUpdate(1L);
+    order.verify(rentalItemLockService).lockItems(List.of(rental));
+    order.verify(rental).markReturned("admin", organization);
     verify(applicationEventPublisher).publishEvent(new RentalReturnedEvent(1L));
     assertThat(response.rentalId()).isEqualTo(1L);
     assertThat(response.rentalStatus()).isEqualTo(RentalStatus.RETURNED);
