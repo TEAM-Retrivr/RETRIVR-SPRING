@@ -44,7 +44,7 @@ public record AdminItemUpdateRequest(
 
     @Schema(description = "변경 유닛 목록")
     @Valid
-    List<AdminItemUnitChangeRequest> unitChanges,
+    List<@NotNull AdminItemUnitChangeRequest> unitChanges,
 
     @Schema(description = "대여자 입력 요구 정보 목록")
     @Valid
