@@ -274,7 +274,12 @@ public class AdminActiveRentalService {
         .map(RentedRentalSearchResultWithScore::rentalId)
         .toList();
 
-    Map<Long, Rental> rentalMap = rentalRepository.findFetchBorrowerAndItemByIdIn(rentalIds).stream()
+    List<Rental> fetchedRentals = rentalRepository.findFetchBorrowerAndItemByIdIn(rentalIds);
+    if (!fetchedRentals.isEmpty()) {
+      rentalRepository.findFetchRentalItemUnitsByRentalIn(fetchedRentals);
+    }
+
+    Map<Long, Rental> rentalMap = fetchedRentals.stream()
         .collect(Collectors.toMap(Rental::getId, rental -> rental));
 
     List<RentalSearchSummary> summary = page.stream()
