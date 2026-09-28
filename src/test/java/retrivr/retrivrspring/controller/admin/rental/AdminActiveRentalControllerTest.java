@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -26,6 +28,7 @@ import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalS
 import retrivr.retrivrspring.application.service.message.SendMessageService;
 import retrivr.retrivrspring.global.auth.AuthOrg;
 import retrivr.retrivrspring.global.auth.AuthUser;
+import retrivr.retrivrspring.global.config.JacksonConfig;
 import retrivr.retrivrspring.presentation.admin.rental.AdminActiveRentalController;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse.RentalSearchSummary;
@@ -43,8 +46,12 @@ class AdminActiveRentalControllerTest {
 
   @BeforeEach
   void setUp() {
+    Jackson2ObjectMapperBuilder builder = new Jackson2ObjectMapperBuilder();
+    new JacksonConfig().jsonCustomizer().customize(builder);
+
     mockMvc = MockMvcBuilders
         .standaloneSetup(new AdminActiveRentalController(adminActiveRentalService, sendMessageService))
+        .setMessageConverters(new MappingJackson2HttpMessageConverter(builder.build()))
         .setCustomArgumentResolvers(new AuthOrgArgumentResolver())
         .build();
   }
