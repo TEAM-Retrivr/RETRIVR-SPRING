@@ -190,7 +190,25 @@ public enum ErrorCode {
     NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다."),
     DO_NOT_GET_PAYMENT(HttpStatus.CONFLICT, 12405, "연결된 결제 내역을 가져올 수 없습니다."),
     // 12500: Payment Method Error
-    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.")
+    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다."),
+
+    // 13000: Locker Zone Error
+    INVALID_LOCKER_ZONE_VALUE(HttpStatus.BAD_REQUEST, 13000, "사물함 구역 정보가 올바르지 않습니다."),
+
+    // 13100: Locker Error
+    INVALID_LOCKER_VALUE(HttpStatus.BAD_REQUEST, 13100, "사물함 정보가 올바르지 않습니다."),
+
+    // 13200: Locker Rental Error
+    INVALID_LOCKER_RENTAL_VALUE(HttpStatus.BAD_REQUEST, 13200, "사물함 대여 정보가 올바르지 않습니다."),
+
+    // 13300: Locker Policy Error
+    INVALID_LOCKER_POLICY_VALUE(HttpStatus.BAD_REQUEST, 13300, "사물함 정책 정보가 올바르지 않습니다."),
+
+    // 13400: Locker Borrower Field Error
+    INVALID_LOCKER_BORROWER_FIELD_VALUE(HttpStatus.BAD_REQUEST, 13400, "사물함 대여자 필드 정보가 올바르지 않습니다."),
+
+    // 13500: Locker Rental Extension Error
+    INVALID_LOCKER_RENTAL_EXTENSION_VALUE(HttpStatus.BAD_REQUEST, 13500, "사물함 대여 연장 정보가 올바르지 않습니다.")
     ;
 
     private final HttpStatus httpStatus;
