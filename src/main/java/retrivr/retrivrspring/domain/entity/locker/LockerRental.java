@@ -56,8 +56,8 @@ public class LockerRental extends BaseTimeEntity {
   @JoinColumn(name = "organization_id", nullable = false)
   private Organization organization;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "locker_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "locker_id")
   private Locker locker;
 
   @Enumerated(EnumType.STRING)

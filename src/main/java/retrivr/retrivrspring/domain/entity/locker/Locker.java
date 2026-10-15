@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,7 +20,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
-import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerActivationStatus;
+import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerEnableStatus;
 import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerOperationStatus;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
@@ -30,11 +31,11 @@ import retrivr.retrivrspring.global.error.ErrorCode;
     uniqueConstraints = {
         @UniqueConstraint(
             name = "uk_locker_label",
-            columnNames = {"zone_id", "label"}
+            columnNames = {"zone_id", "layout_revision", "label"}
         ),
         @UniqueConstraint(
             name = "uk_locker_index",
-            columnNames = {"zone_id", "rowIndex", "columnIndex"}
+            columnNames = {"zone_id", "layout_revision", "row_index", "column_index"}
         )
     }
 )
@@ -72,12 +73,18 @@ public class Locker extends BaseTimeEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
-  private LockerActivationStatus activationStatus = LockerActivationStatus.ENABLED;
+  private LockerEnableStatus enableStatus = LockerEnableStatus.ENABLED;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
   private LockerOperationStatus operationStatus = LockerOperationStatus.AVAILABLE;
+
+  @Version
+  private Long version;
+
+  @Column(name = "layout_revision", nullable = false)
+  private long layoutRevision;
 
   public static Locker create(String label, int rowIndex, int columnIndex, LockerZone zone) {
     Locker instance = Locker.builder()
@@ -85,9 +92,88 @@ public class Locker extends BaseTimeEntity {
         .rowIndex(rowIndex)
         .columnIndex(columnIndex)
         .zone(zone)
+        .layoutRevision(zone == null ? 0 : zone.getLayoutRevision())
         .build();
     instance.validateForCreation();
     return instance;
+  }
+
+  public void enable() {
+    if (isEnabled()) {
+      throw new DomainException(ErrorCode.LOCKER_ALREADY_ENABLED);
+    }
+    this.enableStatus = LockerEnableStatus.ENABLED;
+    this.zone.changeEnabledLockerCount(1);
+  }
+
+  public void disable() {
+    if (!isEnabled()) {
+      throw new DomainException(ErrorCode.LOCKER_ALREADY_DISABLED);
+    }
+    if (this.operationStatus != LockerOperationStatus.AVAILABLE) {
+      throw new DomainException(ErrorCode.LOCKER_ACTIVE_RENTAL_EXISTS);
+    }
+    this.enableStatus = LockerEnableStatus.DISABLED;
+    this.zone.changeEnabledLockerCount(-1);
+  }
+
+  public void enableRental() {
+    if (!isEnabled()) {
+      throw new DomainException(ErrorCode.LOCKER_DISABLED);
+    }
+    if (isRentalAble()) {
+      throw new DomainException(ErrorCode.LOCKER_RENTAL_ENABLE_NOT_ALLOWED);
+    }
+    this.zone.changeLockerCount(1);
+    this.operationStatus = LockerOperationStatus.AVAILABLE;
+  }
+
+  public void disableRental() {
+    if (!isEnabled()) {
+      throw new DomainException(ErrorCode.LOCKER_DISABLED);
+    }
+    if (!isRentalAble()) {
+      throw new DomainException(ErrorCode.LOCKER_RENTAL_ENABLE_NOT_ALLOWED);
+    }
+    this.zone.changeLockerCount(-1);
+    this.operationStatus = LockerOperationStatus.UNAVAILABLE;
+  }
+
+  public boolean isEnabled() {
+    return this.enableStatus == LockerEnableStatus.ENABLED;
+  }
+
+  public boolean isRentalAble() {
+    return this.enableStatus == LockerEnableStatus.ENABLED && this.operationStatus == LockerOperationStatus.AVAILABLE;
+  }
+
+  /** rowSpan/columnSpan은 기본 한 칸에 추가로 병합된 칸 수이다 (기본 0). */
+  public void combine(Locker other) {
+    if (other == null || other == this
+        || !java.util.Objects.equals(zone.getId(), other.zone.getId())
+        || enableStatus != LockerEnableStatus.ENABLED
+        || other.enableStatus != LockerEnableStatus.ENABLED
+        || operationStatus != LockerOperationStatus.AVAILABLE
+        || other.operationStatus != LockerOperationStatus.AVAILABLE) {
+      throw new DomainException(ErrorCode.INVALID_LOCKER_COMBINATION);
+    }
+    boolean horizontal = rowIndex == other.rowIndex && rowSpan == other.rowSpan
+        && columnIndex + columnSpan + 1 == other.columnIndex;
+    boolean vertical = columnIndex == other.columnIndex && columnSpan == other.columnSpan
+        && rowIndex + rowSpan + 1 == other.rowIndex;
+    if (!horizontal && !vertical) {
+      throw new DomainException(ErrorCode.INVALID_LOCKER_COMBINATION);
+    }
+    if (horizontal) {
+      this.columnSpan += other.columnSpan + 1;
+    } else {
+      this.rowSpan += other.rowSpan + 1;
+    }
+  }
+
+  public void updateLabel(String label) {
+    validateLabel(label);
+    this.label = label;
   }
 
   /**
