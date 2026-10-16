@@ -33,7 +33,7 @@ public interface LockerRepository extends JpaRepository<Locker, UUID> {
       where l.zone.organization.id = :organizationId and l.zone.id = :zoneId
       group by l.enableStatus, l.operationStatus
       """)
-  List<StatusCount> countByStatus(@Param("organizationId") Long organizationId, @Param("zoneId") String zoneId);
+  List<StatusCount> countByStatus(@Param("organizationId") Long organizationId, @Param("zoneId") UUID zoneId);
 
   List<Locker> findByZoneAndOperationStatusOrderByRowIndexAscColumnIndexAsc(LockerZone zone, LockerOperationStatus operationStatus);
 

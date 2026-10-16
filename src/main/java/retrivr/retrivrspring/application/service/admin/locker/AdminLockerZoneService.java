@@ -72,7 +72,7 @@ public class AdminLockerZoneService {
 
   public AdminLockerSummaryResponse getLockersSummary(Long organizationId, UUID zoneId) {
     findOrganization(organizationId);
-    return AdminLockerSummaryResponse.from(lockerRepository.countByStatus(organizationId, zoneId.toString()));
+    return AdminLockerSummaryResponse.from(lockerRepository.countByStatus(organizationId, zoneId));
   }
 
   @Transactional
