@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "item_unit", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"item_id", "label"})
-})
+@Table(name = "item_unit")
 public class ItemUnit extends BaseTimeEntity {
 
   @Id
@@ -205,10 +203,6 @@ public class ItemUnit extends BaseTimeEntity {
     }
   }
 
-  public boolean hasLabelIn(java.util.Set<String> labels) {
-    return this.label != null && labels.contains(this.label);
-  }
-
   public static ItemUnit create(Item item, String label) {
     if (item == null) {
       throw new DomainException(
@@ -225,7 +219,7 @@ public class ItemUnit extends BaseTimeEntity {
 
     return ItemUnit.builder()
         .item(item)
-        .label(label)
+        .label(label.trim())
         .status(ItemUnitStatus.AVAILABLE)
         .build();
   }
@@ -237,7 +231,7 @@ public class ItemUnit extends BaseTimeEntity {
           "Item unit label의 값이 빈 값일 수 없습니다."
       );
     }
-    this.label = label;
+    this.label = label.trim();
   }
 
   /**

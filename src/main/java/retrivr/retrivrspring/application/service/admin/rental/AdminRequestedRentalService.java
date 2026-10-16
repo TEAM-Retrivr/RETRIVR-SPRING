@@ -22,6 +22,7 @@ import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalRequestPag
 
 import java.time.LocalDateTime;
 import java.util.List;
+import retrivr.retrivrspring.application.service.support.RentalItemLockService;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class AdminRequestedRentalService {
   private final RentalRepository rentalRepository;
   private final OrganizationRepository organizationRepository;
   private final ApplicationEventPublisher applicationEventPublisher;
+  private final RentalItemLockService rentalItemLockService;
 
   public AdminRentalRequestPageResponse getRequestedList(Long loginOrganizationId, Long cursor, Integer size) {
     if (!organizationRepository.existsById(loginOrganizationId)) {
@@ -61,7 +63,7 @@ public class AdminRequestedRentalService {
   public AdminRentalDecisionResponse approveRentalRequest(Long rentalId,
       AdminRentalApproveRequest request, Long loginOrganizationId) {
     // 1. 요청된 Rental 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인한 Organization 조회
@@ -72,6 +74,7 @@ public class AdminRequestedRentalService {
     rental.validateRentalOwner(organizationToApprove);
     
     // 4. 대여 요청 승인
+    rentalItemLockService.lockItems(List.of(rental));
     rental.approve(request.adminNameToApprove(), organizationToApprove);
     applicationEventPublisher.publishEvent(new RentalApprovedEvent(rental.getId()));
 
@@ -87,7 +90,7 @@ public class AdminRequestedRentalService {
   public AdminRentalDecisionResponse rejectRentalRequest(Long rentalId,
       AdminRentalRejectRequest request, Long loginOrganizationId) {
     // 1. 대여 정보 조회
-    Rental rental = rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)
+    Rental rental = rentalRepository.findByIdForUpdate(rentalId)
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_RENTAL));
 
     // 2. 로그인된 조직 조회
@@ -95,6 +98,7 @@ public class AdminRequestedRentalService {
         .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
 
     // 3. 대여 거부
+    rentalItemLockService.lockItems(List.of(rental));
     rental.reject(request.adminNameToReject(), loginOrganization);
     applicationEventPublisher.publishEvent(new RentalRejectedEvent(rental.getId()));
 
@@ -108,6 +112,8 @@ public class AdminRequestedRentalService {
 
   @Transactional
   public void rejectRentalRequestBySystem(Rental rental) {
+    // 만료 배치가 Rental 락 및 배치 전체 Item 락을 먼저 획득한다.
+    rentalItemLockService.lockItems(List.of(rental));
     // 대여 거부
     String systemMessage = "SYSTEM (요청 시간 만료)";
     rental.rejectBySystem(systemMessage);

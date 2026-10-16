@@ -97,7 +97,9 @@ public class AdminItemService {
         Item savedItem = issuePublicIdAndSaveItem(organization, request);
 
         List<ItemBorrowerField> borrowerFields = createBorrowerFields(savedItem, requirements);
-        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(savedItem.createUnits(request.unitLabels()));
+        List<ItemUnit> createdItemUnits = savedItem.createUnits(request.unitLabels());
+        savedItem.validateUniqueUnitLabels(createdItemUnits);
+        List<ItemUnit> itemUnits = itemUnitRepository.saveAll(createdItemUnits);
 
         return AdminItemCreateResponse.from(savedItem, borrowerFields, itemUnits);
     }
@@ -112,31 +114,28 @@ public class AdminItemService {
         adminCodeVerificationService.validateAndConsumeAdminCodeVerificationToken(
             organization, AdminCodeVerificationPurpose.ITEM_UPDATE, request.adminCodeVerificationToken());
 
-        Item item = itemRepository.findFetchItemBorrowerFieldsByIdAndOrganization_Id(itemId,
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId,
                         organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
-        List<ItemUnit> allItemUnits = itemUnitRepository.findAllByItemId(item.getId());
-        List<ItemUnit> currentItemUnits = allItemUnits.stream()
-            .filter(itemUnit -> !itemUnit.isDeleted())
-            .toList();
+        List<ItemUnit> currentItemUnits = itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(
+                item.getId());
         ItemManagementType previousItemManagementType = item.getItemManagementType();
         Integer previousTotalQuantity = item.getTotalQuantity();
         AdminItemUnitChangeSet requestedUnitChangeSet = adminItemUnitChangeClassifier.classify(
                 currentItemUnits,
                 request.unitChanges()
         );
+        List<ItemUnit> resolvedDeleteItemUnits = previousItemManagementType == ItemManagementType.UNIT
+                && request.itemManagementType() == ItemManagementType.NON_UNIT
+                ? currentItemUnits
+                : requestedUnitChangeSet.deleteItemUnits();
         AdminItemUnitChangeSet unitChangeSet = new AdminItemUnitChangeSet(
-                item.resolveDeleteUnitLabelsForTargetType(
-                        request.itemManagementType(),
-                        currentItemUnits,
-                        requestedUnitChangeSet.deleteUnitLabels()
-                ),
+                resolvedDeleteItemUnits,
                 requestedUnitChangeSet.createLabels(),
                 requestedUnitChangeSet.renameCommands()
         );
-        validateNoDeletedItemUnitLabelReuse(allItemUnits, unitChangeSet);
         item.validateUnitChangesForTargetType(
                 request.itemManagementType(),
                 unitChangeSet.createLabels().size(),
@@ -144,7 +143,10 @@ public class AdminItemService {
         );
         List<BorrowerRequirementRequest> requirements = request.borrowerRequirements();
 
-        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(currentItemUnits, unitChangeSet.deleteUnitLabels());
+        List<ItemUnit> deletedItemUnits = item.getDeletableUnits(
+                currentItemUnits,
+                unitChangeSet.deleteItemUnits()
+        );
         item.renameUnits(
                 unitChangeSet.renameCommands().stream().map(command -> command.itemUnit()).toList(),
                 unitChangeSet.renameCommands().stream().map(command -> command.label()).toList()
@@ -160,7 +162,12 @@ public class AdminItemService {
                 request.isActive()
         );
 
-        List<ItemUnit> createdItemUnits = itemUnitRepository.saveAll(item.createUnits(unitChangeSet.createLabels()));
+        List<ItemUnit> createdItemUnits = item.createUnits(unitChangeSet.createLabels());
+        List<ItemUnit> finalItemUnits = new ArrayList<>(currentItemUnits);
+        finalItemUnits.removeAll(deletedItemUnits);
+        finalItemUnits.addAll(createdItemUnits);
+        item.validateUniqueUnitLabels(finalItemUnits);
+        createdItemUnits = itemUnitRepository.saveAll(createdItemUnits);
 
         item.applyUnitChange(previousItemManagementType, previousTotalQuantity,
                 currentItemUnits, deletedItemUnits, createdItemUnits, request.totalQuantity());
@@ -192,14 +199,14 @@ public class AdminItemService {
     public AdminItemUnitMutationResponse updateUnitAvailability(Long organizationId, Long itemId,
                                                                 Long itemUnitId, AdminItemUnitAvailabilityUpdateRequest request) {
 
-        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
 
-        ItemUnit itemUnit = itemUnitRepository.findByIdAndItemIdAndItemOrganizationId(itemUnitId, itemId,
-                        organizationId)
+        ItemUnit itemUnit = itemUnitRepository
+                .findByIdAndItemIdAndItemOrganizationIdAndDeletedAtIsNull(
+                        itemUnitId, itemId, organizationId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT));
-        assertNotDeleted(itemUnit);
 
         boolean wasAvailable = itemUnit.getStatus() == ItemUnitStatus.AVAILABLE;
         itemUnit.changeAvailability(request.isAvailable());
@@ -237,7 +244,7 @@ public class AdminItemService {
     }
 
     private Item getNotDeletedItem(Long organizationId, Long itemId) {
-        Item item = itemRepository.findByIdAndOrganization_Id(itemId, organizationId)
+        Item item = itemRepository.findByIdAndOrganizationIdForUpdate(itemId, organizationId)
             .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ITEM));
         assertNotDeleted(item);
         return item;
@@ -249,36 +256,8 @@ public class AdminItemService {
         }
     }
 
-    private void assertNotDeleted(ItemUnit itemUnit) {
-        if (itemUnit.isDeleted()) {
-            throw new ApplicationException(ErrorCode.NOT_FOUND_ITEM_UNIT);
-        }
-    }
-
     private List<ItemUnit> findActiveItemUnits(Long itemId) {
-        return itemUnitRepository.findAllByItemId(itemId).stream()
-            .filter(itemUnit -> !itemUnit.isDeleted())
-            .toList();
-    }
-
-    private void validateNoDeletedItemUnitLabelReuse(
-        List<ItemUnit> allItemUnits,
-        AdminItemUnitChangeSet unitChangeSet
-    ) {
-        List<String> deletedLabels = allItemUnits.stream()
-            .filter(ItemUnit::isDeleted)
-            .map(ItemUnit::getLabel)
-            .toList();
-
-        boolean reusesDeletedLabel = unitChangeSet.createLabels().stream()
-            .anyMatch(deletedLabels::contains)
-            || unitChangeSet.renameCommands().stream()
-            .map(command -> command.label())
-            .anyMatch(deletedLabels::contains);
-
-        if (reusesDeletedLabel) {
-            throw new ApplicationException(ErrorCode.DELETED_ITEM_UNIT_LABEL);
-        }
+        return itemUnitRepository.findAllByItemIdAndDeletedAtIsNull(itemId);
     }
 
     private List<ItemBorrowerField> createBorrowerFields(

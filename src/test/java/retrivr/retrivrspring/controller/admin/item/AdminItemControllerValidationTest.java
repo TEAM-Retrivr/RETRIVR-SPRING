@@ -74,6 +74,33 @@ class AdminItemControllerValidationTest {
   class UpdateValidationTest {
 
     @Test
+    @DisplayName("unitChanges의 null 원소는 서비스 호출 전에 400으로 거부한다")
+    void update_nullUnitChange_returnsBadRequestCode() throws Exception {
+      String requestBody = """
+          {
+            "name": "충전기",
+            "rentalDuration": 3,
+            "totalQuantity": 1,
+            "itemManagementType": "UNIT",
+            "useMessageAlarmService": false,
+            "isActive": true,
+            "adminCodeVerificationToken": "token",
+            "unitChanges": [null],
+            "borrowerRequirements": []
+          }
+          """;
+
+      mockMvc.perform(patch("/api/admin/v1/items/{itemId}", 1L)
+              .contentType(APPLICATION_JSON)
+              .content(requestBody))
+          .andExpect(status().isBadRequest())
+          .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+              .jsonPath("$.code").value(2008));
+
+      org.mockito.Mockito.verifyNoInteractions(adminItemService);
+    }
+
+    @Test
     @DisplayName("full overwrite에서 rentalDuration이 null이면 400")
     void update_nullRentalDuration_returns400() throws Exception {
       String requestBody = """

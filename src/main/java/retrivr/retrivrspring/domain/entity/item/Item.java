@@ -12,7 +12,6 @@ import retrivr.retrivrspring.global.error.ErrorCode;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -386,14 +385,25 @@ public class Item extends BaseTimeEntity {
     }
 
     List<ItemUnit> createdItemUnits = new ArrayList<>();
-    Set<String> seenLabels = new HashSet<>();
     for (String unitLabel : unitLabels) {
-      if (!seenLabels.add(unitLabel)) {
-        throw new DomainException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
-      }
       createdItemUnits.add(createUnit(unitLabel));
     }
+    validateUniqueUnitLabels(createdItemUnits);
     return createdItemUnits;
+  }
+
+  /**
+   * 한 물품 안에서 활성 유닛 이름은 앞뒤 공백을 제거한 값으로 유일해야 한다.
+   * 대소문자는 서로 다른 이름으로 취급한다.
+   */
+  public void validateUniqueUnitLabels(List<ItemUnit> itemUnits) {
+    Set<String> labels = new HashSet<>();
+    for (ItemUnit itemUnit : itemUnits) {
+      String normalizedLabel = itemUnit.getLabel().trim();
+      if (!labels.add(normalizedLabel)) {
+        throw new DomainException(ErrorCode.DUPLICATE_ITEM_UNIT_LABEL);
+      }
+    }
   }
 
   public void renameUnits(List<ItemUnit> itemUnits, List<String> labels) {
@@ -429,49 +439,40 @@ public class Item extends BaseTimeEntity {
   }
 
   /**
-   * 수정 요청에서 삭제 가능한 기존 유닛 목록을 계산한다.
-   * 정책:
-   * - UNIT 타입에서만 유닛 삭제가 가능하다.
-   * - 삭제 대상은 요청에 포함된 label 기준으로 결정한다.
-   * - 대여 중/대여 요청 중 유닛은 삭제할 수 없다.
+   * 수정 요청에서 삭제 가능한 기존 유닛 목록을 itemUnitId 기준으로 검증한다.
+   * 대여 중이거나 대여 요청 중인 유닛은 삭제할 수 없다.
    */
-  public List<String> resolveDeleteUnitLabelsForTargetType(
-      ItemManagementType targetItemManagementType,
+  public List<ItemUnit> getDeletableUnits(
       List<ItemUnit> currentItemUnits,
-      List<String> requestedDeleteUnitLabels
+      List<ItemUnit> requestedDeleteItemUnits
   ) {
-    if (this.itemManagementType != ItemManagementType.UNIT
-        || targetItemManagementType != ItemManagementType.NON_UNIT) {
-      return requestedDeleteUnitLabels;
-    }
-
-    return currentItemUnits.stream()
-        .map(ItemUnit::getLabel)
-        .collect(Collectors.toList());
-  }
-
-  public List<ItemUnit> getDeletableUnits(List<ItemUnit> currentItemUnits, List<String> deleteUnitLabels) {
-    if (!isUnitType() || deleteUnitLabels == null || deleteUnitLabels.isEmpty()) {
+    if (!isUnitType() || requestedDeleteItemUnits == null || requestedDeleteItemUnits.isEmpty()) {
       return List.of();
     }
 
-    Set<String> requestedDeleteLabels = new HashSet<>(deleteUnitLabels);
-    if (requestedDeleteLabels.size() != deleteUnitLabels.size()) {
-      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "중복된 삭제 유닛 label 은 허용되지 않습니다.");
-    }
-    if (requestedDeleteLabels.size() > currentItemUnits.size()) {
-      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제할 유닛 수가 현재 유닛 수보다 많습니다.");
+    Map<Long, ItemUnit> currentItemUnitById = new LinkedHashMap<>();
+    for (ItemUnit currentItemUnit : currentItemUnits) {
+      currentItemUnitById.put(currentItemUnit.getId(), currentItemUnit);
     }
 
-    List<ItemUnit> deletedItemUnits = currentItemUnits.stream()
-        .filter(itemUnit -> itemUnit.hasLabelIn(requestedDeleteLabels))
-        .toList();
-    if (deletedItemUnits.size() != requestedDeleteLabels.size()) {
-      throw new DomainException(ErrorCode.BAD_REQUEST_EXCEPTION, "삭제 대상 유닛 label 이 존재하지 않습니다.");
-    }
+    Set<Long> requestedDeleteIds = new HashSet<>();
+    List<ItemUnit> deletedItemUnits = new ArrayList<>();
+    for (ItemUnit requestedDeleteItemUnit : requestedDeleteItemUnits) {
+      Long itemUnitId = requestedDeleteItemUnit == null ? null : requestedDeleteItemUnit.getId();
+      if (itemUnitId == null) {
+        throw new DomainException(ErrorCode.NOT_FOUND_ITEM_UNIT);
+      }
+      if (!requestedDeleteIds.add(itemUnitId)) {
+        throw new DomainException(ErrorCode.DUPLICATE_ITEM_UNIT_ID_IN_REQUEST);
+      }
 
-    for (ItemUnit deletedItemUnit : deletedItemUnits) {
+      ItemUnit deletedItemUnit = currentItemUnitById.get(itemUnitId);
+      if (deletedItemUnit == null) {
+        throw new DomainException(ErrorCode.NOT_FOUND_ITEM_UNIT);
+      }
+      validateItemUnitBelongsToThisItem(deletedItemUnit);
       deletedItemUnit.validateDeletable();
+      deletedItemUnits.add(deletedItemUnit);
     }
     return deletedItemUnits;
   }

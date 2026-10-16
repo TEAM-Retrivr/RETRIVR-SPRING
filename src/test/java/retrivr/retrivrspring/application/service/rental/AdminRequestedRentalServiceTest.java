@@ -1,5 +1,7 @@
 package retrivr.retrivrspring.application.service.rental;
 
+import static org.mockito.Mockito.inOrder;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdminRequestedRentalServiceTest {
+
+  @Mock private retrivr.retrivrspring.application.service.support.RentalItemLockService rentalItemLockService;
 
   @Mock
   RentalRepository rentalRepository;
@@ -131,7 +135,7 @@ class AdminRequestedRentalServiceTest {
     Long orgId = 10L;
     AdminRentalApproveRequest req = mock(AdminRentalApproveRequest.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.empty());
+    when(rentalRepository.findByIdForUpdate(rentalId)).thenReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> service.approveRentalRequest(rentalId, req, orgId))
@@ -148,7 +152,7 @@ class AdminRequestedRentalServiceTest {
     Long orgId = 10L;
 
     Rental rental = mock(Rental.class);
-    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findByIdForUpdate(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
 
     AdminRentalApproveRequest req = mock(AdminRentalApproveRequest.class);
@@ -170,7 +174,7 @@ class AdminRequestedRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization org = mock(Organization.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findByIdForUpdate(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
     when(rental.getId()).thenReturn(rentalId);
 
@@ -181,7 +185,10 @@ class AdminRequestedRentalServiceTest {
     AdminRentalDecisionResponse res = service.approveRentalRequest(rentalId, req, orgId);
 
     // then
-    verify(rental).approve("adminA", org);
+    org.mockito.InOrder order = inOrder(rentalRepository, rentalItemLockService, rental);
+    order.verify(rentalRepository).findByIdForUpdate(rentalId);
+    order.verify(rentalItemLockService).lockItems(List.of(rental));
+    order.verify(rental).approve("adminA", org);
     verify(applicationEventPublisher).publishEvent(new RentalApprovedEvent(rentalId));
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("APPROVE");
@@ -200,7 +207,7 @@ class AdminRequestedRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization org = mock(Organization.class);
 
-    when(rentalRepository.findFetchRentalItemAndOrganizationByIdWithLock(rentalId)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findByIdForUpdate(rentalId)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
     when(rental.getId()).thenReturn(rentalId);
 
@@ -211,7 +218,10 @@ class AdminRequestedRentalServiceTest {
     AdminRentalDecisionResponse res = service.rejectRentalRequest(rentalId, req, orgId);
 
     // then
-    verify(rental).reject("adminB", org);
+    org.mockito.InOrder order = inOrder(rentalRepository, rentalItemLockService, rental);
+    order.verify(rentalRepository).findByIdForUpdate(rentalId);
+    order.verify(rentalItemLockService).lockItems(List.of(rental));
+    order.verify(rental).reject("adminB", org);
     verify(applicationEventPublisher).publishEvent(new RentalRejectedEvent(rentalId));
     assertThat(res.rentalId()).isEqualTo(rentalId);
     assertThat(res.rentalDecisionStatus().name()).isEqualTo("REJECT");

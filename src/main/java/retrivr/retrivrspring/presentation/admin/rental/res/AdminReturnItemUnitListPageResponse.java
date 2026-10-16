@@ -1,8 +1,6 @@
 package retrivr.retrivrspring.presentation.admin.rental.res;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import retrivr.retrivrspring.domain.entity.item.Item;
@@ -53,23 +51,11 @@ public record AdminReturnItemUnitListPageResponse(
           unitId != null ? borrowedItemName : null,
           borrower.getName(),
           borrower.getContact(),
-          extractBorrowerFields(borrower),
+          BorrowerFieldsResponseMapper.from(borrower),
           rental.getRequestNote(),
           rental.getDecidedAt().toLocalDate(),
           rental.getDueDate()
       );
-    }
-
-    private static Map<String, String> extractBorrowerFields(Borrower borrower) {
-      Map<String, String> fields = new LinkedHashMap<>();
-      JsonNode additionalBorrowerInfo = borrower.getAdditionalBorrowerInfo();
-      if (additionalBorrowerInfo == null || additionalBorrowerInfo.isNull()) {
-        return fields;
-      }
-
-      additionalBorrowerInfo.fields()
-          .forEachRemaining(entry -> fields.put(entry.getKey(), entry.getValue().asText("")));
-      return fields;
     }
 
   }

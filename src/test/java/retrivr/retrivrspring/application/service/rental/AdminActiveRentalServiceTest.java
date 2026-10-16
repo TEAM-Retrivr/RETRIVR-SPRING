@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import retrivr.retrivrspring.application.event.RentalReturnedEvent;
 import retrivr.retrivrspring.application.service.admin.rental.AdminActiveRentalService;
+import retrivr.retrivrspring.application.vo.RentedRentalSearchResultWithScore;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.domain.entity.rental.Rental;
 import retrivr.retrivrspring.domain.repository.message.MessageHistoryRepository;
@@ -37,9 +38,13 @@ import retrivr.retrivrspring.presentation.admin.rental.req.AdminRentalReturnRequ
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminOverdueRentalItemPageResponse;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminOverdueRentalItemPageResponse.OverdueRentalItemSummary;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalReturnResponse;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse;
+import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalSearchPageResponse.RentalSearchSummary;
 
 @ExtendWith(MockitoExtension.class)
 class AdminActiveRentalServiceTest {
+
+  @Mock private retrivr.retrivrspring.application.service.support.RentalItemLockService rentalItemLockService;
 
   @Mock
   RentalRepository rentalRepository;
@@ -107,7 +112,7 @@ class AdminActiveRentalServiceTest {
   @Test
   @DisplayName("confirmReturn: rental not found")
   void confirmReturn_rentalNotFound() {
-    when(rentalRepository.findByIdWithItems(1L)).thenReturn(Optional.empty());
+    when(rentalRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.confirmReturn(10L, 1L, new AdminRentalReturnRequest("admin")))
         .isInstanceOf(ApplicationException.class)
@@ -121,17 +126,56 @@ class AdminActiveRentalServiceTest {
     Rental rental = mock(Rental.class);
     Organization organization = mock(Organization.class);
 
-    when(rentalRepository.findByIdWithItems(1L)).thenReturn(Optional.of(rental));
+    when(rentalRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(rental));
     when(organizationRepository.findById(10L)).thenReturn(Optional.of(organization));
     when(rental.getId()).thenReturn(1L);
 
     AdminRentalReturnResponse response =
         service.confirmReturn(10L, 1L, new AdminRentalReturnRequest("admin"));
 
-    verify(rental).markReturned("admin", organization);
+    org.mockito.InOrder order = org.mockito.Mockito.inOrder(rentalRepository, rentalItemLockService, rental);
+    order.verify(rentalRepository).findByIdForUpdate(1L);
+    order.verify(rentalItemLockService).lockItems(List.of(rental));
+    order.verify(rental).markReturned("admin", organization);
     verify(applicationEventPublisher).publishEvent(new RentalReturnedEvent(1L));
     assertThat(response.rentalId()).isEqualTo(1L);
     assertThat(response.rentalStatus()).isEqualTo(RentalStatus.RETURNED);
     assertThat(response.adminNameToConfirm()).isEqualTo("admin");
+  }
+
+  @Test
+  @DisplayName("search rentals preserves ranked pagination and batch-loads item units")
+  void searchRankedPageByKeyword_preservesCursorAndBatchLoadsUnits() {
+    Organization organization = mock(Organization.class);
+    Rental first = mock(Rental.class);
+    Rental second = mock(Rental.class);
+    when(first.getId()).thenReturn(1L);
+    when(second.getId()).thenReturn(2L);
+    when(organizationRepository.findById(10L)).thenReturn(Optional.of(organization));
+    when(rentalRepository.searchRentedRentalPageBy(10L, "충전기", null, null, 3))
+        .thenReturn(List.of(
+            new RentedRentalSearchResultWithScore(1L, 2.0),
+            new RentedRentalSearchResultWithScore(2L, 1.5),
+            new RentedRentalSearchResultWithScore(3L, 1.0)
+        ));
+    when(rentalRepository.findFetchBorrowerAndItemByIdIn(List.of(1L, 2L)))
+        .thenReturn(List.of(first, second));
+    when(rentalRepository.findFetchRentalItemUnitsByRentalIn(List.of(first, second)))
+        .thenReturn(List.of(first, second));
+
+    RentalSearchSummary firstSummary = mock(RentalSearchSummary.class);
+    RentalSearchSummary secondSummary = mock(RentalSearchSummary.class);
+    try (MockedStatic<RentalSearchSummary> mocked = mockStatic(RentalSearchSummary.class)) {
+      mocked.when(() -> RentalSearchSummary.from(first)).thenReturn(firstSummary);
+      mocked.when(() -> RentalSearchSummary.from(second)).thenReturn(secondSummary);
+
+      AdminRentalSearchPageResponse response =
+          service.searchRankedPageByKeyword("충전기", null, null, 2, 10L);
+
+      assertThat(response.rentals()).containsExactly(firstSummary, secondSummary);
+      assertThat(response.nextScoreCursor()).isEqualTo(1.5);
+      assertThat(response.nextRentalIdCursor()).isEqualTo(2L);
+      verify(rentalRepository).findFetchRentalItemUnitsByRentalIn(List.of(first, second));
+    }
   }
 }

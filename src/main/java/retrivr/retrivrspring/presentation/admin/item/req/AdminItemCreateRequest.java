@@ -43,7 +43,7 @@ public record AdminItemCreateRequest(
     String guaranteedGoods,
 
     @Schema(description = "유닛 라벨 목록", example = "[\"검은색 충전기\", \"흰색 충전기\"]")
-    List<String> unitLabels,
+    List<@Size(max = 255) String> unitLabels,
 
     @Schema(description = "대여자 입력 요구 정보 목록")
     @Valid
