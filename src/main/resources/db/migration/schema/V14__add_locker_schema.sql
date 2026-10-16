@@ -91,6 +91,8 @@ create table locker_borrower_field
     label      varchar(100) not null,
     required   boolean      not null,
     sort_order integer      not null,
+    created_at          timestamp(6) not null,
+    updated_at          timestamp(6) not null,
     constraint fk_locker_borrower_field_policy
         foreign key (policy_id) references locker_policy (id)
 );
