@@ -156,6 +156,9 @@ public class AdminLockerZoneService {
         || !expectedIds.equals(reqIdsSet)) {
       throw new ApplicationException(ErrorCode.INVALID_LOCKER_ZONE_ORDER);
     }
+    if (zones.isEmpty()) {
+      return new AdminLockerZoneListResponse(List.of());
+    }
 
     // unique 제약을 피하기 위해 존재하지 않는 sortOrder 로 미리 변경
     int minSortOrder = zones.getFirst().getSortOrder();
