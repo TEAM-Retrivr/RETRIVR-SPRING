@@ -23,6 +23,7 @@ public enum ErrorCode {
     SEARCH_LOG_NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND, 2007, "존재하지 않는 검색 로그입니다."),
     BAD_REQUEST_EXCEPTION(HttpStatus.BAD_REQUEST, 2008, "잘못된 요청입니다."),
     UNSUPPORTED_NOTIFICATION_MESSAGE_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, 2009, "지원하지 않는 알림 메시지 타입입니다."),
+    VERSION_CONFLICT(HttpStatus.CONFLICT, 2010, "데이터가 변경되었습니다. 다시 조회해 주세요."),
 
     // 3000: Organization Error
     NO_SEARCH_KEYWORD_EXCEPTION(HttpStatus.BAD_REQUEST, 3000, "단체 찾기 요청 키워드가 없습니다."),
@@ -191,7 +192,39 @@ public enum ErrorCode {
     NOT_FOUND_SCHEDULED_PAYMENT(HttpStatus.NOT_FOUND, 12404, "예약된 결제를 찾을 수 없습니다."),
     DO_NOT_GET_PAYMENT(HttpStatus.CONFLICT, 12405, "연결된 결제 내역을 가져올 수 없습니다."),
     // 12500: Payment Method Error
-    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다.")
+    NOT_DELETABLE_DEFAULT_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, 12505, "기본 결제수단은 삭제할 수 없습니다."),
+
+    // 13000: Locker Zone Error
+    INVALID_LOCKER_ZONE_VALUE(HttpStatus.BAD_REQUEST, 13000, "사물함 구역 정보가 올바르지 않습니다."),
+    LOCKER_ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, 13001, "사물함 구역을 찾을 수 없습니다."),
+    DUPLICATE_LOCKER_ZONE_NAME(HttpStatus.CONFLICT, 13002, "이미 사용된 사물함 구역 이름입니다."),
+    INVALID_LOCKER_ZONE_ORDER(HttpStatus.BAD_REQUEST, 13004, "해당 기관의 모든 구역을 중복 없이 지정해야 합니다."),
+    LOCKER_ACTIVE_RENTAL_EXISTS(HttpStatus.CONFLICT, 13005, "진행 중인 대여가 있어 사물함 배치를 변경할 수 없습니다."),
+    LOCKER_ZONE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, 13006, "생성 가능한 사물함 구역의 최대 개수를 초과했습니다."),
+
+    // 13100: Locker Error
+    INVALID_LOCKER_VALUE(HttpStatus.BAD_REQUEST, 13100, "사물함 정보가 올바르지 않습니다."),
+    LOCKER_NOT_FOUND(HttpStatus.NOT_FOUND, 13101, "사물함을 찾을 수 없습니다."),
+    INVALID_LOCKER_COMBINATION(HttpStatus.BAD_REQUEST, 13102, "같은 구역의 인접한 사물함 두 개를 직사각형으로만 병합할 수 있습니다."),
+
+    DUPLICATE_LOCKER_LABEL(HttpStatus.CONFLICT, 13103, "같은 구역에서 이미 사용된 사물함 라벨입니다."),
+    LOCKER_ALREADY_ENABLED(HttpStatus.CONFLICT, 13104, "이미 활성화된 사물함입니다."),
+    LOCKER_ALREADY_DISABLED(HttpStatus.CONFLICT, 13105, "이미 비활성화된 사물함입니다."),
+    LOCKER_DISABLED(HttpStatus.CONFLICT, 13106, "비활성화된 사물함은 대여 가능 여부를 변경할 수 없습니다."),
+    LOCKER_RENTAL_ENABLE_NOT_ALLOWED(HttpStatus.CONFLICT, 13107, "대여 불가 상태의 사물함만 대여 가능 상태로 변경할 수 있습니다."),
+    LOCKER_RENTAL_ALREADY_DISABLED(HttpStatus.CONFLICT, 13108, "이미 대여 불가 상태인 사물함입니다."),
+
+    // 13200: Locker Rental Error
+    INVALID_LOCKER_RENTAL_VALUE(HttpStatus.BAD_REQUEST, 13200, "사물함 대여 정보가 올바르지 않습니다."),
+
+    // 13300: Locker Policy Error
+    INVALID_LOCKER_POLICY_VALUE(HttpStatus.BAD_REQUEST, 13300, "사물함 정책 정보가 올바르지 않습니다."),
+
+    // 13400: Locker Borrower Field Error
+    INVALID_LOCKER_BORROWER_FIELD_VALUE(HttpStatus.BAD_REQUEST, 13400, "사물함 대여자 필드 정보가 올바르지 않습니다."),
+
+    // 13500: Locker Rental Extension Error
+    INVALID_LOCKER_RENTAL_EXTENSION_VALUE(HttpStatus.BAD_REQUEST, 13500, "사물함 대여 연장 정보가 올바르지 않습니다.")
     ;
 
     private final HttpStatus httpStatus;

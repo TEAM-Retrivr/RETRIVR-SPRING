@@ -50,11 +50,11 @@ class AdminRentalSearchPageResponseTest {
     assertThat(result.itemUnitLabel()).isEqualTo("c타입 충전기(1)");
     assertThat(result.rentalDate()).isEqualTo(LocalDate.of(2026, 9, 1));
     assertThat(result.expectedReturnDueDate()).isEqualTo(LocalDate.of(2026, 9, 10));
-    assertThat(result.borrowerFields()).containsExactly(
-        Map.entry("additionalProp1", "컴퓨터공학과"),
-        Map.entry("additionalProp2", "20260430"),
-        Map.entry("additionalProp3", "")
-    );
+    assertThat(result.borrowerFields()).containsExactlyInAnyOrderEntriesOf(Map.of(
+        "additionalProp1", "컴퓨터공학과",
+        "additionalProp2", "20260430",
+        "additionalProp3", ""
+    ));
     assertThat(result.requestNote()).isEqualTo("오후 반납");
     assertThat(result.approvalAdminName()).isEqualTo("관리자");
   }
