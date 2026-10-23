@@ -213,6 +213,11 @@ public enum ErrorCode {
     LOCKER_DISABLED(HttpStatus.CONFLICT, 13106, "비활성화된 사물함은 대여 가능 여부를 변경할 수 없습니다."),
     LOCKER_RENTAL_ENABLE_NOT_ALLOWED(HttpStatus.CONFLICT, 13107, "대여 불가 상태의 사물함만 대여 가능 상태로 변경할 수 있습니다."),
     LOCKER_RENTAL_ALREADY_DISABLED(HttpStatus.CONFLICT, 13108, "이미 대여 불가 상태인 사물함입니다."),
+    LOCKER_OWNER_MISMATCH(HttpStatus.UNAUTHORIZED, 13109,"사물함 접근에 대한 권한이 없습니다."),
+    LOCKER_NOT_ADJACENT(HttpStatus.BAD_REQUEST, 13110, "상하좌우로 인접한 사물함만 병합할 수 있습니다."),
+    LOCKER_COMBINED_ENABLE_NOT_ALLOWED(HttpStatus.CONFLICT, 13111, "병합된 구성원 사물함은 개별적으로 활성화할 수 없습니다."),
+    LOCKER_NOT_REPRESENTATIVE(HttpStatus.CONFLICT, 13112, "병합할 부모 사물함은 대표 사물함이어야 합니다."),
+    LOCKER_SELF_COMBINATION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, 13113, "사물함은 자기 자신과 병합할 수 없습니다."),
 
     // 13200: Locker Rental Error
     INVALID_LOCKER_RENTAL_VALUE(HttpStatus.BAD_REQUEST, 13200, "사물함 대여 정보가 올바르지 않습니다."),
