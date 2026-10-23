@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,7 @@ import lombok.NoArgsConstructor;
 import retrivr.retrivrspring.domain.entity.BaseTimeEntity;
 import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerEnableStatus;
 import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerOperationStatus;
+import retrivr.retrivrspring.domain.entity.organization.Organization;
 import retrivr.retrivrspring.global.error.DomainException;
 import retrivr.retrivrspring.global.error.ErrorCode;
 
@@ -62,13 +64,9 @@ public class Locker extends BaseTimeEntity {
   @Column(nullable = false)
   private int columnIndex;
 
-  @Column(nullable = false)
-  @Builder.Default
-  private int rowSpan = 0; // 행 병합 칸수
-
-  @Column(nullable = false)
-  @Builder.Default
-  private int columnSpan = 0; // 열 병합 칸수
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "parent_locker", nullable = false)
+  private Locker parentLocker;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -94,6 +92,7 @@ public class Locker extends BaseTimeEntity {
         .zone(zone)
         .layoutRevision(zone == null ? 0 : zone.getLayoutRevision())
         .build();
+    instance.parentLocker = instance;
     instance.validateForCreation();
     return instance;
   }
@@ -101,6 +100,9 @@ public class Locker extends BaseTimeEntity {
   public void enable() {
     if (isEnabled()) {
       throw new DomainException(ErrorCode.LOCKER_ALREADY_ENABLED);
+    }
+    if (isCombinedLocker()) {
+      throw new DomainException(ErrorCode.LOCKER_COMBINED_ENABLE_NOT_ALLOWED);
     }
     this.enableStatus = LockerEnableStatus.ENABLED;
     this.zone.changeEnabledLockerCount(1);
@@ -121,7 +123,11 @@ public class Locker extends BaseTimeEntity {
     if (!isEnabled()) {
       throw new DomainException(ErrorCode.LOCKER_DISABLED);
     }
-    if (isRentalAble()) {
+    if (this.operationStatus == LockerOperationStatus.PENDING
+        || this.operationStatus == LockerOperationStatus.RENTED) {
+      throw new DomainException(ErrorCode.LOCKER_ACTIVE_RENTAL_EXISTS);
+    }
+    if (this.operationStatus != LockerOperationStatus.UNAVAILABLE) {
       throw new DomainException(ErrorCode.LOCKER_RENTAL_ENABLE_NOT_ALLOWED);
     }
     this.zone.changeLockerCount(1);
@@ -147,33 +153,52 @@ public class Locker extends BaseTimeEntity {
     return this.enableStatus == LockerEnableStatus.ENABLED && this.operationStatus == LockerOperationStatus.AVAILABLE;
   }
 
-  /** rowSpan/columnSpan은 기본 한 칸에 추가로 병합된 칸 수이다 (기본 0). */
-  public void combine(Locker other) {
-    if (other == null || other == this
-        || !java.util.Objects.equals(zone.getId(), other.zone.getId())
-        || enableStatus != LockerEnableStatus.ENABLED
-        || other.enableStatus != LockerEnableStatus.ENABLED
-        || operationStatus != LockerOperationStatus.AVAILABLE
-        || other.operationStatus != LockerOperationStatus.AVAILABLE) {
-      throw new DomainException(ErrorCode.INVALID_LOCKER_COMBINATION);
-    }
-    boolean horizontal = rowIndex == other.rowIndex && rowSpan == other.rowSpan
-        && columnIndex + columnSpan + 1 == other.columnIndex;
-    boolean vertical = columnIndex == other.columnIndex && columnSpan == other.columnSpan
-        && rowIndex + rowSpan + 1 == other.rowIndex;
-    if (!horizontal && !vertical) {
-      throw new DomainException(ErrorCode.INVALID_LOCKER_COMBINATION);
-    }
-    if (horizontal) {
-      this.columnSpan += other.columnSpan + 1;
-    } else {
-      this.rowSpan += other.rowSpan + 1;
-    }
-  }
-
   public void updateLabel(String label) {
     validateLabel(label);
     this.label = label;
+  }
+
+  public void validateOwner(Organization  organization) {
+    if (!Objects.equals(this.zone.getOrganization().getId(), organization.getId())) {
+      throw new DomainException(ErrorCode.LOCKER_OWNER_MISMATCH);
+    }
+  }
+
+  public void validateEnable() {
+    if (this.enableStatus == LockerEnableStatus.DISABLED) {
+      throw new DomainException(ErrorCode.LOCKER_DISABLED);
+    }
+  }
+
+  public void combine(Locker parent) {
+    if (!parent.isRepresentativeLocker()) {
+      throw new DomainException(ErrorCode.LOCKER_NOT_REPRESENTATIVE);
+    }
+    this.parentLocker = parent;
+    this.disable();
+  }
+
+  public boolean isRepresentativeLocker() {
+    return this.enableStatus == LockerEnableStatus.ENABLED
+        && !hasParent();
+  }
+
+  public void validateRepresentativeLocker() {
+    if (!isRepresentativeLocker()) {
+      throw new DomainException(ErrorCode.LOCKER_NOT_REPRESENTATIVE);
+    }
+  }
+  public boolean isCombinedLocker() {
+    return this.enableStatus == LockerEnableStatus.DISABLED
+        && hasParent();
+  }
+
+  public boolean hasParent() {
+    return !Objects.equals(getParentLocker().getId(), getId());
+  }
+
+  public boolean isChildOf(Locker parent) {
+    return Objects.equals(getParentLocker().getId(), parent.getId());
   }
 
   /**
