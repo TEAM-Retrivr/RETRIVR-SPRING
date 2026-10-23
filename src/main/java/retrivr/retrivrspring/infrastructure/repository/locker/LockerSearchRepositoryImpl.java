@@ -36,7 +36,7 @@ public class LockerSearchRepositoryImpl implements LockerSearchRepository {
           left join locker_rental r
               on r.locker_id = l.id
               and r.organization_id = :organizationId
-              and r.status in ('REQUESTED', 'RENTED')
+              and r.status in ('REQUESTED', 'APPROVED')
           where z.organization_id = :organizationId
             and l.enable_status = 'ENABLED'
             and (
