@@ -2,6 +2,7 @@ package retrivr.retrivrspring.presentation.admin.rental.res;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import retrivr.retrivrspring.domain.entity.item.Item;
 import retrivr.retrivrspring.domain.entity.item.ItemUnit;
 import retrivr.retrivrspring.domain.entity.rental.Borrower;
@@ -24,6 +25,7 @@ public record AdminRentalRequestPageResponse(
       Integer availableQuantity,
       String borrowerName,
       String contact,
+      Map<String, String> borrowerFields,
       String guaranteedGoods,
       LocalDateTime requestedAt
   ) {
@@ -49,6 +51,7 @@ public record AdminRentalRequestPageResponse(
           item.getAvailableQuantity(),
           borrower.getName(),
           borrower.getContact(),
+          BorrowerFieldsResponseMapper.from(borrower),
           item.getGuaranteedGoods(),
           rental.getRequestedAt()
       );

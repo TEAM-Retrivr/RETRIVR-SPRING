@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import retrivr.retrivrspring.domain.entity.item.Item;
@@ -17,6 +19,24 @@ import retrivr.retrivrspring.domain.entity.rental.RentalItemUnit;
 import retrivr.retrivrspring.presentation.admin.rental.res.AdminRentalRequestPageResponse.RentalRequestSummary;
 
 class AdminRentalRequestPageResponseTest {
+
+  @Test
+  @DisplayName("대여 요청 JSON 응답에 대여자 요구정보의 라벨과 입력값을 포함한다")
+  void response_includesBorrowerFieldKeysAndValues() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    Rental rental = mock(Rental.class);
+    when(rental.getItem()).thenReturn(mock(Item.class));
+    when(rental.getBorrower()).thenReturn(Borrower.create(
+        "홍길동", new PhoneNumber("010-1234-5678"),
+        objectMapper.valueToTree(Map.of("학번", "202012345", "학과", "컴퓨터공학부"))));
+
+    AdminRentalRequestPageResponse response = new AdminRentalRequestPageResponse(
+        List.of(RentalRequestSummary.from(rental)), null);
+    var json = objectMapper.readTree(objectMapper.writeValueAsString(response));
+
+    assertThat(json.at("/requests/0/borrowerFields/학번").asText()).isEqualTo("202012345");
+    assertThat(json.at("/requests/0/borrowerFields/학과").asText()).isEqualTo("컴퓨터공학부");
+  }
 
   @Test
   @DisplayName("from: unit rental includes itemUnitLabel and requestNote")
@@ -79,5 +99,6 @@ class AdminRentalRequestPageResponseTest {
     assertThat(summary.itemUnitId()).isNull();
     assertThat(summary.itemUnitLabel()).isNull();
     assertThat(summary.requestNote()).isEqualTo("문 앞 수령");
+    assertThat(summary.borrowerFields()).isEmpty();
   }
 }
