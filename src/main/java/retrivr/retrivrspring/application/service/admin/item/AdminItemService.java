@@ -278,6 +278,10 @@ public class AdminItemService {
                     i + 1
             ));
         }
+
+        if (fields.size() > ItemBorrowerField.MAX_COUNT) {
+            throw new ApplicationException(ErrorCode.TOO_MANY_ITEM_BORROWER_FIELD);
+        }
         return itemBorrowerFieldRepository.saveAll(fields);
     }
 

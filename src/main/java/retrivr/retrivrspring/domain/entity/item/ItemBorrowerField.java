@@ -30,6 +30,8 @@ public class ItemBorrowerField extends BaseTimeEntity {
   @Column(name = "sort_order", nullable = false)
   private int sortOrder;
 
+  public static int MAX_COUNT = 4;
+
   public static ItemBorrowerField of(
           Item item,
           String label,
