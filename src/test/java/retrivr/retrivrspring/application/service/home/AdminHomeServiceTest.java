@@ -49,6 +49,7 @@ class AdminHomeServiceTest {
 
         Organization org = mock(Organization.class);
         when(org.getName()).thenReturn("건국대학교 도서관자치위원회");
+        when(org.getDescription()).thenReturn("신분증 필수");
         when(org.getProfileImageKey()).thenReturn(null);
 
         when(organizationRepository.findById(orgId))
@@ -92,6 +93,7 @@ class AdminHomeServiceTest {
 
         // when
         AdminHomeResponse result = adminHomeService.getHome(orgId);
+        assertThat(result.description()).isEqualTo("신분증 필수");
 
         // then
         assertThat(result.organizationName())

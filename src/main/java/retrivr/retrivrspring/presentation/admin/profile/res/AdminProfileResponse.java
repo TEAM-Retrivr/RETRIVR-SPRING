@@ -18,6 +18,9 @@ public record AdminProfileResponse(
                 example = "https://s3.retrivr/organizations/1/profile/image.png",
                 nullable = true
         )
-        String profileImageUrl
+        String profileImageUrl,
+
+        @Schema(description = "대여지 설명 (미등록 시 null)", maxLength = 200)
+        String description
 ) {
 }
