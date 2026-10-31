@@ -8,6 +8,7 @@ public record AdminHomeResponse(
 
         @Schema(description = "단체명", example = "건국대학교 도서관자치위원회")
         String organizationName,
+        String description,
 
         Long organizationId,
 
