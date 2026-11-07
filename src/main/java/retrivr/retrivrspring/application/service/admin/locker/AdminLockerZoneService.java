@@ -38,7 +38,7 @@ import retrivr.retrivrspring.presentation.admin.locker.res.zone.AdminLockerZoneR
 public class AdminLockerZoneService {
 
   private static final List<LockerRentalStatus> ACTIVE_RENTALS =
-      List.of(LockerRentalStatus.REQUESTED, LockerRentalStatus.RENTED);
+      List.of(LockerRentalStatus.REQUESTED, LockerRentalStatus.APPROVED);
   private final OrganizationRepository organizationRepository;
   private final LockerZoneRepository zoneRepository;
   private final LockerRepository lockerRepository;

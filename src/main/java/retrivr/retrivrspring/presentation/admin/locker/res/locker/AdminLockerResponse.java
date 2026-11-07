@@ -21,7 +21,7 @@ public record AdminLockerResponse(
         locker.getLabel(),
         locker.getRowIndex(),
         locker.getColumnIndex(),
-        locker.getId(),
+        locker.getParentLocker() == null ? null : locker.getParentLocker().getId(),
         locker.getEnableStatus(),
         locker.getOperationStatus(),
         locker.getVersion()
