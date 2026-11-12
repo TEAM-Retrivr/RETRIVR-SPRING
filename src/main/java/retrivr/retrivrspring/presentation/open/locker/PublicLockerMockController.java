@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
 import retrivr.retrivrspring.presentation.locker.mock.LockerMockContract.*;
 import retrivr.retrivrspring.presentation.locker.mock.LockerMockData;
+import retrivr.retrivrspring.domain.entity.locker.enumerate.LockerRentalStatus;
 
 @RestController
 @RequestMapping("/api/public/v1")
@@ -40,7 +41,7 @@ public class PublicLockerMockController {
   @PostMapping("/locker-rentals/{publicId}/approve")
   @Operation(summary = "[MOCK] 현장 대여 승인 (관리자 코드 토큰 예시)")
   public Action approve(@PathVariable String publicId,
-      @Valid @RequestBody ImmediateApprovalRequest request) { return LockerMockData.rentalAction("RENTED"); }
+      @Valid @RequestBody ImmediateApprovalRequest request) { return LockerMockData.rentalAction(LockerRentalStatus.APPROVED); }
 
   @GetMapping("/lockers/{lockerId}/extension-form")
   @Operation(summary = "[MOCK] 연장 신청 화면: 기존/연장 반납일 및 입력 항목")

@@ -105,7 +105,7 @@ class LockerMockApiTest {
         .andExpect(jsonPath("$.status").value("REQUESTED"));
     mvc.perform(post(RENTALS + "/" + ID + "/approve").header("Authorization", "Bearer valid")
             .contentType(MediaType.APPLICATION_JSON).content("{\"managerName\":\"김관리\",\"collateralConfirmed\":true}"))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RENTED"));
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
     mvc.perform(get("/api/public/v1/locker-rentals/" + LockerMockData.PUBLIC_ID))
         .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REQUESTED"));
   }

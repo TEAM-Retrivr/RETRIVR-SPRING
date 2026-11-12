@@ -75,7 +75,7 @@ public final class LockerMockData {
         NOW.plusDays(1), DUE, DUE.plusDays(7));
   }
   public static Rental rental(int index, LockerRentalStatus status) {
-    boolean approved = status == LockerRentalStatus.RENTED || status == LockerRentalStatus.RETURNED;
+    boolean approved = status == LockerRentalStatus.APPROVED || status == LockerRentalStatus.RETURNED;
     boolean rejected = status == LockerRentalStatus.REJECTED;
     boolean returned = status == LockerRentalStatus.RETURNED;
     return new Rental(id("3", index), index == 1 ? PUBLIC_ID : "mock-locker-rental-" + index,
@@ -88,7 +88,7 @@ public final class LockerMockData {
   }
   public static Rental rental() { return rental(1, LockerRentalStatus.REQUESTED); }
   public static Rentals rentals() {
-    return new Rentals(List.of(rental(), rental(2, LockerRentalStatus.RENTED),
+    return new Rentals(List.of(rental(), rental(2, LockerRentalStatus.APPROVED),
         rental(3, LockerRentalStatus.REJECTED), rental(4, LockerRentalStatus.RETURNED)), 0, 20, 4, 1);
   }
   public static ExtensionForm extensionForm() {
@@ -108,7 +108,7 @@ public final class LockerMockData {
   public static Extensions extensions() {
     return new Extensions(List.of(extension()), 0, 20, 1, 1);
   }
-  public static Action rentalAction(String status) { return new Action(RENTAL_ID, status, NOW.plusMinutes(1)); }
+  public static Action rentalAction(LockerRentalStatus status) { return new Action(RENTAL_ID, status.name(), NOW.plusMinutes(1)); }
   public static Action extensionAction(String status) { return new Action(EXTENSION_ID, status, NOW.plusDays(1).plusMinutes(1)); }
-  public static BatchAction batch(String status) { return new BatchAction(List.of(rentalAction(status))); }
+  public static BatchAction batch(LockerRentalStatus status) { return new BatchAction(List.of(rentalAction(status))); }
 }

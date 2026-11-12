@@ -42,25 +42,25 @@ public class AdminLockerRentalMockController {
   @PostMapping("/{rentalId}/approve")
   @Operation(summary = "[MOCK] 대여 승인")
   public Action approve(@PathVariable UUID rentalId, @Valid @RequestBody ApprovalRequest request,
-      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction("RENTED"); }
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction(LockerRentalStatus.APPROVED); }
 
   @PostMapping("/{rentalId}/reject")
   @Operation(summary = "[MOCK] 대여 거절")
   public Action reject(@PathVariable UUID rentalId, @Valid @RequestBody RejectRequest request,
-      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction("REJECTED"); }
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction(LockerRentalStatus.REJECTED); }
 
   @PostMapping("/{rentalId}/return")
   @Operation(summary = "[MOCK] 반납 처리")
   public Action returnRental(@PathVariable UUID rentalId, @Valid @RequestBody ManagerRequest request,
-      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction("RETURNED"); }
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.rentalAction(LockerRentalStatus.RETURNED); }
 
   @PostMapping("/approve")
   @Operation(summary = "[MOCK] 선택한 대여 일괄 승인")
   public BatchAction approveBatch(@Valid @RequestBody BatchApprovalRequest request,
-      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.batch("RENTED"); }
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.batch(LockerRentalStatus.APPROVED); }
 
   @PostMapping("/return")
   @Operation(summary = "[MOCK] 선택한 대여 일괄 반납")
   public BatchAction returnBatch(@Valid @RequestBody BatchRequest request,
-      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.batch("RETURNED"); }
+      @Parameter(hidden = true) @AuthOrg AuthUser authUser) { return LockerMockData.batch(LockerRentalStatus.RETURNED); }
 }
