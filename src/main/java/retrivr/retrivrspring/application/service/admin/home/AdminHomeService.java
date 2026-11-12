@@ -85,6 +85,7 @@ public class AdminHomeService {
 
         return new AdminHomeResponse(
                 organization.getName(),
+                organization.getDescription(),
                 organization.getId(),
                 profileImageUrl,
                 requestCount,

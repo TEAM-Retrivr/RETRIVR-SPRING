@@ -68,6 +68,21 @@ class AdminProfileServiceTest {
     }
 
     @Test
+    void updateDescription_isVisibleInProfileAndCanBeCleared() {
+        givenOrganization();
+        adminProfileService.updateDescription(ORGANIZATION_ID, "  학생회관 2층\n신분증 필수  ");
+        assertEquals("학생회관 2층\n신분증 필수", adminProfileService.getProfile(ORGANIZATION_ID).description());
+        adminProfileService.updateDescription(ORGANIZATION_ID, "");
+        assertEquals("", organization.getDescription());
+    }
+
+    @Test
+    void updateDescription_missingOrganization() {
+        assertThrows(ApplicationException.class,
+                () -> adminProfileService.updateDescription(ORGANIZATION_ID, "설명"));
+    }
+
+    @Test
     void getProfile_returnsOrganizationInformationWithoutImageUrlWhenImageDoesNotExist() {
         givenOrganization();
 

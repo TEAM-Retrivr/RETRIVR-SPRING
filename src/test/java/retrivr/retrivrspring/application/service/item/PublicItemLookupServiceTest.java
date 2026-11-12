@@ -82,6 +82,7 @@ class PublicItemLookupServiceTest {
     Organization org = mock(Organization.class);
     when(org.getId()).thenReturn(id);
     when(org.getName()).thenReturn(name);
+    when(org.getDescription()).thenReturn("학생회관 2층");
     return org;
   }
 
@@ -115,6 +116,7 @@ class PublicItemLookupServiceTest {
         .thenReturn(fetched);
 
     PublicItemListPageResponse res = publicItemLookupService.publicOrganizationItemListLookup(orgId, null, 2);
+    assertThat(res.description()).isEqualTo("학생회관 2층");
 
     assertThat(res.items()).hasSize(2);
     assertThat(res.nextCursor()).isEqualTo(99L);

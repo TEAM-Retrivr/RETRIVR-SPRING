@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import retrivr.retrivrspring.presentation.admin.profile.req.AdminDescriptionUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +60,18 @@ public class AdminProfileController {
     @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION})
     public AdminProfileResponse getProfile(@Parameter(hidden = true) @AuthOrg AuthUser authUser) {
         return adminProfileService.getProfile(authUser.organizationId());
+    }
+
+    @PatchMapping("/description")
+    @Operation(summary = "대여지 설명 입력/수정", description = "로그인한 단체의 설명을 저장합니다. 빈 문자열로 삭제할 수 있습니다.")
+    @ApiResponse(responseCode = "204", description = "저장 성공")
+    @ApiErrorCodeExamples({ErrorCode.NOT_FOUND_ORGANIZATION, ErrorCode.INVALID_VALUE_EXCEPTION})
+    public ResponseEntity<Void> updateDescription(
+            @Parameter(hidden = true) @AuthOrg AuthUser authUser,
+            @Valid @RequestBody AdminDescriptionUpdateRequest request
+    ) {
+        adminProfileService.updateDescription(authUser.organizationId(), request.description());
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/organization-name")

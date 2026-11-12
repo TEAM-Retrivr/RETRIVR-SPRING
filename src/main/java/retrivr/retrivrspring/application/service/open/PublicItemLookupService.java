@@ -63,6 +63,7 @@ public class PublicItemLookupService {
     return new PublicItemListPageResponse(
         organizationId,
         organization.getName(),
+                organization.getDescription(),
         profileImageUrl,
         content,
         nextCursor

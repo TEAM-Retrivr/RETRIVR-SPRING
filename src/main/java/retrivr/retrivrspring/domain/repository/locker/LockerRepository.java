@@ -11,8 +11,10 @@ import org.springframework.data.repository.query.Param;
 import retrivr.retrivrspring.domain.entity.locker.Locker;
 import retrivr.retrivrspring.domain.entity.locker.LockerZone;
 import retrivr.retrivrspring.domain.entity.organization.Organization;
+import retrivr.retrivrspring.infrastructure.repository.locker.LockerSearchRepository;
 
-public interface LockerRepository extends JpaRepository<Locker, UUID> {
+public interface LockerRepository extends JpaRepository<Locker, UUID>,
+    LockerSearchRepository {
 
   @Modifying
   @Query("delete from Locker locker where locker.zone = :zone")
@@ -36,6 +38,10 @@ public interface LockerRepository extends JpaRepository<Locker, UUID> {
   List<StatusCount> countByStatus(@Param("organizationId") Long organizationId, @Param("zoneId") UUID zoneId);
 
   List<Locker> findByZoneAndOperationStatusOrderByRowIndexAscColumnIndexAsc(LockerZone zone, LockerOperationStatus operationStatus);
+
+  @Modifying
+  @Query("update Locker locker set locker.parentLocker = :newParentLocker where locker.parentLocker = :parentLocker")
+  int updateByParentLocker(Locker parentLocker, Locker newParentLocker);
 
   interface StatusCount {
     LockerEnableStatus getEnableStatus();

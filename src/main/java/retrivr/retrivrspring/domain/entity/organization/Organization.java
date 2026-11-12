@@ -51,6 +51,16 @@ public class Organization extends BaseTimeEntity {
   @Column(name = "profile_image_key", length = 500)
   private String profileImageKey;
 
+  @Column(length = 200)
+  private String description;
+
+  public void changeDescription(String description) {
+    if (description == null || description.length() > 200) {
+      throw new DomainException(ErrorCode.INVALID_VALUE_EXCEPTION);
+    }
+    this.description = description.strip();
+  }
+
   @Builder
   public Organization(
           Long id,

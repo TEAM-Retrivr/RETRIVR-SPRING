@@ -27,6 +27,17 @@ class OrganizationTest {
   }
 
   @Test
+  void description_lengthBoundaryAndInvalidInput() {
+    Organization organization = organizationWith(OrganizationStatus.ACTIVE);
+    assertThatCode(() -> organization.changeDescription("가".repeat(200))).doesNotThrowAnyException();
+    assertThatThrownBy(() -> organization.changeDescription("가".repeat(201)))
+        .isInstanceOf(DomainException.class);
+    assertThatThrownBy(() -> organization.changeDescription(null))
+        .isInstanceOf(DomainException.class);
+    org.assertj.core.api.Assertions.assertThat(organization.getDescription()).hasSize(200);
+  }
+
+  @Test
   @DisplayName("ACTIVE 단체는 운영 중이다")
   void assertOperating_active_ok() {
     assertThatCode(() -> organizationWith(OrganizationStatus.ACTIVE).assertOperating())

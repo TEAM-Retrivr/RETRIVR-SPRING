@@ -53,8 +53,16 @@ public class AdminProfileService {
                 organization.getName(),
                 organization.getId(),
                 organization.getEmail(),
-                profileImageUrl
+                profileImageUrl,
+                organization.getDescription()
         );
+    }
+
+    @Transactional
+    public void updateDescription(Long organizationId, String description) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_FOUND_ORGANIZATION));
+        organization.changeDescription(description);
     }
 
     @Transactional
